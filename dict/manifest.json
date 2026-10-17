@@ -1,0 +1,32 @@
+{
+  "version": "6dcfab38d76e",
+  "createdAt": "2026-10-17T14:06:15.303Z",
+  "variants": {
+    "common": {
+      "bytes": 14737408,
+      "gzBytes": 5336067,
+      "parts": [
+        {
+          "file": "part-000.bin",
+          "bytes": 5336067
+        }
+      ],
+      "kanji": 2600,
+      "vocab": 22645,
+      "sentences": 17562
+    },
+    "full": {
+      "bytes": 90906624,
+      "gzBytes": 31549678,
+      "parts": [
+        {
+          "file": "part-000.bin",
+          "bytes": 31549678
+        }
+      ],
+      "kanji": 2600,
+      "vocab": 218898,
+      "sentences": 17562
+    }
+  }
+}

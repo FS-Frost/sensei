@@ -1,0 +1,1 @@
+var e=`/sensei/`.replace(/\/$/,``);export{e as t};
