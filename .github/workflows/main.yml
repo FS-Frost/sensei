@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+jobs:
+    test-build-deploy:
+        runs-on: ubuntu-latest
+        # Para publicar en la rama gh-pages con el token del workflow.
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout 🛎️
+              uses: actions/checkout@v5
+
+            - uses: oven-sh/setup-bun@v2.0.2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Type check
+              run: bun run check
+
+            - name: Run tests
+              run: bun test
+
+            # Descargas de jmdict-simplified (data/raw): se reutilizan entre ejecuciones.
+            - name: Cache dictionary sources
+              uses: actions/cache@v4
+              with:
+                  path: data/raw
+                  key: jmdict-raw-${{ github.run_id }}
+                  restore-keys: jmdict-raw-
+
+            - name: Build dictionary (common + full)
+              run: bun run build:dict --variants common,full
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            # Base del sitio: /<repo> (o vacía si el repo es <usuario>.github.io).
+            - name: Build
+              run: |
+                  REPO="${{ github.event.repository.name }}"
+                  if [[ "$REPO" == *.github.io ]]; then export BASE_PATH=""; else export BASE_PATH="/$REPO"; fi
+                  bun run build
+
+            # SPA: index.html para la raíz y 404.html para cualquier ruta profunda.
+            - name: SPA entry points
+              run: cp build/404.html build/index.html
+
+            - name: Generate build info
+              run: |
+                  echo "{\"sha\": \"${{ github.sha }}\", \"ref\": \"${{ github.ref_name }}\", \"actor\": \"${{ github.actor }}\", \"repo\": \"${{ github.event.repository.name }}\"}" > build/build-info.json
+
+            - name: Generate .nojekyll
+              run: echo "" > build/.nojekyll
+
+            - name: Deploy
+              uses: JamesIves/github-pages-deploy-action@4.1.7
+              with:
+                  branch: gh-pages
+                  folder: build

@@ -1,0 +1,25 @@
+docs
+node_modules
+
+# Output
+.output
+/.svelte-kit
+/build
+
+# Datos locales (descargas de jmdict-simplified, bases de trabajo)
+/data
+
+# Diccionario generado por `bun run build:dict` (lo publica el CI)
+/static/dict
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env (ya no lo usa la app; puede quedar con la API key de la versión anterior)
+.env
+.env.*
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

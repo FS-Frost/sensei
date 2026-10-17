@@ -1,0 +1,45 @@
+<script lang="ts">
+	import HelpLink from '#lib/components/HelpLink.svelte';
+	import SessionsTable from '#lib/components/SessionsTable.svelte';
+	import { MODE_DESC, MODE_LABEL } from '#lib/tutorModes.ts';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+</script>
+
+<svelte:head><title>Tutor · Sensei</title></svelte:head>
+
+<h1>Tutor <HelpLink section="tutor" /></h1>
+<p class="small muted">
+	También lo tienes en el botón 話 de cualquier pantalla: sabe lo que estás viendo.
+</p>
+
+<div class="modes">
+	{#each Object.entries(MODE_LABEL) as [mode, label] (mode)}
+		<a class="card mode" href="/tutor/nueva?modo={mode}">
+			<strong>{label}</strong>
+			<span class="small muted">{MODE_DESC[mode as keyof typeof MODE_DESC]}</span>
+		</a>
+	{/each}
+</div>
+
+<h2>Sesiones anteriores</h2>
+<SessionsTable sessions={data.sessions} />
+
+<style>
+	.modes {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 0.8rem;
+	}
+	.mode {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+		color: var(--text);
+	}
+	.mode:hover {
+		text-decoration: none;
+		border-color: var(--accent);
+	}
+</style>
