@@ -32,7 +32,14 @@ mock.module('../src/lib/server/gemini/client.ts', () => ({
 	generateJson: async () => ({}),
 	errorMessage: (e: unknown) => String(e),
 	isTransient: (e: unknown) => String(e).includes('503'),
-	GeminiUnavailableError: class extends Error {}
+	GeminiUnavailableError: class extends Error {},
+	// El mock reemplaza el módulo para TODOS los tests del proceso (el orden varía por SO):
+	// tiene que exponer todo lo que exporta client.ts.
+	errorStatus: () => null,
+	withRetry: <T>(fn: () => Promise<T>) => fn(),
+	listModels: async () => [],
+	isCompatibleModel: (id: string) =>
+		id.startsWith('gemini-') && !/(tts|image|banana|embedding|live|transcribe|native-audio|audio|robotics|omni|veo|lyria|imagen|antigravity|deep-research|computer-use|aqa|gemma|learnlm)/.test(id)
 }));
 
 const { openDb } = await import('../src/lib/server/db/bun.ts');
