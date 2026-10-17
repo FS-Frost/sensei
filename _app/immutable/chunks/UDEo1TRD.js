@@ -1,1 +1,0 @@
-import{A as e,E as t,H as n,O as r,Y as i,f as a}from"./Wmc0gF41.js";var o=e(`<span> </span>`);function s(e,s){let c={none:`sin estudiar`,learning:`aprendiendo`,review:`en repaso`,mastered:`dominado`};var l=o(),u=i(l,!0);n(()=>{a(l,1,`badge st-${s.status??``}`,`svelte-12nqn7t`),t(u,c[s.status])}),r(e,l)}export{s as t};

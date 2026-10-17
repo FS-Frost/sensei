@@ -1,0 +1,1 @@
+import{D as e,U as t,X as n,j as r,k as i,p as a}from"./Bub2jKkB.js";var o=r(`<span> </span>`);function s(r,s){let c={none:`sin estudiar`,learning:`aprendiendo`,review:`en repaso`,mastered:`dominado`};var l=o(),u=n(l,!0);t(()=>{a(l,1,`badge st-${s.status??``}`,`svelte-12nqn7t`),e(u,c[s.status])}),i(r,l)}export{s as t};
