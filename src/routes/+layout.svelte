@@ -97,7 +97,10 @@
 	{/if}
 </svelte:head>
 
-{#if !ready || data.readable === undefined}
+{#if path.startsWith('/lab/')}
+	<!-- Laboratorio: páginas de prueba que no necesitan la base ni el diccionario. -->
+	{@render children()}
+{:else if !ready || data.readable === undefined}
 	<Setup />
 {:else}
 	<div class="shell">
