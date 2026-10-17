@@ -21,7 +21,9 @@ export default defineConfig({
 			},
 			// SPA: 404.html sirve cualquier ruta profunda en GitHub Pages.
 			adapter: adapter({ pages: 'build', assets: 'build', fallback: '404.html', precompress: false, strict: false }),
-			paths: { base, relative: false }
+			paths: { base, relative: false },
+			// Se registra a mano solo en build (client/pwa.ts).
+			serviceWorker: { register: false }
 		})
 	],
 	resolve: { alias },

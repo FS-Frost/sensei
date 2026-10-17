@@ -36,6 +36,7 @@ Japanese-reading tutor for a Spanish speaker. **Static site (GitHub Pages)**: Sv
 - Backups: `data/store.ts` BlobStore (OPFS folder `backups/` in the browser; `store-fs.ts` for tests). `backups.ts` functions are async and take a store.
 - `server/config.ts` — no `.env`: Gemini key stored as internal setting `_geminiApiKey` (never exported), loaded by the Worker, set via `POST/DELETE /api/gemini-key` (validated with `listModels`). Optional hard budget stop (`budgetHardStop` + `assertBudget` before every call).
 - No PIN/auth any more (each browser only sees its own data).
+- **PWA**: `static/manifest.webmanifest` + icons (vermilion hanko seal with 先生 drawn from KanjiVG strokes: `icons/icon.svg` app, `icons/icon-maskable.svg` full-bleed safe zone, `favicon.svg` = 先 only for 16-32 px tabs; PNGs 192/512/maskable/apple-touch rendered from the SVGs with headless Edge — regenerate them if the SVGs change), `src/service-worker.ts` (Kit 3: `$app/manifest` `immutable`/`assets`, `$app/env` `version`), registered manually in prod by `client/pwa.ts` (`serviceWorker.register: false`). Kit only lists the Worker entry, so `precacheWorkerGraph` crawls its chunks and `.wasm` refs at install. `dict/` is never cached (lives in OPFS after install); external origins (Gemini, fonts) pass through. Cache `sensei-<version>`; `sensei-kanjivg` is kept across versions.
 
 ## Architecture
 

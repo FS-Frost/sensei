@@ -2,7 +2,7 @@
 
 Plataforma para aprender a **leer** japonés desde el español. Un SRS (FSRS) y diccionarios abiertos son la fuente de verdad; Gemini hace de tutor: conversa por turnos, prepara quizzes, escribe lecturas graduadas, explica frases y fotos, y crea mnemotecnias.
 
-Es un **sitio estático** (GitHub Pages): todo corre en tu navegador. La base de datos (SQLite en WebAssembly) se guarda en el almacenamiento privado del navegador (OPFS); no hay servidor ni cuentas.
+Es un **sitio estático** (GitHub Pages) y una **PWA**: todo corre en tu navegador, se puede instalar como app (escritorio y móvil) y abre sin conexión. La base de datos (SQLite en WebAssembly) se guarda en el almacenamiento privado del navegador (OPFS); no hay servidor ni cuentas. Sin conexión funciona todo salvo lo que usa Gemini.
 
 ## Usarlo
 
@@ -95,6 +95,6 @@ Exportar/importar .zip (importar reemplaza, con copia previa), copias automátic
 | KRADFILE / RADKFILE | componentes de cada kanji | CC-BY-SA 4.0 (EDRDG) |
 | JMdict (inglés + español) | vocabulario y búsqueda | CC-BY-SA 4.0 (EDRDG) |
 | Ejemplos de Tatoeba (vía JMdict) | frases de ejemplo | CC-BY 2.0 FR |
-| KanjiVG (bajo demanda, jsDelivr) | orden de trazos | CC-BY-SA 3.0 |
+| KanjiVG (bajo demanda, jsDelivr) | orden de trazos; trazos de 先生 en el icono | CC-BY-SA 3.0 |
 
 El diccionario publicado (`dict/`) deriva de estas fuentes y se distribuye bajo las mismas licencias.

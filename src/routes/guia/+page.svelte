@@ -329,6 +329,7 @@
 		<h2>Datos y copias</h2>
 		<ul>
 			<li><strong>Todo vive en este navegador</strong>: cada navegador o dispositivo tiene sus propios datos. Para pasar tu progreso al móvil u otro PC, exporta aquí e importa allí.</li>
+			<li><strong>Como app y sin conexión</strong>: instálala desde el navegador («Instalar app» o «Añadir a pantalla de inicio»). Tras la primera visita abre sin red; solo lo que usa Gemini necesita conexión.</li>
 			<li><strong>Exportar</strong>: un .zip con progreso, historial, tutor, lecturas, ajustes y contenido generado. Sin diccionarios ni API key.</li>
 			<li><strong>Importar</strong>: reemplaza tu estado por el del .zip; antes guarda una copia.</li>
 			<li><strong>Copias</strong>: una automática al día (si hubo cambios) y una antes de cada importación, restauración o reinicio. Se borran solas a los {data.retentionDays} días, salvo la más reciente.</li>
