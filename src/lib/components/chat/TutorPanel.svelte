@@ -30,6 +30,7 @@
 		'/estadisticas': 'Estadísticas',
 		'/guia': 'Guía',
 		'/datos': 'Datos y copias',
+		'/sincronizar': 'Sincronizar',
 		'/ajustes': 'Ajustes',
 		'/nivel': 'Test de nivel',
 		'/bienvenida': 'Bienvenida'

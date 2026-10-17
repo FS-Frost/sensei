@@ -20,7 +20,7 @@ export type RestorePreview = {
 export async function restoreFromZip(
 	db: DB,
 	bytes: Uint8Array,
-	opts: { dry: boolean; backupKind: Extract<BackupKind, 'pre-import' | 'pre-restore'> }
+	opts: { dry: boolean; backupKind: Extract<BackupKind, 'pre-import' | 'pre-restore' | 'pre-sync'> }
 ): Promise<RestorePreview & { backup?: string }> {
 	let parsed;
 	try {

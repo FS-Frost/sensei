@@ -1,7 +1,7 @@
 // Exportación / importación de los datos del usuario como .zip (formato propio, versionado).
 // Solo datos del usuario: los diccionarios se descargan del sitio (dict/).
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
-import { and, eq, isNotNull, like, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, like, sql } from 'drizzle-orm';
 import type { DB } from '../db/index.ts';
 import * as s from '../db/schema.ts';
 
@@ -57,52 +57,65 @@ const FILES = ['progress', 'tutor', 'generated', 'settings', 'content'] as const
 
 // ---------- Construir ----------
 
+/**
+ * Todas las consultas llevan `orderBy` por clave: el snapshot (y su hash) tiene que ser **determinista**.
+ * La sincronización entre dispositivos detecta «hubo cambios» comparando hashes.
+ */
 export function buildSnapshot(db: DB): Snapshot {
-	const userVocab = db.select().from(s.vocab).where(like(s.vocab.id, 'u:%')).all();
+	const userVocab = db.select().from(s.vocab).where(like(s.vocab.id, 'u:%')).orderBy(asc(s.vocab.id)).all();
 	return {
 		progress: {
-			cards: db.select().from(s.card).all(),
-			reviewLog: db.select().from(s.reviewLog).all(),
-			confusions: db.select().from(s.confusion).all(),
-			minedSentences: db.select().from(s.minedSentence).all(),
-			readingLog: db.select().from(s.readingLog).all(),
-			studyQueue: db.select().from(s.studyQueue).all()
+			cards: db.select().from(s.card).orderBy(asc(s.card.id)).all(),
+			reviewLog: db.select().from(s.reviewLog).orderBy(asc(s.reviewLog.id)).all(),
+			confusions: db.select().from(s.confusion).orderBy(asc(s.confusion.kind), asc(s.confusion.a), asc(s.confusion.b)).all(),
+			minedSentences: db.select().from(s.minedSentence).orderBy(asc(s.minedSentence.id)).all(),
+			readingLog: db.select().from(s.readingLog).orderBy(asc(s.readingLog.id)).all(),
+			studyQueue: db.select().from(s.studyQueue).orderBy(asc(s.studyQueue.itemType), asc(s.studyQueue.itemKey)).all()
 		},
 		tutor: {
-			sessions: db.select().from(s.session).all(),
-			messages: db.select().from(s.message).all(),
-			summaries: db.select().from(s.sessionSummary).all(),
-			notes: db.select().from(s.learnerNote).all(),
-			weeklyReports: db.select().from(s.weeklyReport).all(),
-			actions: db.select().from(s.tutorAction).all()
+			sessions: db.select().from(s.session).orderBy(asc(s.session.id)).all(),
+			messages: db.select().from(s.message).orderBy(asc(s.message.id)).all(),
+			summaries: db.select().from(s.sessionSummary).orderBy(asc(s.sessionSummary.sessionId)).all(),
+			notes: db.select().from(s.learnerNote).orderBy(asc(s.learnerNote.id)).all(),
+			weeklyReports: db.select().from(s.weeklyReport).orderBy(asc(s.weeklyReport.id)).all(),
+			actions: db.select().from(s.tutorAction).orderBy(asc(s.tutorAction.id)).all()
 		},
 		generated: {
-			texts: db.select().from(s.generatedText).all(),
-			library: db.select().from(s.libraryText).all(),
-			usage: db.select().from(s.geminiUsage).all()
+			texts: db.select().from(s.generatedText).orderBy(asc(s.generatedText.id)).all(),
+			library: db.select().from(s.libraryText).orderBy(asc(s.libraryText.id)).all(),
+			usage: db.select().from(s.geminiUsage).orderBy(asc(s.geminiUsage.id)).all()
 		},
 		// Los valores internos (`_…`: API key de Gemini, versión del diccionario) nunca se exportan.
-		settings: db.select().from(s.setting).where(sql`substr(${s.setting.key}, 1, 1) != '_'`).all(),
+		settings: db
+			.select()
+			.from(s.setting)
+			.where(sql`substr(${s.setting.key}, 1, 1) != '_'`)
+			.orderBy(asc(s.setting.key))
+			.all(),
 		content: {
 			mnemonics: db
 				.select({ char: s.kanji.char, meaning: s.kanji.mnemonicMeaning, reading: s.kanji.mnemonicReading })
 				.from(s.kanji)
 				.where(sql`${s.kanji.mnemonicMeaning} is not null or ${s.kanji.mnemonicReading} is not null`)
+				.orderBy(asc(s.kanji.char))
 				.all(),
 			componentNames: db
 				.select({ symbol: s.component.symbol, name: s.component.nameEs, source: s.component.nameSource })
 				.from(s.component)
 				.where(and(isNotNull(s.component.nameEs), eq(s.component.nameSource, 'gemini')))
+				.orderBy(asc(s.component.symbol))
 				.all() as { symbol: string; name: string; source: string | null }[],
 			glosses: db
 				.select({ id: s.vocab.id, glosses: s.vocab.glossesEs, source: s.vocab.glossesEsSource })
 				.from(s.vocab)
 				.where(and(isNotNull(s.vocab.glossesEs), eq(s.vocab.glossesEsSource, 'gemini')))
+				.orderBy(asc(s.vocab.id))
 				.all() as { id: string; glosses: string[]; source: string | null }[],
 			sentences: db
 				.select({ vocabId: s.sentence.vocabId, jp: s.sentence.jp, es: s.sentence.es })
 				.from(s.sentence)
 				.where(and(isNotNull(s.sentence.es), isNotNull(s.sentence.vocabId)))
+				.orderBy(asc(s.sentence.id))
 				.all() as { vocabId: string; jp: string; es: string }[],
 			userVocab: userVocab.map((v) => ({
 				vocab: v,
@@ -110,12 +123,14 @@ export function buildSnapshot(db: DB): Snapshot {
 					.select({ f: s.vocabForm.form })
 					.from(s.vocabForm)
 					.where(eq(s.vocabForm.vocabId, v.id))
+					.orderBy(asc(s.vocabForm.form))
 					.all()
 					.map((r) => r.f),
 				kanji: db
 					.select({ k: s.vocabKanji.kanji })
 					.from(s.vocabKanji)
 					.where(eq(s.vocabKanji.vocabId, v.id))
+					.orderBy(asc(s.vocabKanji.kanji))
 					.all()
 					.map((r) => r.k)
 			})),
@@ -123,6 +138,7 @@ export function buildSnapshot(db: DB): Snapshot {
 				.select({ a: s.similarKanji.a, b: s.similarKanji.b, tip: s.similarKanji.tip })
 				.from(s.similarKanji)
 				.where(isNotNull(s.similarKanji.tip))
+				.orderBy(asc(s.similarKanji.a), asc(s.similarKanji.b))
 				.all() as { a: string; b: string; tip: string }[]
 		}
 	};

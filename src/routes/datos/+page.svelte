@@ -273,8 +273,10 @@
 	</p>
 	<p class="small muted">
 		<strong>Todo vive en este navegador.</strong> Otro navegador u otro dispositivo (el móvil) tiene sus propios datos: para pasar tu
-		progreso, exporta aquí e importa allí. Si borras los datos del sitio en el navegador, se pierden: descarga un .zip de vez en cuando.
+		progreso, usa <a href="/sincronizar">Sincronizar</a> (por sonido y red local, sin internet) o exporta aquí e importa allí. Si borras
+		los datos del sitio en el navegador, se pierden: descarga un .zip de vez en cuando.
 	</p>
+	<div><a class="btn small" href="/sincronizar">同 Sincronizar con otro dispositivo</a></div>
 	{#if nonZero(current).length}
 		<div class="row small">
 			{#each nonZero(current) as [k, n] (k)}<span class="badge">{n} {LABEL[k] ?? k}</span>{/each}

@@ -28,6 +28,7 @@
 		['calibrar', 'Calibrar el SRS'],
 		['ajustes', 'Ajustes'],
 		['costos', 'Costos de Gemini'],
+		['sincronizar', 'Sincronizar dispositivos'],
 		['datos', 'Datos y copias'],
 		['ruta', 'La ruta'],
 		['problemas', 'Problemas frecuentes']
@@ -323,6 +324,25 @@
 			<li>Las lecturas, explicaciones e informes muestran «≈ $…» al generarse, y cada sesión del tutor su total.</li>
 			<li>Es una estimación: la factura real está en Google AI Studio. Las sesiones largas cuestan más por turno porque cada respuesta reenvía el historial.</li>
 		</ul>
+	</section>
+
+	<section id="sincronizar" class="card">
+		<h2>Sincronizar dispositivos</h2>
+		<p>
+			Pasa tu progreso entre el PC y el móvil <strong>sin internet</strong>: se emparejan por <strong>sonido</strong> (ultrasonido, casi
+			inaudible) y los datos viajan directamente por tu <strong>red local</strong>. Nada pasa por servidores.
+		</p>
+		<ol>
+			<li>Abre <a href="/sincronizar">Sincronizar</a> en ambos. Pulsa «Iniciar» en uno y «Unirme» en el otro.</li>
+			<li>El primero emite su código por sonido; el segundo lo oye y responde por sonido. Si el sonido no llega: QR o copiar y pegar el código.</li>
+			<li>Ambos muestran el mismo código de 4 dígitos: confírmalo en los dos (solo la primera vez; con «Recordar» ya no se pide).</li>
+			<li>Sensei decide solo quién tiene lo más nuevo. Si los dos cambiaron, eliges con qué quedarte; lo descartado queda en una copia.</li>
+		</ol>
+		<p class="small muted">
+			Requisitos: misma WiFi (algunas redes de invitados aíslan los dispositivos: usa el móvil como punto de acceso) y haber abierto Sensei
+			una vez con internet en cada dispositivo. Diagnóstico: <a href="/lab/ultrasonido">laboratorio de ultrasonido</a> y
+			<a href="/lab/red-local">de red local</a>.
+		</p>
 	</section>
 
 	<section id="datos" class="card">

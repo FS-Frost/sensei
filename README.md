@@ -16,9 +16,19 @@ La key se guarda solo en ese navegador y nunca viaja en exportaciones ni copias.
 - En Google Cloud, restríngela por *referrer* a `https://<usuario>.github.io/*` y solo a la «Generative Language API».
 - Pon un presupuesto en **Costos** y, si quieres, activa «Bloquear Gemini al superarlo».
 
+### Sincronizar PC ↔ móvil (sin internet)
+
+**Sistema → Sincronizar**: pulsa «Iniciar» en un dispositivo y «Unirme» en el otro.
+1. **Emparejamiento por sonido:** se emparejan por **ultrasonido** (casi inaudible), con QR o copiar y pegar como respaldo.
+2. **Transferencia:** los datos viajan **directamente por tu red local** (WebRTC, IP a IP), sin servidores ni internet.
+3. **Código:** la primera vez, ambos muestran el mismo código de 4 dígitos para confirmar. Con «Recordar», no vuelve a pedirse.
+4. **Quién gana:** Sensei decide solo quién tiene lo más nuevo. Si los dos cambiaron, eliges; lo descartado queda en una copia.
+5. **Requisitos:** misma WiFi (o el móvil como punto de acceso) y haber abierto Sensei una vez con internet en cada uno.
+6. **Diagnóstico:** `/lab/ultrasonido` y `/lab/red-local`.
+
 ### Tus datos
 
-- Viven en **este navegador**: otro navegador o el móvil tienen los suyos. Para pasar el progreso: **Datos → Exportar** en uno e **Importar** en el otro.
+- Viven en **este navegador**: otro navegador o el móvil tienen los suyos. Para pasar el progreso: **Sincronizar**, o **Datos → Exportar** en uno e **Importar** en el otro.
 - Si borras los datos del sitio en el navegador, se pierden. Sensei pide almacenamiento persistente y hace copias automáticas, pero descarga un .zip de vez en cuando.
 - Solo una pestaña a la vez puede tener la base abierta.
 

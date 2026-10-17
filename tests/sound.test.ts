@@ -2,7 +2,7 @@
 import { expect, test } from 'bun:test';
 import factory from 'ggwave';
 
-test('ultrasonido: ida y vuelta de una clave de 43 caracteres a 48 kHz', async () => {
+test('ultrasonido: ida y vuelta de una clave de 43 caracteres y de unas señas WebRTC compactas, a 48 kHz', async () => {
 	const g = await factory();
 	g.disableLog();
 	const p = g.getDefaultParameters();
@@ -10,7 +10,14 @@ test('ultrasonido: ida y vuelta de una clave de 43 caracteres a 48 kHz', async (
 	p.sampleRateOut = 48000;
 	const tx = g.init(p);
 	const rx = g.init(p);
-	const key = 'q8Zr0Kx3-_aB9c1DeFgHiJkLmNoPqRsTuVwXyZ01234';
+	// Señas reales (oferta de Edge, 105 caracteres) además de la clave corta.
+	const signal = 'S2~o~GaHc~pvnxPC/bX2QZvrLcP89HVTQC~dGgvm96GjRYFVds8qqUpV7AdyTW1Y0gOQU5P9aN9Z9I~192.168.100.5~60269~tn2sdh';
+	for (const key of ['q8Zr0Kx3-_aB9c1DeFgHiJkLmNoPqRsTuVwXyZ01234', signal]) {
+		await roundtrip(g, tx, rx, key);
+	}
+});
+
+async function roundtrip(g: Awaited<ReturnType<typeof factory>>, tx: number, rx: number, key: string) {
 	for (const proto of ['GGWAVE_PROTOCOL_ULTRASOUND_FAST', 'GGWAVE_PROTOCOL_ULTRASOUND_FASTEST']) {
 		const view = g.encode(tx, key, g.ProtocolId[proto], 50);
 		const samples = new Float32Array(view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength));
@@ -24,6 +31,6 @@ test('ultrasonido: ida y vuelta de una clave de 43 caracteres a 48 kHz', async (
 			if (res.length) got = new TextDecoder().decode(new Uint8Array(res));
 		}
 		expect(got).toBe(key);
-		console.log(`${proto}: ${(samples.length / 48000).toFixed(1)} s`);
+		console.log(`${proto} · ${key.length} car.: ${(samples.length / 48000).toFixed(1)} s`);
 	}
-});
+}

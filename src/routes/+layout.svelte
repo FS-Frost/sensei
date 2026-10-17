@@ -73,6 +73,7 @@
 			items: [
 				{ href: '/guia', label: 'Guía', icon: '導', main: false },
 				{ href: '/costos', label: 'Costos', icon: '費', main: false },
+				{ href: '/sincronizar', label: 'Sincronizar', icon: '同', main: false },
 				{ href: '/datos', label: 'Datos y copias', icon: '保', main: false },
 				{ href: '/ajustes', label: 'Ajustes', icon: '設', main: false }
 			]

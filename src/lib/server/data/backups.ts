@@ -7,20 +7,21 @@ import { memoryStore, type BlobStore } from './store.ts';
 
 export const RETENTION_DAYS = 7;
 
-export type BackupKind = 'auto' | 'manual' | 'pre-import' | 'pre-restore' | 'pre-reset' | 'pre-update';
+export type BackupKind = 'auto' | 'manual' | 'pre-import' | 'pre-restore' | 'pre-reset' | 'pre-update' | 'pre-sync';
 export const KIND_LABELS: Record<BackupKind, string> = {
 	auto: 'Automática diaria',
 	manual: 'Manual',
 	'pre-import': 'Antes de importar',
 	'pre-restore': 'Antes de restaurar',
 	'pre-reset': 'Antes de reiniciar',
-	'pre-update': 'Antes de actualizar el diccionario'
+	'pre-update': 'Antes de actualizar el diccionario',
+	'pre-sync': 'Antes de sincronizar'
 };
 
 export type BackupInfo = { name: string; kind: BackupKind; createdAt: number; size: number; counts: Record<string, number> | null };
 
 // sensei-2026-10-16T23-10-05-123-auto.zip
-const NAME_RE = /^sensei-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3})-(auto|manual|pre-import|pre-restore|pre-reset|pre-update)\.zip$/;
+const NAME_RE = /^sensei-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3})-(auto|manual|pre-import|pre-restore|pre-reset|pre-update|pre-sync)\.zip$/;
 
 let defaultStore: BlobStore = memoryStore();
 
