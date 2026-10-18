@@ -3,6 +3,7 @@ import { expect, test } from 'bun:test';
 import { openDb } from '../src/lib/server/db/bun.ts';
 import * as s from '../src/lib/server/db/schema.ts';
 import { dailyPlan, daySummary, pace, summaryText } from '../src/lib/server/daily.ts';
+import { hasGemini } from '../src/lib/server/gemini/client.ts';
 
 const now = new Date('2026-10-18T12:00:00');
 
@@ -58,8 +59,9 @@ test('el tope de repasos depende del tiempo elegido y los bloques van en orden',
 	expect(short.steps.at(-1)!.id).toBe('close');
 	const ids = long.steps.map((x) => x.id);
 	expect(ids.indexOf('review')).toBeLessThan(ids.indexOf('close'));
-	// Sin API key en los tests: cierre local.
-	expect(long.steps.at(-1)!.href).toBe('/hoy?resumen=1');
+	// Cierre con el tutor si hay key; si no, resumen local. (Otro test simula Gemini para todo el proceso: no
+	// suponer ninguno de los dos.)
+	expect(long.steps.at(-1)!.href).toBe(hasGemini() ? '/tutor/nueva?modo=cierre&hoy=1' : '/hoy?resumen=1');
 	expect(long.minutes).toBeLessThanOrEqual(40 + 2);
 });
 
