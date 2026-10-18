@@ -3,6 +3,7 @@
 	// La base y las copias las mide el Worker (/api/data/storage); la cuota y las cachés, esta página.
 	import { onMount } from 'svelte';
 	import { get, post, errMsg } from '../client/api.ts';
+	import { toast } from '../client/toast.svelte.ts';
 	import { install } from '../client/install.svelte.ts';
 
 	let { onchange }: { onchange?: () => void } = $props();
@@ -20,8 +21,6 @@
 	let persisted = $state<boolean | null>(null);
 	let cachesInfo = $state<CacheRow[]>([]);
 	let busy = $state('');
-	let msg = $state('');
-	let error = $state('');
 	let integrity = $state<{ ok: boolean; problems: string[] } | null>(null);
 
 	const CACHE_LABELS: Record<string, string> = {
@@ -48,7 +47,6 @@
 	}
 
 	async function load() {
-		error = '';
 		try {
 			const est = await navigator.storage?.estimate?.();
 			usage = est?.usage ?? null;
@@ -57,36 +55,38 @@
 			report = await get<Report>('/api/data/storage');
 			await measureCaches();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo medir el almacenamiento', { detail: errMsg(e) });
 		}
 	}
 
 	async function protect() {
 		busy = 'persist';
 		persisted = (await navigator.storage?.persist?.()) ?? false;
-		msg = persisted
-			? 'Protegido: el navegador no borrará tus datos para liberar espacio.'
-			: 'El navegador no lo concedió. Suele concederlo a apps instaladas o que se usan a menudo.';
+		if (persisted) toast.success('Datos protegidos', { detail: 'El navegador no los borrará para liberar espacio.' });
+		else toast.warn('El navegador no concedió la protección', { detail: 'Suele concederla a apps instaladas o que se usan a menudo.' });
 		busy = '';
 	}
 
 	async function action(a: 'integrity' | 'vacuum' | 'prune-backups') {
 		busy = a;
-		msg = error = '';
 		try {
-			if (a === 'integrity') integrity = await post('/api/data/storage', { action: a });
+			if (a === 'integrity') {
+				integrity = await post('/api/data/storage', { action: a });
+				if (integrity?.ok) toast.success('La base está bien');
+			}
 			if (a === 'vacuum') {
 				const r = await post<{ before: number; after: number; backup: string }>('/api/data/storage', { action: a });
-				msg = `Compactada: ${fmt(r.before)} → ${fmt(r.after)}. Copia previa: ${r.backup}.`;
+				toast.success(`Base compactada: ${fmt(r.before)} → ${fmt(r.after)}`, { detail: `Copia previa: ${r.backup}.` });
 			}
 			if (a === 'prune-backups') {
 				const r = await post<{ removed: number; bytes: number }>('/api/data/storage', { action: a });
-				msg = r.removed ? `${r.removed} copias borradas (${fmt(r.bytes)} liberados). Se conservó la más reciente.` : 'Solo hay una copia: se conserva.';
+				if (r.removed) toast.success(`${r.removed} copias borradas (${fmt(r.bytes)} liberados)`, { detail: 'Se conservó la más reciente.' });
+				else toast.info('Solo hay una copia: se conserva');
 				onchange?.();
 			}
 			await load();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('La operación falló', { detail: errMsg(e) });
 		} finally {
 			busy = '';
 		}
@@ -95,7 +95,7 @@
 	async function clearCache(name: string) {
 		busy = name;
 		await caches.delete(name);
-		msg = `«${cacheLabel(name)}» vaciada.`;
+		toast.success(`«${cacheLabel(name)}» vaciada`);
 		busy = '';
 		await load();
 	}
@@ -107,7 +107,6 @@
 
 <section class="card stack" id="almacenamiento">
 	<h2>Almacenamiento</h2>
-	{#if error}<div class="error small">{error}</div>{/if}
 
 	{#if usage != null && quota}
 		<div class="small">
@@ -191,7 +190,6 @@
 			{/if}
 		{/if}
 	{/if}
-	{#if msg}<p class="small">{msg}</p>{/if}
 	<p class="small dim">Nada de esto toca tu progreso. Compactar crea antes una copia («Antes de compactar la base»).</p>
 </section>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { goto } from '#lib/client/nav.ts';
 	import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
@@ -20,14 +21,12 @@
 	let pace = $state(untrack(() => data.settings.newKanjiPerDay));
 	let furigana: FuriganaMode = $state(untrack(() => data.settings.furigana));
 	let saving = $state(false);
-	let error = $state('');
 
 	const STEPS = ['Bienvenida', 'El camino', 'El SRS', 'Tu ritmo', 'Leer sin muletas', 'El tutor', '¡A empezar!'];
 	const last = STEPS.length - 1;
 
 	async function finish(target: string) {
 		saving = true;
-		error = '';
 		try {
 			await post('/api/settings', {
 				newKanjiPerDay: pace,
@@ -38,7 +37,7 @@
 			});
 			await goto(target, { refreshAll: true });
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo guardar tu ritmo', { detail: errMsg(e) });
 			saving = false;
 		}
 	}
@@ -154,7 +153,6 @@
 				algunos kanji? Haz después el <a href="/nivel">test de nivel</a> para no repetir lo que dominas.
 			</p>
 			<InstallCard dismissible={false} />
-			{#if error}<div class="error small">{error}</div>{/if}
 			<div class="row">
 				{#if !data.diagDone}
 					<button class="primary" onclick={() => finish('/kana')} disabled={saving}>Ir al diagnóstico de kana</button>

@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import { keepAwake } from '../client/wakeLock.ts';
 	import KanjiTrace from './KanjiTrace.svelte';
+	import { toast } from '../client/toast.svelte.ts';
 	import { writingGrade } from '../strokes.ts';
 	import { recognizeJapanese, speechRecognitionSupported } from '../client/voice.ts';
 	import { isKana, toHiragana } from 'wanakana';
@@ -43,7 +44,6 @@
 	let result: GradeResult | null = $state(null);
 	let warn = $state('');
 	let busy = $state(false);
-	let error = $state('');
 	let started = Date.now();
 	let correctCount = $state(0);
 	let wrongCount = $state(0);
@@ -79,11 +79,12 @@
 				days: 7
 			});
 			if (action === 'pause') {
-				leechMsg = `Apartada hasta el ${new Date(r.due!).toLocaleDateString('es')}. Volverá con la cabeza fresca.`;
+				toast.success(`Apartada hasta el ${new Date(r.due!).toLocaleDateString('es')}`, { detail: 'Volverá con la cabeza fresca.' });
+				leech = null;
 			} else if (action === 'mnemonic') leechMsg = `Nueva mnemotecnia: ${r.meaning}`;
 			else leechSimilar = r.similar ?? [];
 		} catch (e) {
-			leechMsg = errMsg(e);
+			toast.error('No se pudo tratar la tarjeta', { detail: errMsg(e) });
 		} finally {
 			leechBusy = false;
 		}
@@ -145,7 +146,6 @@
 		if (result) return next(result.correct ? 3 : undefined);
 		if (!answer.trim()) return;
 		busy = true;
-		error = '';
 		try {
 			const r = await post<GradeResult>('/api/grade', {
 				itemType: current.itemType,
@@ -166,7 +166,7 @@
 			warn = '';
 			result = r;
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo enviar la respuesta', { detail: errMsg(e) });
 		} finally {
 			busy = false;
 		}
@@ -207,7 +207,7 @@
 			warn = '';
 			started = Date.now();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo enviar la respuesta', { detail: errMsg(e) });
 		} finally {
 			busy = false;
 		}
@@ -346,7 +346,6 @@
 			{#if listening}<div class="small muted center">🎙 Di la lectura…</div>{/if}
 		{/if}
 		{#if warn}<div class="warning small">{warn}</div>{/if}
-		{#if error}<div class="error small">{error}</div>{/if}
 
 		{#if result}
 			<div class="card reveal stack">

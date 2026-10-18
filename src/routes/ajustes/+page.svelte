@@ -6,6 +6,7 @@
 	import { get, post, del, errMsg } from '#lib/client/api.ts';
 	import { installDict } from '#lib/client/backend.svelte.ts';
 	import { base } from '#lib/client/base.ts';
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { japaneseVoices, preferredVoiceName, setPreferredVoice, speak, ttsSupported } from '#lib/client/tts.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ModelPicker from '#lib/components/ModelPicker.svelte';
@@ -20,23 +21,19 @@
 
 	// Copia editable: el formulario no debe seguir a `data` mientras se edita.
 	let s = $state(untrack(() => ({ ...data.settings })));
-	let saved = $state(false);
-	let error = $state('');
 	let voices: SpeechSynthesisVoice[] = $state([]);
 	let voice = $state('');
 
 	async function save() {
-		error = '';
 		try {
 			// El objetivo, los parámetros FSRS y los precios/presupuesto (en /costos) tienen sus propios botones:
 			// no pisarlos con la copia del formulario.
 			const { goal: _g, fsrsParams: _p, fsrsCalibratedAt: _c, modelPrices: _mp, monthlyBudgetUsd: _b, budgetHardStop: _h, ...rest } = s;
 			s = await post('/api/settings', rest);
-			saved = true;
-			setTimeout(() => (saved = false), 1500);
+			toast.success('Ajustes guardados');
 			await refreshAll();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudieron guardar los ajustes', { detail: errMsg(e) });
 		}
 	}
 
@@ -51,12 +48,14 @@
 	});
 	async function saveGoal() {
 		await post('/api/settings', { goal: { label: goalLabel, kanji: goalKanji, date: goalDate } });
+		toast.success('Objetivo guardado', { detail: 'Lo verás en Inicio con tu ritmo necesario.' });
 		await refreshAll();
 	}
 	async function clearGoal() {
 		await post('/api/settings', { goal: null });
 		goalLabel = '';
 		goalDate = '';
+		toast.info('Objetivo quitado');
 		await refreshAll();
 	}
 
@@ -64,16 +63,14 @@
 	type Cal = { params: number[]; workloadBefore: number; workloadAfter: number; reviews: number };
 	let cal = $state<Cal | null>(null);
 	let calBusy = $state(false);
-	let calMsg = $state('');
 	let calApplyOpen = $state(false);
 	let calResetOpen = $state(false);
 	async function computeCal() {
 		calBusy = true;
-		calMsg = '';
 		try {
 			cal = await post<Cal>('/api/fsrs', { action: 'compute' });
 		} catch (e) {
-			calMsg = errMsg(e);
+			toast.error('No se pudo calibrar', { detail: errMsg(e) });
 		} finally {
 			calBusy = false;
 		}
@@ -82,12 +79,12 @@
 		calBusy = true;
 		try {
 			const r = await post<{ updated: number; backup: string }>('/api/fsrs', reset ? { action: 'reset' } : { action: 'apply', params: cal?.params });
-			calMsg = `${r.updated} tarjetas reprogramadas. Copia previa: ${r.backup}.`;
+			toast.success(`${r.updated} tarjetas reprogramadas`, { detail: `Copia previa: ${r.backup}.`, duration: 6000 });
 			cal = null;
 			calApplyOpen = calResetOpen = false;
 			await refreshAll();
 		} catch (e) {
-			calMsg = errMsg(e);
+			toast.error('No se pudo aplicar la calibración', { detail: errMsg(e) });
 		} finally {
 			calBusy = false;
 		}
@@ -97,20 +94,19 @@
 	const origin = typeof location !== 'undefined' ? `${location.origin}${base}/*` : '';
 	let apiKey = $state('');
 	let keyBusy = $state(false);
-	let keyMsg = $state('');
 	let keyError = $state(false);
 	async function saveKey() {
 		keyBusy = true;
-		keyMsg = '';
+		keyError = false;
 		try {
 			const r = await post<{ models: number }>('/api/gemini-key', { key: apiKey });
 			apiKey = '';
 			keyError = false;
-			keyMsg = `Guardada ✓ (Gemini responde: ${r.models} modelos disponibles).`;
+			toast.success('API key guardada', { detail: `Gemini responde: ${r.models} modelos disponibles.` });
 			await refreshAll();
 		} catch (e) {
-			keyError = true;
-			keyMsg = errMsg(e);
+			keyError = true; // el campo queda marcado
+			toast.error('La API key no funciona', { detail: errMsg(e) });
 		} finally {
 			keyBusy = false;
 		}
@@ -119,7 +115,7 @@
 		keyBusy = true;
 		try {
 			await del('/api/gemini-key');
-			keyMsg = 'Quitada.';
+			toast.info('API key quitada de este navegador');
 			keyError = false;
 			await refreshAll();
 		} finally {
@@ -132,7 +128,6 @@
 	const effPro = $derived(s.modelPro || data.env.modelPro);
 	const effFlash = $derived(s.modelFlash || data.env.modelFlash);
 	const currentPreset = $derived(presetOf(effPro, effFlash));
-	let presetMsg = $state('');
 	async function applyPreset(p: ModelPreset) {
 		const isDefault = p.id === DEFAULT_PRESET && data.env.modelPro === p.pro && data.env.modelFlash === p.flash;
 		const patch = { modelPro: isDefault ? '' : p.pro, modelFlash: isDefault ? '' : p.flash };
@@ -140,11 +135,10 @@
 			const r = await post<typeof s>('/api/settings', patch);
 			s.modelPro = r.modelPro;
 			s.modelFlash = r.modelFlash;
-			presetMsg = `${p.icon} ${p.label} activado.`;
-			setTimeout(() => (presetMsg = ''), 3000);
+			toast.success(`${p.icon} Perfil ${p.label} activado`);
 			await refreshAll();
 		} catch (e) {
-			presetMsg = errMsg(e);
+			toast.error('No se pudo cambiar el perfil', { detail: errMsg(e) });
 		}
 	}
 	const costOfPreset = (id: string) => data.presetCosts.find((c) => c.id === id);
@@ -269,7 +263,6 @@
 				</div>
 			</div>
 		{/if}
-		{#if calMsg}<div class="small">{calMsg}</div>{/if}
 	</div>
 </div>
 
@@ -325,11 +318,19 @@
 		<p class="small">Configurada: <code>{data.env.apiKey}</code></p>
 	{/if}
 	<div class="row">
-		<input class="grow" type="password" bind:value={apiKey} placeholder={data.env.gemini ? 'Pegar otra key…' : 'Pega tu API key (AIza…)'} autocomplete="off" />
+		<input
+			class="grow"
+			class:invalid={keyError}
+			aria-invalid={keyError}
+			type="password"
+			bind:value={apiKey}
+			oninput={() => (keyError = false)}
+			placeholder={data.env.gemini ? 'Pegar otra key…' : 'Pega tu API key (AIza…)'}
+			autocomplete="off"
+		/>
 		<button onclick={saveKey} disabled={keyBusy || !apiKey.trim()}>{#if keyBusy}<span class="spinner"></span>{/if} Probar y guardar</button>
 		{#if data.env.gemini}<button class="ghost" onclick={removeKey} disabled={keyBusy}>Quitar</button>{/if}
 	</div>
-	{#if keyMsg}<p class="small" class:error={keyError}>{keyMsg}</p>{/if}
 </div>
 
 <div class="card stack">
@@ -349,7 +350,6 @@
 		{/each}
 	</div>
 	{#if currentPreset === 'custom'}<p class="small muted">Ahora: <strong>personalizado</strong> (modelos elegidos a mano abajo).</p>{/if}
-	{#if presetMsg}<p class="small">{presetMsg}</p>{/if}
 	<p class="dim small">
 		Costos a precios de hoy y suponiendo los mismos tokens (un modelo que razona más gasta más). Argon sube al doble el 1 de diciembre y
 		los Flash 3.6/3.8, el 1 de enero. Detalle en <a href="/costos">Costos</a>.
@@ -389,8 +389,6 @@
 
 <div class="row">
 	<button class="primary" onclick={save}>Guardar</button>
-	{#if saved}<span class="muted">Guardado ✓</span>{/if}
-	{#if error}<span class="error small">{error}</span>{/if}
 </div>
 
 <ConfirmDialog bind:open={calApplyOpen} title="Aplicar calibración" confirmLabel="Aplicar" danger={false} busy={calBusy} onconfirm={() => applyCal(false)}>
@@ -428,6 +426,9 @@
 	.pick {
 		display: flex;
 		gap: 0.4rem;
+	}
+	.invalid {
+		border-color: var(--bad);
 	}
 	.presets {
 		display: grid;

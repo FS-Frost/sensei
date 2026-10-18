@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { refreshAll } from '$app/navigation';
 	import { del, get, post, errMsg, ApiError } from '#lib/client/api.ts';
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { THEME_KEY, initTheme } from '#lib/client/theme.svelte.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import HelpLink from '#lib/components/HelpLink.svelte';
@@ -28,8 +29,6 @@
 	let current: Counts = $state({});
 	let backups: Backup[] = $state([]);
 	let retention = $state(7);
-	let msg = $state('');
-	let error = $state('');
 	let busy = $state(false);
 
 	const LABEL: Record<string, string> = {
@@ -62,14 +61,15 @@
 		try {
 			await downloadFrom(path, name);
 		} catch (e) {
-			error = errMsg(e);
+			fail(e);
 		}
 	}
 
 	function done(text: string) {
-		msg = text;
-		error = '';
-		setTimeout(() => (msg = ''), 6000);
+		toast.success(text, { duration: 6000 });
+	}
+	function fail(e: unknown) {
+		toast.error(errMsg(e));
 	}
 
 	const fmtSize = (b: number) => (b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`);
@@ -99,13 +99,12 @@
 
 	/** Vista previa (sin cambiar nada) y diálogo de confirmación: también para un .zip compartido o abierto con Sensei. */
 	async function previewImport(f: File) {
-		error = '';
 		try {
 			importPreview = await upload(f, true);
 			pendingFile = f;
 			importOpen = true;
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		}
 	}
 
@@ -118,7 +117,7 @@
 			done(`Importado. Tu estado anterior quedó guardado en la copia «${r.backup}».`);
 			await Promise.all([load(), refreshAll()]);
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		} finally {
 			busy = false;
 		}
@@ -138,20 +137,19 @@
 			done(`Copia creada: ${b.name}`);
 			await load();
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		} finally {
 			busy = false;
 		}
 	}
 
 	async function askRestore(b: Backup) {
-		error = '';
 		try {
 			restorePreview = await post<Preview>(`/api/data/backups/${encodeURIComponent(b.name)}/restore?dry=1`);
 			restoreTarget = b;
 			restoreOpen = true;
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		}
 	}
 
@@ -164,7 +162,7 @@
 			done(`Restaurado. El estado previo quedó en «${r.backup}».`);
 			await Promise.all([load(), refreshAll()]);
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		} finally {
 			busy = false;
 		}
@@ -179,7 +177,7 @@
 			done('Copia borrada.');
 			await load();
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		} finally {
 			busy = false;
 		}
@@ -225,12 +223,11 @@
 	}
 
 	async function askReset() {
-		error = '';
 		try {
 			resetPreview = (await post<{ preview: ResetPreview }>('/api/data/reset', { ...resetReq, dry: true })).preview;
 			resetOpen = true;
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		}
 	}
 
@@ -243,7 +240,7 @@
 			done(`Reiniciado. Si te arrepientes, restaura la copia «${r.backup}».`);
 			await Promise.all([load(), refreshAll()]);
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		} finally {
 			busy = false;
 		}
@@ -263,14 +260,14 @@
 			done('Ajustes restablecidos (también los de este dispositivo). La bienvenida volverá a ofrecerse.');
 			await Promise.all([load(), refreshAll()]);
 		} catch (err) {
-			error = errMsg(err);
+			fail(err);
 		} finally {
 			busy = false;
 		}
 	}
 
 	onMount(() => {
-		load().catch((e) => (error = errMsg(e)));
+		load().catch((e) => fail(e));
 	});
 </script>
 
@@ -278,8 +275,6 @@
 
 <h1>Datos y copias <HelpLink section="datos" /></h1>
 
-{#if msg}<div class="card ok small">{msg}</div>{/if}
-{#if error}<div class="error small">{error}</div>{/if}
 
 <div class="card stack">
 	<h2>Qué se guarda</h2>
@@ -459,9 +454,6 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 		gap: 1rem;
-	}
-	.ok {
-		border-color: var(--ok);
 	}
 	table {
 		border-collapse: collapse;

@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Comprobante (acción directa, con «Deshacer») o propuesta (con «Confirmar» / «Rechazar»).
 	import { post, errMsg } from '../../client/api.ts';
+	import { toast } from '../../client/toast.svelte.ts';
 	import type { ActionStatus } from '../../types.ts';
 
 	let {
@@ -28,12 +29,10 @@
 		canUndo = undoable;
 	});
 	let busy = $state(false);
-	let error = $state('');
 	let result: Record<string, unknown> | null = $state(null);
 
 	async function op(o: 'confirm' | 'reject' | 'undo') {
 		busy = true;
-		error = '';
 		try {
 			const r = await post<{ status: ActionStatus; result: Record<string, unknown> | null; undoable: boolean }>(
 				`/api/tutor/actions/${actionId}`,
@@ -44,7 +43,7 @@
 			canUndo = r.undoable;
 			onchange?.();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error(o === 'undo' ? 'No se pudo deshacer' : o === 'confirm' ? 'No se pudo confirmar' : 'No se pudo rechazar', { detail: errMsg(e) });
 		} finally {
 			busy = false;
 		}
@@ -69,7 +68,6 @@
 		{#if status === 'failed' && result?.error}<div class="small error">{String(result.error)}</div>{/if}
 		{#if result?.href}<a class="small" href={String(result.href)}>Abrir</a>{/if}
 		{#if result?.backup}<div class="small dim">Copia previa: {String(result.backup)}</div>{/if}
-		{#if error}<div class="small error">{error}</div>{/if}
 	</div>
 	<div class="ops">
 		{#if status === 'proposed'}

@@ -19,6 +19,8 @@
 	import { publishSchedule, setBadge } from '#lib/client/reminder.ts';
 	import { initDaily } from '#lib/client/daily.svelte.ts';
 	import DailyBar from '#lib/components/DailyBar.svelte';
+	import Toaster from '#lib/components/Toaster.svelte';
+	import { toast } from '#lib/client/toast.svelte.ts';
 
 	// Temprano: `beforeinstallprompt` puede llegar antes de montar.
 	initInstall();
@@ -33,7 +35,21 @@
 	whenBecomesReady(() => void refreshAll());
 	const ready = $derived(backend.value.state === 'ready');
 	const update = $derived(backend.value.state === 'ready' ? backend.value.update : null);
-	let updateDismissed = $state(false);
+	// Diccionario nuevo publicado: toast con «Actualizar» (una vez por sesión; «Más tarde» lo cierra).
+	let dictOffered = false;
+	$effect(() => {
+		if (!update || dictOffered) return;
+		dictOffered = true;
+		toast.info('Hay un diccionario nuevo publicado', {
+			detail: 'Actualizarlo conserva tu progreso (antes se guarda una copia).',
+			duration: null,
+			key: 'dict-update',
+			actions: [
+				{ label: 'Actualizar', run: () => installDict(backend.value.state === 'ready' ? backend.value.dict.variant : 'common') },
+				{ label: 'Más tarde', run: () => {} }
+			]
+		});
+	});
 	let topH = $state(0);
 	$effect(() => {
 		// Más el hueco (gap) que deja main entre la franja y la página, si la franja tiene algo.
@@ -43,7 +59,22 @@
 	onMount(() => {
 		initTheme();
 		void registerServiceWorker();
-		return startBaseLinks();
+		// Conexión: lo que usa Gemini deja de funcionar sin red; el resto sigue.
+		const offline = () =>
+			toast.warn('Sin conexión', { detail: 'El SRS, las lecciones y el diccionario siguen funcionando; lo que usa Gemini, no.', duration: null, key: 'net' });
+		const online = () => toast.success('Conexión recuperada', { key: 'net', duration: 2500 });
+		if (!navigator.onLine) offline();
+		addEventListener('offline', offline);
+		addEventListener('online', online);
+		const installed = () => toast.success('Sensei instalado como app', { detail: 'Ábrelo desde su icono.' });
+		addEventListener('appinstalled', installed);
+		const stop = startBaseLinks();
+		return () => {
+			stop();
+			removeEventListener('offline', offline);
+			removeEventListener('online', online);
+			removeEventListener('appinstalled', installed);
+		};
 	});
 	// Al cambiar de pantalla, el contexto anterior deja de valer; la nueva página publica el suyo.
 	onNavigate(() => setScreenContext(null));
@@ -152,15 +183,6 @@
 			<!-- Avisos de arriba: su altura (--top-h) la descuentan las páginas de altura fija (el chat del tutor). -->
 			<div class="top" bind:clientHeight={topH}>
 			<DailyBar />
-			{#if update && !updateDismissed}
-				<div class="warning row">
-					<span>Hay un diccionario nuevo publicado. Actualizarlo conserva tu progreso (antes se guarda una copia).</span>
-					<button class="small" onclick={() => installDict(backend.value.state === 'ready' ? backend.value.dict.variant : 'common')}>
-						Actualizar
-					</button>
-					<button class="small ghost" onclick={() => (updateDismissed = true)}>Más tarde</button>
-				</div>
-			{/if}
 			{#if !data.gemini}
 				<div class="warning">
 					Sin API key de Gemini: el tutor, las lecturas, el explicador y las mnemotecnias no estarán disponibles.
@@ -213,6 +235,7 @@
 	<TutorPanel />
 {/if}
 <UpdateNotice />
+<Toaster />
 
 <style>
 	.shell {

@@ -20,6 +20,7 @@
 		type SoundProfile
 	} from '#lib/client/sound.ts';
 	import { listen, type Listener } from '#lib/client/sync/audio.ts';
+	import { toast } from '#lib/client/toast.svelte.ts';
 
 	let ctx: AudioContext | null = null;
 	function audio() {
@@ -28,8 +29,7 @@
 		return ctx;
 	}
 
-	let error = $state('');
-	const err = (e: unknown) => (error = e instanceof Error ? e.message : String(e));
+	const err = (e: unknown) => toast.error(e instanceof Error ? e.message : String(e), { key: 'lab' });
 
 	// ---------- 1. ¿Molesta? ----------
 	let volume = $state(10); // tono continuo: a 15-17 kHz molesta enseguida, empezar bajo
@@ -86,18 +86,17 @@
 	const dirty = $derived(
 		protocol !== saved.protocol || txVolume !== saved.volume || highpassHz !== saved.highpassHz || rampMs !== saved.rampMs
 	);
-	let profileMsg = $state('');
 
 	function save() {
 		saveProfile(current());
 		saved = current();
-		profileMsg = 'Guardado: el emparejamiento de este dispositivo usará este sonido.';
+		toast.success('Sonido guardado', { detail: 'El emparejamiento de este dispositivo usará este sonido.' });
 	}
 	function restore() {
 		stopTx();
 		saved = resetProfile();
 		({ protocol, volume: txVolume, highpassHz, rampMs } = saved);
-		profileMsg = 'Restablecido el sonido por defecto.';
+		toast.info('Sonido por defecto restablecido');
 	}
 
 	let payloadKind: 'short' | 'key' = $state('short');
@@ -144,7 +143,6 @@
 	/** Misma señal dos veces: primero cruda (como antes) y luego suavizada con este perfil. */
 	let comparing = $state('');
 	async function compare() {
-		error = '';
 		stopTx();
 		try {
 			const c = audio();
@@ -162,7 +160,6 @@
 	}
 
 	async function startTx(once = false) {
-		error = '';
 		try {
 			stopTx();
 			const c = audio();
@@ -230,7 +227,6 @@
 		stopCal();
 		stopTx();
 		stopRx();
-		error = '';
 		const id = randomPayload('short').slice(0, 4);
 		calHeard = [];
 		calMode = 'emit';
@@ -276,7 +272,6 @@
 		stopCal();
 		stopTx();
 		stopRx();
-		error = '';
 		calHeard = [];
 		calId = '';
 		calMode = 'listen';
@@ -336,7 +331,6 @@
 	let capture = $state('');
 
 	async function startRx() {
-		error = '';
 		try {
 			rx = await listen(
 				(text) => (received = [{ text, at: Date.now(), afterMs: Date.now() - rxStart }, ...received].slice(0, 20)),
@@ -378,7 +372,6 @@
 		Experimento para decidir si se usa sonido (casi) inaudible para emparejar dispositivos. Abre esta página en dos dispositivos:
 		uno <strong>emite</strong> un código y el otro lo <strong>escucha</strong>. No toca tus datos.
 	</p>
-	{#if error}<div class="error small">{error}</div>{/if}
 
 	<section class="card stack">
 		<h2>1. ¿Lo oyes? ¿Molesta?</h2>
@@ -469,7 +462,6 @@
 				<button class="primary small" onclick={save} disabled={!dirty}>Guardar como sonido de este dispositivo</button>
 				<button class="ghost small" onclick={restore}>Restablecer</button>
 			</div>
-			{#if profileMsg}<p class="small ok-text">{profileMsg}</p>{/if}
 			{#if dirty}<p class="small dim">Sin guardar. Guardado: {describe(saved)}.</p>{/if}
 			{#if trials.length}
 				<details class="small" open>
@@ -631,9 +623,6 @@
 	.levels span.on {
 		background: var(--ok);
 		color: #fff;
-	}
-	.ok-text {
-		color: var(--ok);
 	}
 	.warn-text {
 		color: var(--warn);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { onMount } from 'svelte';
 	import { get, post, errMsg } from '#lib/client/api.ts';
@@ -38,7 +39,6 @@
 	let cost = $state<OperationCost | null>(null);
 	let past: Past[] = $state([]);
 	let loading = $state(false);
-	let error = $state('');
 	let showEs: Record<number, boolean> = $state({});
 	let allEs = $state(false);
 	let picked: Record<number, number> = $state({});
@@ -49,14 +49,13 @@
 
 	async function generate() {
 		loading = true;
-		error = '';
 		try {
 			const r = await post<{ id: number; reading: Reading; cost: OperationCost | null }>('/api/reading', { style, length, topic });
 			open(r.id, r.reading, []);
 			cost = r.cost;
 			loadPast();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo generar la lectura', { detail: errMsg(e) });
 		} finally {
 			loading = false;
 		}
@@ -108,7 +107,7 @@
 		loadPast();
 		// ?id=N: abrir una lectura concreta (p. ej. relectura sugerida en Inicio).
 		const id = Number(new URL(location.href).searchParams.get('id'));
-		if (id) openPast(id).catch((e) => (error = errMsg(e)));
+		if (id) openPast(id).catch((e) => toast.error('No se pudo generar la lectura', { detail: errMsg(e) }));
 	});
 </script>
 
@@ -143,7 +142,6 @@
 	</button>
 </div>
 
-{#if error}<div class="error">{error}</div>{/if}
 
 {#if reading}
 	<article class="card stack">

@@ -2,6 +2,7 @@
 	// Cronómetro de lectura: mide caracteres por minuto y programa la relectura del texto.
 	import { onDestroy } from 'svelte';
 	import { post, errMsg } from '../client/api.ts';
+	import { toast } from '../client/toast.svelte.ts';
 	import { prefs } from '../client/state.svelte.ts';
 	import { keepAwake } from '../client/wakeLock.ts';
 	import { completeDaily } from '../client/daily.svelte.ts';
@@ -27,13 +28,11 @@
 	let startedAt: number | null = $state(null);
 	let elapsed = $state(0);
 	let result: { log: Log; nextReread: number | null } | null = $state(null);
-	let error = $state('');
 	let timer: ReturnType<typeof setInterval> | undefined;
 	let release: (() => void) | null = null; // pantalla encendida mientras corre el cronómetro
 
 	function start() {
 		result = null;
-		error = '';
 		release?.();
 		release = keepAwake();
 		startedAt = Date.now();
@@ -61,7 +60,7 @@
 			completeDaily('reading'); // cualquier lectura cronometrada cuenta para la sesión de hoy
 			onlogged?.(r);
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo registrar la lectura', { detail: errMsg(e) });
 		}
 	}
 
@@ -92,7 +91,6 @@
 			{#if result.nextReread}· próxima relectura: {new Date(result.nextReread).toLocaleDateString('es')}{/if}
 		</span>
 	{/if}
-	{#if error}<span class="error">{error}</span>{/if}
 </div>
 
 <style>

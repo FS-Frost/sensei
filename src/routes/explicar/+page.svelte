@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { post, errMsg } from '#lib/client/api.ts';
 	import type { JpToken } from '#lib/types.ts';
@@ -17,7 +18,7 @@
 		const p = takePending('explicar');
 		if (!p) return;
 		if (p.text) text = p.text;
-		if (p.files[0]) pick(p.files[0]).catch((err) => (error = errMsg(err)));
+		if (p.files[0]) pick(p.files[0]).catch((err) => toast.error('No se pudo explicar', { detail: errMsg(err) }));
 	});
 
 	type Explanation = {
@@ -49,7 +50,7 @@
 			await post('/api/srs/add', { grammar: id });
 			learned[id] = true;
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo explicar', { detail: errMsg(e) });
 		}
 	}
 
@@ -58,13 +59,11 @@
 	let result = $state<Explanation | null>(null);
 	let cost = $state<OperationCost | null>(null);
 	let loading = $state(false);
-	let error = $state('');
 	let fileInput: HTMLInputElement | undefined = $state();
 
 	const MAX = 1600; // px del lado mayor tras reducir
 
 	async function pick(file: File) {
-		error = '';
 		// Reducir la imagen en el navegador: menos datos y menos tokens.
 		const bmp = await createImageBitmap(file);
 		const scale = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
@@ -78,21 +77,20 @@
 
 	function onfile(e: Event) {
 		const f = (e.target as HTMLInputElement).files?.[0];
-		if (f) pick(f).catch((err) => (error = errMsg(err)));
+		if (f) pick(f).catch((err) => toast.error('No se pudo explicar', { detail: errMsg(err) }));
 	}
 
 	function onpaste(e: ClipboardEvent) {
 		const f = [...(e.clipboardData?.files ?? [])].find((x) => x.type.startsWith('image/'));
 		if (f) {
 			e.preventDefault();
-			pick(f).catch((err) => (error = errMsg(err)));
+			pick(f).catch((err) => toast.error('No se pudo explicar', { detail: errMsg(err) }));
 		}
 	}
 
 	async function explain() {
 		if (!text.trim() && !image) return;
 		loading = true;
-		error = '';
 		result = null;
 		try {
 			const r = await post<{ explanation: Explanation; cost: OperationCost | null }>('/api/explain', {
@@ -102,7 +100,7 @@
 			result = r.explanation;
 			cost = r.cost;
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo explicar', { detail: errMsg(e) });
 		} finally {
 			loading = false;
 		}
@@ -145,7 +143,6 @@
 	</div>
 </div>
 
-{#if error}<div class="error">{error}</div>{/if}
 
 {#if result}
 	<CostNote {cost} />

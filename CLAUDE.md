@@ -81,6 +81,8 @@ Japanese-reading tutor for a Spanish speaker. **Static site (GitHub Pages)**: Sv
 
 ## Invariants / gotchas
 
+- **Notifications = toasts** (`client/toast.svelte.ts` + `components/Toaster.svelte`, mounted once at the layout root, top-center, z 70): `toast.success|info|warn|error(msg, { detail, duration, actions, key, persistent })`. Defaults: success 3.5 s, info 5 s, warn 8 s, error stays until closed; hover/focus pauses; `key` replaces a previous toast (net status, version, daily). Use them for action confirmations and transient failures; keep inline only errors that replace a page's main content or belong to a form field. Don't add new `msg`/`setTimeout` banners.
+
 - **Tutor tools** (`gemini/tools.ts` + `gemini/actions.ts`):
   - Queries return data.
   - UI tools return a `UiBlock` (`card`, `choices`, `links` from the `DESTINATIONS` whitelist, `jptext`).

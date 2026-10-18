@@ -2,6 +2,7 @@
 	import { refreshAll } from '$app/navigation';
 	import type { PageProps } from './$types';
 	import { post, errMsg } from '#lib/client/api.ts';
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import KanjiDetail from '#lib/components/KanjiDetail.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { askTutor, setScreenContext, tutor } from '#lib/client/tutorContext.svelte.ts';
@@ -34,18 +35,16 @@
 			});
 	});
 	let busy = $state(false);
-	let error = $state('');
 	let added = $state(false);
 
 	async function enrich() {
 		if (!data.kanji) return;
 		busy = true;
-		error = '';
 		try {
 			await post(`/api/kanji/${encodeURIComponent(data.kanji.char)}/enrich`);
 			await refreshAll();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error(errMsg(e));
 		} finally {
 			busy = false;
 		}
@@ -62,19 +61,17 @@
 	let resetOpen = $state(false);
 	let resetBusy = $state(false);
 	let resetInfo: Record<string, number> | null = $state(null);
-	let resetMsg = $state('');
 	const item = $derived(
 		data.kanji ? { type: 'kanji' as const, key: data.kanji.char } : data.component ? { type: 'component' as const, key: data.component.symbol } : null
 	);
 
 	async function askReset() {
 		if (!item) return;
-		error = '';
 		try {
 			resetInfo = (await post<{ preview: Record<string, number> }>('/api/data/reset', { item, dry: true })).preview;
 			resetOpen = true;
 		} catch (e) {
-			error = errMsg(e);
+			toast.error(errMsg(e));
 		}
 	}
 
@@ -84,10 +81,10 @@
 		try {
 			const r = await post<{ backup: string }>('/api/data/reset', { item });
 			resetOpen = false;
-			resetMsg = `Reiniciado. Copia previa: ${r.backup}`;
+			toast.success('Ítem reiniciado', { detail: `Copia previa: ${r.backup}.` });
 			await refreshAll();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error(errMsg(e));
 		} finally {
 			resetBusy = false;
 		}
@@ -129,8 +126,6 @@
 			<button class="ghost" onclick={askReset} title="Vuelve a «sin estudiar»: reaparecerá en las lecciones">Reiniciar este kanji…</button>
 		{/if}
 	</div>
-	{#if error}<div class="error small">{error}</div>{/if}
-	{#if resetMsg}<div class="card small">{resetMsg}</div>{/if}
 {:else if data.component}
 	<div class="card stack">
 		<div class="row">
@@ -147,8 +142,6 @@
 			</div>
 		</div>
 		<div><button class="ghost small" onclick={askReset}>Reiniciar este componente…</button></div>
-		{#if error}<div class="error small">{error}</div>{/if}
-		{#if resetMsg}<div class="small">{resetMsg}</div>{/if}
 	</div>
 {/if}
 

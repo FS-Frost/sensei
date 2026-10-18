@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Reader from '#lib/components/reader/Reader.svelte';
+	import { toast } from '#lib/client/toast.svelte.ts';
+	import { goto } from '#lib/client/nav.ts';
 	import { get, post, errMsg } from '#lib/client/api.ts';
 	import type { FuriganaMode, JpToken, TextStats } from '#lib/types.ts';
 	import { prefs } from '#lib/client/state.svelte.ts';
@@ -25,10 +27,9 @@
 	};
 
 	let data: Data | null = $state(null);
-	let error = $state('');
+	let failed = $state(false);
 	let selected: Record<string, boolean> = $state({});
 	let goalDate = $state('');
-	let planMsg = $state('');
 	let planBusy = $state(false);
 	let mining = $state(false);
 	let furigana: FuriganaMode = $state(prefs.furigana);
@@ -51,7 +52,11 @@
 		const id = page.params.id ?? '';
 		if (id === loadedId) return;
 		loadedId = id;
-		load().catch((e) => (error = errMsg(e)));
+		failed = false;
+		load().catch((e) => {
+			failed = true;
+			toast.error('No se pudo abrir el texto', { detail: errMsg(e) });
+		});
 	});
 
 	const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -93,17 +98,20 @@
 
 	async function plan(withGoal: boolean) {
 		planBusy = true;
-		planMsg = '';
 		try {
 			const r = await post<{ queuedWords: number; queuedKanji: number; goal: { date: string } | null }>(
 				`/api/library/${page.params.id}/plan`,
 				{ words: chosen, goalDate: withGoal ? goalDate : undefined }
 			);
-			planMsg =
-				`En cola: ${r.queuedWords} palabra(s) y ${r.queuedKanji} kanji. Entrarán primero en tus lecciones.` +
-				(r.goal ? ` Objetivo creado para el ${new Date(r.goal.date).toLocaleDateString('es')}: lo verás en Inicio.` : '');
+			toast.success(`En cola: ${r.queuedWords} palabra(s) y ${r.queuedKanji} kanji`, {
+				detail:
+					'Entrarán primero en tus lecciones.' +
+					(r.goal ? ` Objetivo creado para el ${new Date(r.goal.date).toLocaleDateString('es')}: lo verás en Inicio.` : ''),
+				duration: 6000,
+				actions: [{ label: 'Ir a la lección', run: () => void goto('/leccion') }]
+			});
 		} catch (e) {
-			planMsg = errMsg(e);
+			toast.error('No se pudo preparar el plan', { detail: errMsg(e) });
 		} finally {
 			planBusy = false;
 		}
@@ -121,8 +129,8 @@
 
 <a href="/biblioteca" class="small">← Biblioteca</a>
 
-{#if error}
-	<div class="error">{error}</div>
+{#if failed}
+	<p class="small muted">Este texto no se pudo abrir. <a href="/biblioteca">Volver a la Biblioteca</a>.</p>
 {:else if !data}
 	<span class="spinner"></span>
 {:else}
@@ -169,7 +177,6 @@
 				<span class="dim">(todos sus kanji a la cola + objetivo con fecha en Inicio)</span>
 			</div>
 			{#if data.queued}<div class="small muted">Ya hay {data.queued} ítem(s) de este texto en cola.</div>{/if}
-			{#if planMsg}<div class="small">{planMsg}</div>{/if}
 		</div>
 	{/if}
 

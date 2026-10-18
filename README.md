@@ -85,6 +85,7 @@ bun run dev                     # http://localhost:5173
   - `?tutor=1` en cualquier URL abre el panel.
 - **Lectura graduada** (i+1), **Explicador** (texto o foto), **furigana adaptativa**, validación de lecturas contra JMdict.
 - **Mapa de kanji**, ficha por kanji (con orden de trazos de KanjiVG), **estadísticas** y **ajustes**.
+- **Avisos arriba de la pantalla**: confirmaciones, información y advertencias se cierran solas (pasar el ratón las pausa); los errores quedan hasta cerrarlos con ✕. Algunos traen botones («Actualizar», «Seguir →»).
 
 ### El viaje: del primer kanji a leer lo que quieres
 

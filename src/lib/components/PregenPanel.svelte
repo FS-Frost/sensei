@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { get, post, errMsg } from '../client/api.ts';
 	import { fmtUsd, type OperationCost } from '../cost.ts';
+	import { toast } from '../client/toast.svelte.ts';
 
 	let { gemini }: { gemini: boolean } = $props();
 
@@ -15,7 +16,6 @@
 	let running = $state(false);
 	let stop = false;
 	let spent = $state(0);
-	let error = $state('');
 
 	async function load() {
 		st = await get<Status>(`/api/pregen?ahead=${ahead}`);
@@ -24,8 +24,8 @@
 	async function run() {
 		running = true;
 		stop = false;
-		error = '';
 		spent = 0;
+		const start = st?.done ?? 0;
 		try {
 			while (!stop && st && st.nextKanji.length) {
 				const before = st.nextKanji.length;
@@ -34,19 +34,24 @@
 				spent += r.cost?.usd ?? 0;
 				// Sin avance (p. ej. la API no devolvió nada útil): parar en vez de repetir.
 				if (st.nextKanji.length >= before) {
-					error = 'No se pudo preparar la siguiente tanda. Prueba de nuevo más tarde.';
+					toast.error('No se pudo preparar la siguiente tanda', { detail: 'Prueba de nuevo más tarde: lo hecho se conserva.' });
 					break;
 				}
 			}
+			const done = (st?.done ?? 0) - start;
+			if (done > 0)
+				toast.success(stop ? `Pausado: ${done} kanji preparados` : `${done} kanji preparados`, {
+					detail: `Costo: ${fmtUsd(spent)}.${stop ? ' Puedes seguir cuando quieras.' : ''}`
+				});
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('Se detuvo la preparación', { detail: `${errMsg(e)} Lo hecho se conserva.` });
 		} finally {
 			running = false;
 		}
 	}
 
 	onMount(() => {
-		load().catch((e) => (error = errMsg(e)));
+		load().catch((e) => toast.error('No se pudo leer el estado', { detail: errMsg(e) }));
 	});
 	const pct = $derived(st && st.total ? Math.round((st.done / st.total) * 100) : 0);
 </script>
@@ -82,7 +87,6 @@
 			{/if}
 		</div>
 	{/if}
-	{#if error}<p class="small error">{error}</p>{/if}
 	<p class="small dim">
 		Va en tandas de 8 kanji (unas 4-5 llamadas cortas por tanda). Con el perfil Equilibrado, 100 kanji suelen costar menos de unos
 		céntimos de dólar; el costo real aparece en Costos.

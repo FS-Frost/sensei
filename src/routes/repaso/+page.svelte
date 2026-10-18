@@ -7,17 +7,18 @@
 	import ReviewSession from '#lib/components/ReviewSession.svelte';
 	import { page } from '$app/state';
 	import { completeDaily } from '#lib/client/daily.svelte.ts';
+	import { toast } from '#lib/client/toast.svelte.ts';
 
 	let items: ReviewItem[] | null = $state(null);
 	let total = $state(0);
-	let error = $state('');
+	let failed = $state(false);
 	let finished = $state(false);
 	// Desde la sesión de hoy: tope de tarjetas (el resto queda para otra vez).
 	const limit = $derived(Math.min(100, Math.max(1, Number(page.url.searchParams.get('limite')) || 100)));
 	const fromDaily = $derived(page.url.searchParams.has('hoy'));
 
 	async function load() {
-		error = '';
+		failed = false;
 		finished = false;
 		items = null;
 		try {
@@ -26,7 +27,8 @@
 			total = r.total;
 			if (!items.length) completeDaily('review');
 		} catch (e) {
-			error = errMsg(e);
+			failed = true;
+			toast.error('No se pudieron cargar los repasos', { detail: errMsg(e) });
 		}
 	}
 
@@ -40,8 +42,8 @@
 	{#if total > limit}<span class="muted small">{fromDaily ? 'Sesión de hoy' : 'Mostrando'}: {limit} de {total}</span>{/if}
 </div>
 
-{#if error}
-	<div class="error">{error}</div>
+{#if failed}
+	<div class="card"><button onclick={load}>Reintentar</button></div>
 {:else if items === null}
 	<span class="spinner"></span>
 {:else if !items.length}

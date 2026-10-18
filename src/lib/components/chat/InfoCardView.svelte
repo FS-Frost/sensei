@@ -6,6 +6,7 @@
 	import SpeakButton from '../SpeakButton.svelte';
 	import PromptText from '../PromptText.svelte';
 	import Markdown from '../Markdown.svelte';
+	import { toast } from '../../client/toast.svelte.ts';
 
 	let { card }: { card: InfoCard } = $props();
 	let queued = $state(false);
@@ -20,7 +21,7 @@
 			queued = true;
 			msg = r.type === 'grammar' ? 'Añadido a tu gramática' : 'En cola para tu próxima lección';
 		} catch (e) {
-			msg = errMsg(e);
+			toast.error('No se pudo añadir a la lección', { detail: errMsg(e) });
 		}
 	}
 </script>

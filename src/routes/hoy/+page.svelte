@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Sesión diaria guiada: plan de hoy (con tu ritmo real), recorrido paso a paso y resumen al final.
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { get, errMsg } from '#lib/client/api.ts';
@@ -26,17 +27,15 @@
 	let budget = $state(20);
 	let plan = $state<Plan | null>(null);
 	let summary = $state<Summary | null>(null);
-	let error = $state('');
 	const resumen = $derived(page.url.searchParams.has('resumen'));
 
 	async function load() {
-		error = '';
 		try {
 			const r = await get<{ plan: Plan; summary: Summary }>(`/api/daily?min=${budget}`);
 			plan = r.plan;
 			summary = r.summary;
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo preparar la sesión de hoy', { detail: errMsg(e) });
 		}
 	}
 
@@ -72,7 +71,6 @@
 <svelte:head><title>Hoy · Sensei</title></svelte:head>
 
 <h1>Tu sesión de hoy <HelpLink section="hoy" /></h1>
-{#if error}<div class="error small">{error}</div>{/if}
 
 {#if finished || resumen}
 	<section class="card stack done">

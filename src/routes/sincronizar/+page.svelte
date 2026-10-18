@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Sincronizar con otro dispositivo: emparejar por sonido (o QR) y pasar los datos por la red local.
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { onMount } from 'svelte';
 	import { refreshAll } from '$app/navigation';
 	import { del, get, errMsg } from '#lib/client/api.ts';
@@ -24,7 +25,6 @@
 	let remember = $state(true);
 	let attempt = $state(0);
 	let offerFromLink: string | null = $state(null);
-	let error = $state('');
 	let renaming: string | null = $state(null);
 	let renameValue = $state('');
 	const myName = deviceName();
@@ -43,7 +43,12 @@
 			code: c.code,
 			binding: c.binding,
 			remember,
-			onStatus: (s) => (status = s)
+			onStatus: (s) => {
+				status = s;
+				if (s.step === 'error') toast.error('La sincronización se detuvo', { detail: s.message });
+				if (s.step === 'done')
+					toast.success(s.result === 'same' ? 'Ya estaban sincronizados' : s.result === 'sent' ? `${s.peerName} recibió tus datos` : `Datos recibidos de ${s.peerName}`);
+			}
 		});
 		void session.start();
 		void session.done.then(async (s) => {
@@ -87,7 +92,7 @@
 			offerFromLink = decodeURIComponent(m[1]);
 			history.replaceState(null, '', location.pathname); // un solo uso: no reutilizar al recargar
 		}
-		loadPeers().catch((e) => (error = errMsg(e)));
+		loadPeers().catch((e) => toast.error('No se pudieron leer los dispositivos recordados', { detail: errMsg(e) }));
 		return release;
 	});
 </script>
@@ -101,7 +106,6 @@
 	Pasa tu progreso entre este dispositivo y otro (PC ↔ móvil) <strong>sin internet</strong>: se emparejan por sonido y los datos
 	viajan por tu red local. Eliges cómo emparejarlos: QR + sonido, sonido, QR o copiar y pegar. Este dispositivo: <strong>{myName}</strong>.
 </p>
-{#if error}<div class="error small">{error}</div>{/if}
 
 <section class="card stack">
 	{#if !status}

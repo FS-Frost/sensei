@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Selector de modelo de Gemini para un rol (Pro / Flash): precio, límites, razonamiento,
 	// estimación con tu uso real y relación frente al modelo actual.
+	import { toast } from '../client/toast.svelte.ts';
 	import { get, errMsg } from '../client/api.ts';
 	import { fmtPrice, fmtTokens, fmtUsd } from '../cost.ts';
 	import { fold } from '../sessionsTable.ts';
@@ -47,7 +48,6 @@
 
 	let dialog: HTMLDialogElement | undefined = $state();
 	let data = $state<Data | null>(null);
-	let error = $state('');
 	let loading = $state(false);
 	let query = $state('');
 	let showAll = $state(false);
@@ -64,11 +64,10 @@
 
 	async function load() {
 		loading = true;
-		error = '';
 		try {
 			data = await get<Data>('/api/models');
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo cargar la lista de modelos', { detail: errMsg(e) });
 		} finally {
 			loading = false;
 		}
@@ -143,7 +142,6 @@
 		{/if}
 	</div>
 
-	{#if error}<div class="error small">{error}</div>{/if}
 	{#if loading}<p class="small muted"><span class="spinner"></span> Cargando modelos…</p>{/if}
 
 	{#if data}

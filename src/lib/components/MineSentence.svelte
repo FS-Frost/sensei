@@ -1,13 +1,14 @@
 <script lang="ts">
 	// «Guardar frase»: crea una tarjeta en contexto con la palabra que elijas de la frase.
 	import { post, errMsg } from '../client/api.ts';
+	import { toast } from '../client/toast.svelte.ts';
 	import type { JpToken } from '../types.ts';
 	import { hasKanji } from '../jp.ts';
 
 	let { tokens, es = null, source }: { tokens: JpToken[]; es?: string | null; source: string } = $props();
 
 	let open = $state(false);
-	let status: 'idle' | 'busy' | 'ok' | 'err' = $state('idle');
+	let status: 'idle' | 'busy' | 'ok' = $state('idle');
 	let msg = $state('');
 	const candidates = $derived(tokens.filter((t) => hasKanji(t.s)));
 	const jp = $derived(tokens.map((t) => t.s).join(''));
@@ -20,8 +21,8 @@
 			msg = `Guardada con «${t.s}»`;
 			open = false;
 		} catch (e) {
-			status = 'err';
-			msg = errMsg(e);
+			status = 'idle';
+			toast.error('No se pudo guardar la frase', { detail: errMsg(e) });
 		}
 	}
 </script>
@@ -43,7 +44,6 @@
 				{/each}
 			</span>
 		{/if}
-		{#if status === 'err'}<span class="small error">{msg}</span>{/if}
 	</span>
 {/if}
 

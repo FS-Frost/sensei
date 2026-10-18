@@ -8,6 +8,7 @@
 	import { decode, PREFIX, type Signal } from '../../client/sync/signal.ts';
 	import { audioContext, createEmitter, listen, type Emitter, type Listener } from '../../client/sync/audio.ts';
 	import { qrSvg, scanQr } from '../../client/sync/qr.ts';
+	import { toast } from '../../client/toast.svelte.ts';
 	import { base } from '../../client/base.ts';
 	import { loadProfile, type ProtocolKey } from '../../client/sound.ts';
 
@@ -43,7 +44,6 @@
 	// QR abierto con la cámara del sistema: «#s=<oferta>&m=qs» si el otro espera la respuesta por sonido.
 	// Se lee al crear el componente, antes de que la página limpie el hash.
 	const linkMethod: Method = typeof location !== 'undefined' && /[#&]m=qs\b/.test(location.hash) ? 'qrsound' : 'qr';
-	let error = $state('');
 	let myText = $state('');
 	let qr = $state('');
 	let level = $state(-140);
@@ -81,17 +81,20 @@
 		offer = null;
 		finishing = false;
 		mode = 'idle';
-		myText = qr = pasted = error = micError = camError = '';
+		myText = qr = pasted = micError = camError = '';
 		heard = copied = needsTap = false;
 	}
 
 	function err(e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 		// Sin permiso de micrófono ni cámara, el navegador oculta la IP local tras un nombre «.local» que algunas redes no resuelven.
-		error =
-			method === 'paste' && /red local|no se conectó/.test(msg)
-				? `${msg} Con «Copiar y pegar» el navegador oculta la IP local (no hay permiso de micrófono ni cámara) y algunas redes no la resuelven: prueba con sonido o QR.`
-				: msg;
+		toast.error(msg, {
+			detail:
+				method === 'paste' && /red local|no se conectó/.test(msg)
+					? 'Con «Copiar y pegar» el navegador oculta la IP local (no hay permiso de micrófono ni cámara) y algunas redes no la resuelven: prueba con sonido o QR.'
+					: undefined,
+			key: 'pairing'
+		});
 	}
 
 	function startClock() {
@@ -314,7 +317,6 @@
 	// ---------- Texto leído (QR) o pegado ----------
 	function useText(raw: string) {
 		const text = decodeURIComponent(raw.trim().replace(/^.*#s=/, ''));
-		error = '';
 		try {
 			const s = decode(text);
 			if (s.role === 'o') {
@@ -374,7 +376,6 @@
 </script>
 
 <div class="pairing stack">
-	{#if error}<div class="error small">{error}</div>{/if}
 
 	{#if mode === 'idle'}
 		<div class="two">

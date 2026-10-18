@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { goto } from '#lib/client/nav.ts';
 	import { get, post, errMsg } from '#lib/client/api.ts';
 	import AnswerInput from '#lib/components/AnswerInput.svelte';
@@ -16,7 +17,6 @@
 	let results: { band: number; range: [number, number]; score: number }[] = $state([]);
 	let confirmed: string[] = $state([]);
 	let failsInRow = $state(0);
-	let error = $state('');
 	let applyOpen = $state(false);
 	let busy = $state(false);
 	let applied = $state('');
@@ -83,7 +83,7 @@
 			applyOpen = false;
 			applied = `Marcados ${r.kanji} kanji y ${r.components} componentes como conocidos (${r.cards} tarjetas). Irán apareciendo en tus repasos las próximas 2 semanas para confirmarlo.`;
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo continuar el test de nivel', { detail: errMsg(e) });
 		} finally {
 			busy = false;
 		}
@@ -105,7 +105,7 @@
 			repartidos en 2 semanas, así se confirma sin saturarte. Si empiezas de cero, no lo necesitas.
 		</p>
 		<div class="row">
-			<button class="primary" onclick={() => start().catch((e) => (error = errMsg(e)))}>Empezar</button>
+			<button class="primary" onclick={() => start().catch((e) => toast.error('No se pudo continuar el test de nivel', { detail: errMsg(e) }))}>Empezar</button>
 			<a class="btn" href="/">Ahora no</a>
 		</div>
 	</div>
@@ -140,7 +140,6 @@
 		{/if}
 	</div>
 {/if}
-{#if error}<div class="error small">{error}</div>{/if}
 
 <ConfirmDialog bind:open={applyOpen} title="Marcar como conocidos" confirmLabel="Aplicar" danger={false} {busy} onconfirm={apply}>
 	<p>Se crearán tarjetas «en repaso» para esos kanji y sus componentes. Antes se guarda una copia de seguridad.</p>

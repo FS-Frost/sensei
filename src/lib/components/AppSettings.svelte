@@ -2,11 +2,11 @@
 	// Ajustes → App: instalar, recordatorio de repasos y qué funciones de app tiene este navegador.
 	import { onMount } from 'svelte';
 	import { install, isIos, promptInstall } from '../client/install.svelte.ts';
+	import { toast } from '../client/toast.svelte.ts';
 	import { disableReminder, enableReminder, reminderEnabled, reminderSupport, type ReminderSupport } from '../client/reminder.ts';
 
 	let on = $state(false);
 	let busy = $state(false);
-	let msg = $state('');
 	let support = $state<ReminderSupport>({ notifications: false, periodic: false, badge: false });
 	let ios = $state(false);
 	let denied = $state(false);
@@ -20,16 +20,16 @@
 
 	async function toggle() {
 		busy = true;
-		msg = '';
 		try {
 			if (on) {
 				await disableReminder();
 				on = false;
-				msg = 'Recordatorio desactivado.';
+				toast.info('Recordatorio desactivado');
 			} else {
 				const r = await enableReminder();
 				on = r.ok;
-				msg = r.message;
+				if (r.ok) toast.success('Recordatorio activado', { detail: r.message, duration: 7000 });
+				else toast.warn('No se pudo activar el recordatorio', { detail: r.message });
 				denied = typeof Notification !== 'undefined' && Notification.permission === 'denied';
 			}
 		} finally {
@@ -78,7 +78,6 @@
 			</p>
 		{/if}
 	{/if}
-	{#if msg}<p class="small">{msg}</p>{/if}
 
 	<h3>Desde otras apps</h3>
 	<ul class="small muted">

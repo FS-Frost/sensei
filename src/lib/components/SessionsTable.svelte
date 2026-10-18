@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { del, errMsg } from '../client/api.ts';
+	import { toast } from '../client/toast.svelte.ts';
 	import type { ChatMode } from '../types.ts';
 	import { MODE_LABEL } from '../tutorModes.ts';
 	import { filterSessions, nextSort, sortSessions, type SessionListRow, type Sort, type SortKey } from '../sessionsTable.ts';
@@ -19,7 +20,6 @@
 	let editValue = $state('');
 	let toDelete: SessionListRow | null = $state(null);
 	let deleteOpen = $state(false);
-	let error = $state('');
 
 	const label = (m: ChatMode) => MODE_LABEL[m];
 	const shown = $derived(sortSessions(filterSessions(rows, query, mode, label), sort, label));
@@ -48,8 +48,9 @@
 			});
 			if (!res.ok) throw new Error((await res.json()).error ?? 'Error');
 			r.title = t;
+			toast.success('Sesión renombrada', { duration: 2500 });
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo renombrar', { detail: errMsg(e) });
 		}
 	}
 
@@ -59,13 +60,13 @@
 			await del(`/api/chat/${toDelete.id}`);
 			rows = rows.filter((r) => r.id !== toDelete!.id);
 			deleteOpen = false;
+			toast.success('Sesión borrada', { detail: 'Su costo sigue contando en Costos.' });
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo borrar la sesión', { detail: errMsg(e) });
 		}
 	}
 </script>
 
-{#if error}<div class="error small">{error}</div>{/if}
 <div class="card wrap">
 	<table>
 		<thead>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '#lib/client/nav.ts';
@@ -15,7 +16,6 @@
 	let costUsd = $state(0);
 	let summary = $state('');
 	let ending = $state(false);
-	let error = $state('');
 	let deleteOpen = $state(false);
 	let draft = $state('');
 	const id = $derived(Number(page.params.id));
@@ -33,7 +33,7 @@
 			summary = r.summary ?? 'Sesión demasiado corta para resumir.';
 			await loadSession();
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo abrir la conversación', { detail: errMsg(e) });
 		} finally {
 			ending = false;
 		}
@@ -45,7 +45,7 @@
 	}
 
 	onMount(() => {
-		loadSession().catch((e) => (error = errMsg(e)));
+		loadSession().catch((e) => toast.error('No se pudo abrir la conversación', { detail: errMsg(e) }));
 	});
 </script>
 
@@ -69,7 +69,6 @@
 		</div>
 	</div>
 	{#if summary}<div class="card small"><strong>Resumen guardado:</strong> {summary}</div>{/if}
-	{#if error}<div class="error small">{error}</div>{/if}
 	{#if session}
 		{#key id}
 			<ChatView

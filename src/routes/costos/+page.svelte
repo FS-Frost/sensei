@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { get, post, errMsg } from '#lib/client/api.ts';
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { fmtTokens, fmtUsd } from '#lib/cost.ts';
 	import { MODE_LABEL } from '#lib/tutorModes.ts';
 	import type { ChatMode } from '#lib/types.ts';
@@ -73,8 +74,6 @@
 
 	let info = $state<Info | null>(null);
 	let range = $state(30);
-	let error = $state('');
-	let msg = $state('');
 	let busy = $state(false);
 
 	const RANGES = [
@@ -91,9 +90,10 @@
 	}
 
 	function done(text: string) {
-		msg = text;
-		error = '';
-		setTimeout(() => (msg = ''), 5000);
+		toast.success(text, { duration: 6000 });
+	}
+	function fail(e: unknown) {
+		toast.error(errMsg(e));
 	}
 
 	const r = $derived(info?.report);
@@ -138,7 +138,7 @@
 			await load();
 			done(reset ? 'Precios por defecto restaurados.' : 'Precios guardados. Se aplican a las llamadas nuevas.');
 		} catch (e) {
-			error = errMsg(e);
+			fail(e);
 		} finally {
 			busy = false;
 		}
@@ -153,7 +153,7 @@
 			await load();
 			done(`Recalculadas ${res.recomputed} llamadas con los precios actuales.`);
 		} catch (e) {
-			error = errMsg(e);
+			fail(e);
 		} finally {
 			busy = false;
 		}
@@ -170,7 +170,7 @@
 			await load();
 			done(value ? 'Presupuesto guardado.' : 'Presupuesto quitado.');
 		} catch (e) {
-			error = errMsg(e);
+			fail(e);
 		} finally {
 			busy = false;
 		}
@@ -183,7 +183,7 @@
 			await load();
 			done(on ? 'Gemini se bloqueará al superar el presupuesto.' : 'Solo avisará al superar el presupuesto.');
 		} catch (e) {
-			error = errMsg(e);
+			fail(e);
 		} finally {
 			busy = false;
 		}
@@ -191,11 +191,11 @@
 
 	function setRange(v: number) {
 		range = v;
-		load().catch((e) => (error = errMsg(e)));
+		load().catch((e) => fail(e));
 	}
 
 	onMount(() => {
-		load().catch((e) => (error = errMsg(e)));
+		load().catch((e) => fail(e));
 	});
 </script>
 
@@ -207,8 +207,6 @@
 	está en Google AI Studio.
 </p>
 
-{#if msg}<div class="card ok small">{msg}</div>{/if}
-{#if error}<div class="error small">{error}</div>{/if}
 
 {#if unpricedConfigured.length}
 	<div class="card small warnbox">

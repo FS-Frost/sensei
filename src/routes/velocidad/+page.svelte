@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { onMount } from 'svelte';
 	import { get, post, errMsg } from '#lib/client/api.ts';
 	import type { JpToken } from '#lib/types.ts';
@@ -12,7 +13,6 @@
 	type Challenge = { id: number; title: string; lines: JpToken[][]; source: string };
 	let challenge = $state<Challenge | null>(null);
 	let loading = $state(false);
-	let error = $state('');
 
 	async function loadHistory() {
 		history = (await get<{ history: Log[] }>('/api/speed')).history;
@@ -20,11 +20,10 @@
 
 	async function newChallenge() {
 		loading = true;
-		error = '';
 		try {
 			challenge = await post<Challenge>('/api/speed');
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo preparar el reto', { detail: errMsg(e) });
 		} finally {
 			loading = false;
 		}
@@ -37,7 +36,7 @@
 	const first4 = $derived(avg(history.slice(0, 4).map((h) => h.cpm)));
 
 	onMount(() => {
-		loadHistory().catch((e) => (error = errMsg(e)));
+		loadHistory().catch((e) => toast.error('No se pudo preparar el reto', { detail: errMsg(e) }));
 	});
 </script>
 
@@ -72,7 +71,6 @@
 	</button>
 	<span class="small dim">También cuentan las lecturas cronometradas de la Biblioteca y de las lecturas graduadas.</span>
 </div>
-{#if error}<div class="error small">{error}</div>{/if}
 
 {#if challenge}
 	<ReadTimer {chars} textKind="speed" textId={challenge.id} previous={[]} onlogged={() => loadHistory()} />

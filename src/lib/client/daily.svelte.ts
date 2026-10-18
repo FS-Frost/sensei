@@ -1,6 +1,7 @@
 // Sesión diaria en curso (/hoy): qué pasos tiene, cuáles están hechos. Por dispositivo y por día (localStorage):
 // al día siguiente se descarta sola. Las páginas avisan al terminar su parte con `completeDaily(id)`.
 import { goto } from './nav.ts';
+import { toast } from './toast.svelte.ts';
 
 export type DailyStepId = 'review' | 'lesson' | 'reading' | 'close';
 export type DailyStatus = 'todo' | 'done' | 'skipped';
@@ -58,6 +59,15 @@ export function completeDaily(id: DailyStepId) {
 	if (!s) return;
 	s.status = 'done';
 	persist();
+	const next = currentStep();
+	if (next)
+		toast.success(`✓ ${s.title}`, {
+			detail: `Siguiente: ${next.title} (~${next.minutes} min).`,
+			duration: 7000,
+			key: 'daily',
+			actions: [{ label: 'Seguir →', run: () => goNext() }]
+		});
+	else toast.success('¡Sesión de hoy completa!', { key: 'daily', actions: [{ label: 'Ver resumen', run: () => void goto('/hoy') }] });
 }
 
 export function skipDaily() {

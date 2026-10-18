@@ -5,6 +5,7 @@
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { takePending } from '#lib/client/inbox.ts';
+	import { toast } from '#lib/client/toast.svelte.ts';
 
 	type Item = {
 		id: number;
@@ -44,9 +45,15 @@
 			title = '';
 			text = '';
 			if (open && data.ids.length === 1) goto(`/biblioteca/${data.ids[0]}`);
-			else await load();
+			else {
+				await load();
+				toast.success(data.ids.length > 1 ? `${data.ids.length} partes añadidas a la Biblioteca` : 'Texto añadido a la Biblioteca', {
+					detail: file ? file.name : undefined
+				});
+			}
 		} catch (e) {
 			error = errMsg(e);
+			toast.error(file ? `No se pudo añadir «${file.name}»` : 'No se pudo añadir el texto', { detail: error });
 		} finally {
 			busy = false;
 		}
@@ -56,12 +63,13 @@
 		if (!toDelete) return;
 		await del(`/api/library/${toDelete.id}`);
 		deleteOpen = false;
+		toast.success(`«${toDelete.title}» borrado`);
 		await load();
 	}
 
 	const ORIGIN: Record<string, string> = { paste: 'pegado', txt: '.txt', srt: 'subtítulos', epub: 'EPUB', html: 'web' };
 	onMount(() => {
-		load().catch((e) => (error = errMsg(e)));
+		load().catch((e) => toast.error('No se pudo cargar la biblioteca', { detail: errMsg(e) }));
 		// Llegó compartido o abierto con Sensei (/compartir): archivos se suben solos; un texto queda listo para añadir.
 		const p = takePending('biblioteca');
 		if (!p) return;
@@ -111,7 +119,6 @@
 		<button onclick={() => fileInput?.click()} disabled={busy}>Subir .txt / .srt / .epub</button>
 	</div>
 	<p class="dim small">Los EPUB se dividen por capítulos. La furigana del original se quita: Sensei pone la tuya según tu nivel.</p>
-	{#if error}<div class="error small">{error}</div>{/if}
 </div>
 
 {#if texts.length}

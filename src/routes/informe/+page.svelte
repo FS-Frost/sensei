@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from '#lib/client/toast.svelte.ts';
 	import { onMount } from 'svelte';
 	import { get, post, errMsg } from '#lib/client/api.ts';
 	import Markdown from '#lib/components/Markdown.svelte';
@@ -21,7 +22,6 @@
 	let reports: Report[] = $state([]);
 	let current: Metrics | null = $state(null);
 	let busy = $state(false);
-	let error = $state('');
 	/** Costo del informe recién generado. */
 	let cost: { id: number; cost: OperationCost | null } | null = $state(null);
 
@@ -33,13 +33,12 @@
 
 	async function generate() {
 		busy = true;
-		error = '';
 		try {
 			const r = await post<{ id: number; cost: OperationCost | null }>('/api/report');
 			await load();
 			cost = { id: r.id, cost: r.cost };
 		} catch (e) {
-			error = errMsg(e);
+			toast.error('No se pudo preparar el informe', { detail: errMsg(e) });
 		} finally {
 			busy = false;
 		}
@@ -53,7 +52,7 @@
 				// Si no hay informe de esta semana, generarlo al entrar.
 				if (!fresh && current && current.reviews > 0) generate();
 			})
-			.catch((e) => (error = errMsg(e)));
+			.catch((e) => toast.error('No se pudo preparar el informe', { detail: errMsg(e) }));
 	});
 </script>
 
@@ -97,7 +96,6 @@
 		{#if busy}<span class="spinner"></span>{/if} {fresh ? 'Regenerar informe' : 'Generar informe'}
 	</button>
 </div>
-{#if error}<div class="error small">{error}</div>{/if}
 
 {#each reports as r, i (r.id)}
 	<article class="card" class:latest={i === 0}>
