@@ -11,6 +11,11 @@
 				var t = localStorage.getItem('sensei.theme');
 				if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
 			} catch (e) {}
+			// El navegador puede ofrecer instalar antes de que arranque la app: guardar el evento (client/install.svelte.ts).
+			addEventListener('beforeinstallprompt', function (e) {
+				e.preventDefault();
+				window.__senseiInstall = e;
+			});
 		</script>
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />

@@ -15,7 +15,7 @@
 	import { startBaseLinks } from '#lib/client/basePath.ts';
 	import { registerServiceWorker } from '#lib/client/pwa.ts';
 	import UpdateNotice from '#lib/components/UpdateNotice.svelte';
-	import { initInstall } from '#lib/client/install.svelte.ts';
+	import { initInstall, install, promptInstall } from '#lib/client/install.svelte.ts';
 	import { publishSchedule, setBadge } from '#lib/client/reminder.ts';
 
 	// Temprano: `beforeinstallprompt` puede llegar antes de montar.
@@ -133,7 +133,10 @@
 					{/each}
 				{/each}
 			</div>
-			<div class="side-foot"><ThemeToggle /></div>
+			<div class="side-foot">
+				{#if install.available}<button class="install" onclick={() => promptInstall()}>⤓ Instalar app</button>{/if}
+				<ThemeToggle />
+			</div>
 		</nav>
 
 		<main>
@@ -180,6 +183,15 @@
 						{/each}
 					{/if}
 				{/each}
+				{#if install.available}
+					<button
+						class="install"
+						onclick={() => {
+							moreOpen = false;
+							void promptInstall();
+						}}>⤓ Instalar app</button
+					>
+				{/if}
 				<ThemeToggle />
 			</div>
 		{/if}
@@ -232,8 +244,13 @@
 		padding-top: 0.4rem;
 		margin-top: 0.4rem;
 	}
-	.more :global(.theme) {
+	.more :global(.theme),
+	.more .install {
 		width: 100%;
+	}
+	.install {
+		margin-bottom: 0.3rem;
+		color: var(--accent);
 	}
 	.brand {
 		font-weight: 700;

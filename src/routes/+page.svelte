@@ -4,6 +4,7 @@
 	import ProgressMeter from '#lib/components/ProgressMeter.svelte';
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { fmtUsd } from '#lib/cost.ts';
+	import InstallCard from '#lib/components/InstallCard.svelte';
 
 	let { data }: PageProps = $props();
 	const p = $derived(data.profile);
@@ -31,6 +32,8 @@
 		<a class="btn small" href="/bienvenida">Ver bienvenida</a>
 	</div>
 {/if}
+
+<InstallCard />
 
 {#if data.budget.level === 'warn' || data.budget.level === 'over'}
 	{@const b = data.budget}

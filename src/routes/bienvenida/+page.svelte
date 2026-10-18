@@ -4,6 +4,7 @@
 	import type { PageProps } from './$types';
 	import { post, errMsg } from '#lib/client/api.ts';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import InstallCard from '#lib/components/InstallCard.svelte';
 	import type { FuriganaMode } from '#lib/types.ts';
 
 	let { data }: PageProps = $props();
@@ -152,6 +153,7 @@
 				Cada día, la página de Inicio te dirá <strong>qué hacer ahora y por qué</strong>, y en qué punto del viaje estás. ¿Ya sabes
 				algunos kanji? Haz después el <a href="/nivel">test de nivel</a> para no repetir lo que dominas.
 			</p>
+			<InstallCard dismissible={false} />
 			{#if error}<div class="error small">{error}</div>{/if}
 			<div class="row">
 				{#if !data.diagDone}

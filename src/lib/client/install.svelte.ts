@@ -19,6 +19,12 @@ export function initInstall() {
 	if (typeof window === 'undefined') return;
 	install.installed =
 		matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+	// Capturado por app.html antes de que arrancara la app.
+	const early = (window as Window & { __senseiInstall?: InstallEvent }).__senseiInstall;
+	if (early && !install.installed) {
+		deferred = early;
+		install.available = true;
+	}
 	addEventListener('beforeinstallprompt', (e) => {
 		e.preventDefault(); // sin mini-barra automática: el botón está en Ajustes
 		deferred = e as InstallEvent;
@@ -29,6 +35,24 @@ export function initInstall() {
 		install.available = false;
 		install.installed = true;
 	});
+}
+
+const DISMISS_KEY = 'sensei.installDismissed';
+
+/** «Ahora no» en la tarjeta de Inicio (los botones del menú siguen disponibles). */
+export function installDismissed() {
+	try {
+		return localStorage.getItem(DISMISS_KEY) === '1';
+	} catch {
+		return false;
+	}
+}
+export function dismissInstall() {
+	try {
+		localStorage.setItem(DISMISS_KEY, '1');
+	} catch {
+		/* sin almacenamiento: vuelve a salir la próxima vez */
+	}
 }
 
 /** Muestra el diálogo del navegador; true si se aceptó. */

@@ -3,6 +3,7 @@
 	// otra pestaña abierta o navegador sin soporte.
 	import { backend, installDict } from '../client/backend.svelte.ts';
 	import type { DictVariant } from '../backendProtocol.ts';
+	import InstallCard from './InstallCard.svelte';
 
 	const s = $derived(backend.value);
 	const mb = (b: number) => `${(b / 1048576).toFixed(b > 10 * 1048576 ? 0 : 1)} MB`;
@@ -45,6 +46,7 @@
 			{/if}
 			{#if s.error}<p class="error small">{s.error}</p>{/if}
 		</div>
+		<InstallCard />
 	{:else if s.state === 'installing'}
 		<div class="card stack">
 			{#if s.phase === 'download'}
@@ -59,6 +61,8 @@
 			{/if}
 			<p class="small dim">No cierres esta pestaña.</p>
 		</div>
+		<!-- Buen momento: mientras descarga. Instalar no interrumpe la descarga. -->
+		<InstallCard />
 	{:else if s.state === 'locked'}
 		<div class="card stack">
 			<h2>Sensei ya está abierto en otra pestaña</h2>

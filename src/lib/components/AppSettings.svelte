@@ -53,7 +53,7 @@
 	{:else}
 		<p class="small muted">
 			Para instalarla: menú del navegador → <strong>Instalar Sensei</strong> (o «Añadir a pantalla de inicio»). Si no aparece, ya está
-			instalada o este navegador no lo permite.
+			instalada en este dispositivo (ábrela desde su icono), o este navegador no lo permite (Firefox de escritorio).
 		</p>
 	{/if}
 
