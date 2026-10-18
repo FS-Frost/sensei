@@ -1,7 +1,8 @@
 <script lang="ts">
-	// Emparejar dos dispositivos por la red local: señas compactas por SONIDO (principal) o QR / texto (respaldo).
+	// Emparejar dos dispositivos por la red local. Tras «Iniciar»/«Unirme» se elige el método (se recuerda el último):
+	// SONIDO (ultrasonido, por turnos), QR (cada uno escanea el del otro) o COPIAR Y PEGAR (sin permisos).
 	// Al conectar, entrega el canal WebRTC abierto con `onconnected`. Ver docs/sync-qr.md.
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { acceptOffer, bindingFor, codeFor, connectAnswer, createOffer, type Connected } from '../../client/sync/rtc.ts';
 	import { decode, PREFIX, type Signal } from '../../client/sync/signal.ts';
 	import { createEmitter, listen, type Emitter, type Listener } from '../../client/sync/audio.ts';
@@ -20,15 +21,41 @@
 		linkPath?: string;
 	} = $props();
 
-	type Mode = 'idle' | 'offering' | 'joining' | 'answering' | 'connecting' | 'connected';
+	type Method = 'sound' | 'qr' | 'paste';
+	const METHODS: { key: Method; icon: string; label: string; hint: string }[] = [
+		{ key: 'sound', icon: '🔊', label: 'Sonido', hint: 'Ultrasonido (casi inaudible). Pide el micrófono.' },
+		{ key: 'qr', icon: '📷', label: 'QR', hint: 'Cada uno escanea el QR del otro. Pide la cámara (el PC necesita webcam).' },
+		{ key: 'paste', icon: '⌨', label: 'Copiar y pegar', hint: 'Pasa el código por un chat o una nota. Sin permisos.' }
+	];
+	const METHOD_KEY = 'sensei.pairMethod';
+	function lastMethod(): Method {
+		try {
+			const m = localStorage.getItem(METHOD_KEY);
+			return m === 'qr' || m === 'paste' ? m : 'sound';
+		} catch {
+			return 'sound';
+		}
+	}
+	function rememberMethod(m: Method) {
+		try {
+			localStorage.setItem(METHOD_KEY, m);
+		} catch {
+			/* sin almacenamiento: no se recuerda */
+		}
+	}
+
+	type Mode = 'idle' | 'choose' | 'offering' | 'joining' | 'answering' | 'connecting' | 'connected';
 	let mode = $state<Mode>('idle');
+	let role = $state<'init' | 'join'>('init');
+	let method = $state<Method>(lastMethod());
 	let error = $state('');
 	let myText = $state('');
 	let qr = $state('');
 	let level = $state(-140);
 	let heard = $state(false);
 	let micError = $state('');
-	// Perfil de sonido del dispositivo (volumen, filtro, rampa; se ajusta y calibra en /lab/ultrasonido).
+	let camError = $state('');
+	let copied = $state(false);
 	let protocol: ProtocolKey = $state(loadProfile().protocol);
 	let pasted = $state('');
 	let scanning = $state(false);
@@ -39,32 +66,46 @@
 	let offer: Awaited<ReturnType<typeof createOffer>> | null = null;
 	let started = 0;
 	let elapsed = $state(0);
-	let tick: ReturnType<typeof setInterval> | null = null;
+	let timer: ReturnType<typeof setInterval> | null = null;
 
-	function stopAudio() {
+	function stopCapture() {
 		emitter?.stop();
 		emitter = null;
 		listener?.stop();
 		listener = null;
+		scanAbort?.abort();
+		scanAbort = null;
+		scanning = false;
 	}
 
 	function reset() {
-		stopAudio();
-		scanAbort?.abort();
-		scanning = false;
-		if (tick) clearInterval(tick);
+		stopCapture();
+		if (timer) clearInterval(timer);
 		offer?.pc.close();
 		offer = null;
+		finishing = false;
 		mode = 'idle';
-		myText = qr = pasted = error = micError = '';
-		heard = false;
+		myText = qr = pasted = error = micError = camError = '';
+		heard = copied = false;
 	}
 
 	function err(e: unknown) {
-		error = e instanceof Error ? e.message : String(e);
+		const msg = e instanceof Error ? e.message : String(e);
+		// Sin permiso de micrófono ni cámara, el navegador oculta la IP local tras un nombre «.local» que algunas redes no resuelven.
+		error =
+			method === 'paste' && /red local|no se conectó/.test(msg)
+				? `${msg} Con «Copiar y pegar» el navegador oculta la IP local (no hay permiso de micrófono ni cámara) y algunas redes no la resuelven: prueba con sonido o QR.`
+				: msg;
 	}
 
-	// El sonido es semidúplex: si ambos emiten a la vez en la misma banda, se tapan. Turnos:
+	function startClock() {
+		started = Date.now();
+		elapsed = 0;
+		timer = setInterval(() => (elapsed = Math.floor((Date.now() - started) / 1000)), 500);
+	}
+
+	// ---------- Sonido: semidúplex, por turnos ----------
+	// Si ambos emiten a la vez en la misma banda, se tapan:
 	// - el iniciador emite su oferta y luego CALLA escuchando (ventana = duración + margen), y repite;
 	// - quien se une responde justo al terminar de oír la oferta, es decir, dentro de ese silencio.
 	let phase = $state<'emit' | 'listen' | ''>('');
@@ -76,7 +117,7 @@
 			emitter = await createEmitter(text, { ...loadProfile(), protocol });
 			return emitter;
 		} catch (e) {
-			micError = `No se pudo emitir sonido (${e instanceof Error ? e.message : e}). Usa el QR o el código.`;
+			micError = `No se pudo emitir sonido (${e instanceof Error ? e.message : e}). Cambia a QR o a copiar y pegar.`;
 			return null;
 		}
 	}
@@ -129,37 +170,60 @@
 					} catch {
 						return;
 					}
-					const isOffer = s.role === 'o';
-					if ((want === 'o') !== isOffer) return; // p. ej. mi propia oferta oída por mi micrófono
+					if ((want === 'o') !== (s.role === 'o')) return; // p. ej. mi propia oferta oída por mi micrófono
 					heard = true;
 					onSignal(t);
 				},
 				(db) => (level = db)
 			);
 		} catch (e) {
-			micError = `Sin micrófono (${e instanceof Error ? e.message : e}): usa el QR o pega el código.`;
+			micError = `Sin micrófono (${e instanceof Error ? e.message : e}): cambia a QR o a copiar y pegar.`;
 		}
 	}
 
-	function startClock() {
-		started = Date.now();
-		tick = setInterval(() => (elapsed = Math.floor((Date.now() - started) / 1000)), 500);
+	// ---------- QR: escanear con la cámara ----------
+	/** Abre la cámara y escanea; se resuelve cuando la cámara ya está abierta (o falló), no al leer. */
+	async function startScan() {
+		await tick(); // el <video> aparece al cambiar de modo
+		return new Promise<void>((ready) => {
+			if (!video) return ready();
+			scanning = true;
+			camError = '';
+			const ctl = (scanAbort = new AbortController());
+			scanQr(video, ctl.signal, ready)
+				.then((raw) => {
+					scanning = false;
+					useText(raw);
+				})
+				.catch((e) => {
+					scanning = false;
+					ready();
+					if ((e as DOMException).name !== 'AbortError')
+						camError = `Sin cámara (${e instanceof Error ? e.message : e}): cambia a sonido o a copiar y pegar.`;
+				});
+		});
 	}
 
-	// ---------- Iniciar (emite la oferta, espera la respuesta) ----------
-	async function start() {
+	// ---------- Iniciar: emito la oferta, recibo la respuesta ----------
+	async function start(m: Method) {
 		reset();
+		role = 'init';
+		method = m;
+		rememberMethod(m);
 		mode = 'offering';
 		startClock();
 		try {
-			// Micrófono ANTES de la oferta: con el permiso concedido, el navegador expone la IP local real
-			// en lugar del nombre mDNS «.local» (que en algunas redes no se resuelve).
-			await startListen('a', (t) => void gotAnswer(t));
+			// Permiso de captura ANTES de la oferta: con él, el navegador expone la IP local real en lugar del nombre
+			// mDNS «.local» (que en algunas redes no se resuelve). Sonido → micrófono; QR → cámara (para leer la respuesta).
+			if (m === 'sound') await startListen('a', (t) => void gotAnswer(t));
+			if (m === 'qr') await startScan();
 			offer = await createOffer();
 			myText = offer.signal;
-			qr = qrSvg(`${location.origin}${base}${linkPath}#s=${encodeURIComponent(offer.signal)}`);
-			const em = await makeEmitter(offer.signal);
-			if (em) void offerCycle(em);
+			if (m === 'qr') qr = qrSvg(`${location.origin}${base}${linkPath}#s=${encodeURIComponent(offer.signal)}`);
+			if (m === 'sound') {
+				const em = await makeEmitter(offer.signal);
+				if (em) void offerCycle(em);
+			}
 		} catch (e) {
 			err(e);
 		}
@@ -170,12 +234,12 @@
 		if (!offer || finishing) return;
 		finishing = true;
 		mode = 'connecting';
-		stopAudio();
+		stopCapture();
 		try {
 			const { channel, theirs } = await connectAnswer(offer, text);
 			const code = await codeFor(offer.mine, theirs);
 			mode = 'connected';
-			if (tick) clearInterval(tick);
+			if (timer) clearInterval(timer);
 			// La conexión pasa a quien la pidió: que la limpieza de este componente (al desmontarse) no la cierre.
 			const link = offer;
 			offer = null;
@@ -184,15 +248,20 @@
 			finishing = false;
 			mode = 'offering';
 			err(e);
+			if (method === 'qr') void startScan();
 		}
 	}
 
-	// ---------- Unirme (escucha la oferta, emite la respuesta) ----------
-	async function join() {
+	// ---------- Unirme: recibo la oferta, emito la respuesta ----------
+	async function join(m: Method) {
 		reset();
+		role = 'join';
+		method = m;
+		rememberMethod(m);
 		mode = 'joining';
 		startClock();
-		await startListen('o', onOfferHeard);
+		if (m === 'sound') await startListen('o', onOfferHeard);
+		if (m === 'qr') await startScan();
 	}
 
 	/** Cada vez que se oye la oferta (= el iniciador acaba de terminar de emitir). */
@@ -204,52 +273,44 @@
 	async function gotOffer(text: string) {
 		if (mode !== 'joining' && mode !== 'idle') return;
 		mode = 'answering';
+		scanAbort?.abort();
 		try {
-			// Llegó por QR, pegado o enlace: escuchar igualmente para responder en los silencios del iniciador
-			// (y conceder el micrófono antes de crear la respuesta: así se usa la IP local real).
-			if (!listener) await startListen('o', onOfferHeard);
 			const ans = await acceptOffer(text);
 			myText = ans.signal;
-			qr = qrSvg(ans.signal);
-			if (await makeEmitter(ans.signal)) answerNow(); // la oferta acaba de terminar: el iniciador calla ahora
+			// La respuesta la escanea la cámara de la página del otro: basta el texto, sin enlace.
+			if (method === 'qr') qr = qrSvg(ans.signal);
+			if (method === 'sound' && (await makeEmitter(ans.signal))) answerNow(); // la oferta acaba de terminar: el otro calla ahora
 			const channel = await ans.channel();
-			stopAudio();
+			stopCapture();
 			const code = await codeFor(ans.mine, ans.theirs);
 			mode = 'connected';
-			if (tick) clearInterval(tick);
+			if (timer) clearInterval(timer);
 			onconnected({ channel, pc: ans.pc, initiator: false, code, binding: bindingFor(ans.mine, ans.theirs) });
 		} catch (e) {
-			stopAudio();
+			stopCapture();
 			mode = 'joining';
 			err(e);
+			if (method === 'sound') void startListen('o', onOfferHeard);
+			if (method === 'qr') void startScan();
 		}
 	}
 
-	// ---------- Respaldo: pegar o escanear ----------
-	function usePasted() {
-		const t = pasted.trim().replace(/^.*#s=/, '');
-		const text = decodeURIComponent(t);
+	// ---------- Texto leído (QR) o pegado ----------
+	function useText(raw: string) {
+		const text = decodeURIComponent(raw.trim().replace(/^.*#s=/, ''));
 		error = '';
 		try {
 			const s = decode(text);
-			if (s.role === 'o') void gotOffer(text);
-			else void gotAnswer(text);
+			if (s.role === 'o') {
+				if (role === 'init') throw new Error('Ese es un código de inicio: en el otro dispositivo pulsa «Unirme».');
+				void gotOffer(text);
+			} else {
+				if (role === 'join') throw new Error('Ese código es una respuesta: en este dispositivo pulsa «Iniciar».');
+				void gotAnswer(text);
+			}
 		} catch (e) {
 			err(e);
-		}
-	}
-
-	async function scan() {
-		scanning = true;
-		scanAbort = new AbortController();
-		try {
-			const raw = await scanQr(video!, scanAbort.signal);
-			scanning = false;
-			pasted = raw;
-			usePasted();
-		} catch (e) {
-			scanning = false;
-			if ((e as DOMException).name !== 'AbortError') err(e);
+			if (method === 'qr' && !scanning && (mode === 'joining' || mode === 'offering')) void startScan();
 		}
 	}
 
@@ -259,16 +320,37 @@
 	}
 
 	async function copy() {
-		await navigator.clipboard.writeText(myText).catch(() => {});
+		await navigator.clipboard.writeText(myText).then(
+			() => (copied = true),
+			() => {}
+		);
+	}
+
+	/** Mismo papel, otro método: vuelve a empezar (oferta nueva). */
+	function switchTo(m: Method) {
+		if (role === 'init') void start(m);
+		else void join(m);
+	}
+
+	function choose(r: 'init' | 'join') {
+		reset();
+		role = r;
+		mode = 'choose';
 	}
 
 	onMount(() => {
-		if (offerFromLink) void gotOffer(offerFromLink);
+		// Abierto desde el QR con la cámara del sistema: ya tengo la oferta; respondo con mi QR (el otro tiene la cámara abierta).
+		if (offerFromLink) {
+			role = 'join';
+			method = 'qr';
+			void gotOffer(offerFromLink);
+		}
 	});
 	onDestroy(reset);
 
 	const pct = (db: number) => Math.max(0, Math.min(100, ((db + 120) / 90) * 100));
-	const waitingFor = $derived(mode === 'offering' ? 'respuesta' : mode === 'joining' ? 'código' : '');
+	const other = $derived(METHODS.filter((m) => m.key !== method));
+	const active = $derived(mode === 'offering' || mode === 'joining' || mode === 'answering');
 </script>
 
 <div class="pairing stack">
@@ -276,45 +358,57 @@
 
 	{#if mode === 'idle'}
 		<div class="two">
-			<button class="primary big" onclick={start}>
-				<strong>Iniciar</strong><span class="small">este dispositivo emite el código</span>
+			<button class="primary big" onclick={() => choose('init')}>
+				<strong>Iniciar</strong><span class="small">este dispositivo genera el código</span>
 			</button>
-			<button class="big" onclick={join}>
-				<strong>Unirme</strong><span class="small">escucho o escaneo el código del otro</span>
+			<button class="big" onclick={() => choose('join')}>
+				<strong>Unirme</strong><span class="small">recibo el código del otro</span>
 			</button>
 		</div>
 		<p class="small dim">
-			Pulsa «Iniciar» en uno y «Unirme» en el otro. Se emparejan por sonido (o QR) y los datos viajan por tu red local: no hace falta
-			internet, solo estar en la misma WiFi.
+			Pulsa «Iniciar» en uno y «Unirme» en el otro. Los datos viajan por tu red local: no hace falta internet, solo estar en la misma
+			WiFi.
 		</p>
+	{:else if mode === 'choose'}
+		<h3>¿Cómo os emparejáis? <span class="dim small">({role === 'init' ? 'inicio' : 'me uno'})</span></h3>
+		<div class="methods">
+			{#each METHODS as m (m.key)}
+				<button class="big" class:primary={m.key === method} onclick={() => (role === 'init' ? start(m.key) : join(m.key))}>
+					<strong>{m.icon} {m.label}{#if m.key === method} <span class="small">· último usado</span>{/if}</strong>
+					<span class="small">{m.hint}</span>
+				</button>
+			{/each}
+		</div>
+		<p class="small dim">Elegid el mismo método en los dos dispositivos.</p>
+		<div><button class="ghost small" onclick={reset}>Volver</button></div>
 	{:else if mode === 'connecting'}
 		<p><span class="spinner"></span> Conectando por la red local…</p>
 	{:else if mode === 'connected'}
 		<p class="ok-text">✓ Conectados por la red local.</p>
 	{:else}
-		<div class="steps small">
-			<span class:on={mode === 'offering' || mode === 'answering'}>
-				{mode === 'answering' ? '2. Emitiendo mi respuesta' : '1. Emitiendo mi código'}
-			</span>
-			<span class:on={mode === 'offering' || mode === 'joining'}>
-				{mode === 'joining' ? '1. Escuchando el código del otro' : mode === 'offering' ? '2. Escuchando la respuesta' : ''}
-			</span>
-		</div>
+		<p class="small muted">
+			{METHODS.find((m) => m.key === method)?.icon}
+			<strong>{METHODS.find((m) => m.key === method)?.label}</strong> · {role === 'init' ? 'inicio' : 'me uno'} · {elapsed} s
+		</p>
 
-		{#if myText}
-			<div class="emit">
-				<div class="qr" aria-label="Código QR">{@html qr}</div>
-				<div class="stack">
-					<p class="small">
-						{#if !emitter}Sin sonido
-						{:else if phase === 'emit'}<strong>🔊 Emitiendo{mode === 'answering' ? ' mi respuesta' : ' mi código'}…</strong>
-						{:else if mode === 'offering'}<strong>🤫 En silencio: escuchando la respuesta</strong> (vuelvo a emitir en unos segundos)
-						{:else}Respondo cada vez que el otro termina de emitir{/if}
-					</p>
-					<p class="small dim">
-						{#if mode === 'offering'}En el otro dispositivo pulsa «Unirme» (o escanea este QR con su cámara). Se turnan: uno emite mientras el otro calla.{:else}Mantén los dispositivos cerca (menos de 1 m). Si el otro no la oye, que escanee este QR.{/if}
-					</p>
-					<label class="inline small"
+		<!-- ===== Sonido ===== -->
+		{#if method === 'sound'}
+			{#if mode === 'joining'}
+				<p class="small">{#if listener}🎙 Escuchando el código del otro…{:else}Esperando el micrófono…{/if}</p>
+				<p class="small dim">En el otro: «Iniciar» → «Sonido». Mantén los dispositivos cerca (menos de 1 m).</p>
+			{:else if myText}
+				<p class="small">
+					{#if !emitter}Sin sonido
+					{:else if phase === 'emit'}<strong>🔊 Emitiendo{mode === 'answering' ? ' mi respuesta' : ' mi código'}…</strong>
+					{:else if mode === 'offering'}<strong>🤫 En silencio: escuchando la respuesta</strong> (vuelvo a emitir en unos segundos)
+					{:else}Respondo cada vez que el otro termina de emitir{/if}
+					{#if heard}· recibida{/if}
+				</p>
+				<p class="small dim">
+					{#if mode === 'offering'}En el otro: «Unirme» → «Sonido». Se turnan: uno emite mientras el otro calla.{:else}Mantén los dispositivos cerca (menos de 1 m).{/if}
+				</p>
+				<div class="row small">
+					<label class="inline"
 						>Modo
 						<select value={protocol} onchange={(e) => setProtocol((e.target as HTMLSelectElement).value as ProtocolKey)}>
 							<option value="ultra_normal">Ultrasonido · lento</option>
@@ -323,55 +417,85 @@
 							<option value="audible_fast">Audible (más robusto)</option>
 						</select>
 					</label>
-					<a class="small" href="/lab/ultrasonido" target="_blank">¿Se oye o molesta? Ajustar y calibrar el sonido</a>
-					<details class="small">
-						<summary>Ver código en texto</summary>
-						<code class="code">{myText}</code>
-						<button class="small" onclick={copy}>Copiar</button>
-					</details>
+					<a href="/lab/ultrasonido" target="_blank">¿Se oye o molesta? Ajustar sonido</a>
 				</div>
-			</div>
+			{/if}
+			{#if listener && mode !== 'answering'}
+				<div class="meter" role="meter" aria-label="Energía ultrasónica" aria-valuemin="-120" aria-valuemax="-30" aria-valuenow={Math.round(level)}>
+					<div style="width:{pct(level)}%"></div>
+				</div>
+				{#if mode === 'offering'}
+					<p class="small dim">Mientras emito, la barra sube por mi propio sonido. En el silencio, debería subir cuando el otro responda.</p>
+				{/if}
+			{/if}
+			{#if micError}<p class="small warn-text">{micError}</p>{/if}
+			{#if elapsed > 25 && !heard && listener}
+				<p class="small dim">¿No llega? Acerca los dispositivos, prueba el modo «Ultrasonido · máximo» o «Audible», o cambia de método.</p>
+			{/if}
 		{/if}
 
-		{#if waitingFor}
-			<div class="listen stack">
-				<p class="small">
-					{#if listener}🎙 Escuchando la {waitingFor}… {elapsed} s{:else}Esperando la {waitingFor}{/if}
-					{#if heard}· recibida{/if}
-				</p>
-				{#if listener}
-					<div class="meter" role="meter" aria-label="Energía ultrasónica" aria-valuemin="-120" aria-valuemax="-30" aria-valuenow={Math.round(level)}>
-						<div style="width:{pct(level)}%"></div>
-					</div>
-					{#if mode === 'offering'}
-						<p class="small dim">
-							Mientras emito, la barra sube por mi propio sonido. En el silencio, debería subir cuando el otro responda.
-						</p>
-					{/if}
-				{/if}
-				{#if micError}<p class="small warn-text">{micError}</p>{/if}
-				{#if elapsed > 25 && !heard && listener}
-					<p class="small dim">
-						¿No llega? Acerca los dispositivos, cambia el modo del que emite a «Ultrasonido · máximo» o «Audible», o usa el QR (en
-						el otro, «📷 Escanear QR»).
+		<!-- ===== QR ===== -->
+		{#if method === 'qr'}
+			{#if qr}
+				<div class="qr-row">
+					<div class="qr" aria-label="Código QR">{@html qr}</div>
+					<p class="small">
+						{#if mode === 'offering'}
+							En el otro: «Unirme» → «QR» y escanea este código (o ábrelo con la cámara del sistema). Luego enseña su QR a
+							<strong>esta</strong> cámara.
+						{:else}
+							Enséñale este QR a la cámara del otro dispositivo.
+						{/if}
 					</p>
-				{/if}
-				<div class="row">
-					{#if scanning}
-						<button class="small ghost" onclick={() => scanAbort?.abort()}>Cancelar escaneo</button>
-					{:else}
-						<button class="small" onclick={scan}>📷 Escanear QR</button>
-					{/if}
 				</div>
-				<!-- svelte-ignore a11y_media_has_caption -->
-				<video bind:this={video} class:hidden={!scanning} playsinline muted></video>
+			{/if}
+			{#if mode !== 'answering'}
+				<p class="small">
+					{#if scanning}📷 Apunta la cámara al QR {mode === 'offering' ? 'de la respuesta' : 'del otro'}…{:else if !camError}Abriendo la
+						cámara…{/if}
+				</p>
+			{/if}
+			{#if camError}<p class="small warn-text">{camError}</p>{/if}
+		{/if}
+
+		<!-- ===== Copiar y pegar ===== -->
+		{#if method === 'paste'}
+			{#if myText}
+				<p class="small">
+					{mode === 'offering' ? '1. Pasa este código al otro dispositivo (chat, nota…):' : '2. Pasa esta respuesta al otro dispositivo:'}
+				</p>
+				<code class="code">{myText}</code>
+				<div><button class="small" onclick={copy}>{copied ? '✓ Copiado' : 'Copiar'}</button></div>
+			{/if}
+			{#if mode !== 'answering'}
 				<div class="row">
-					<input class="grow" bind:value={pasted} placeholder="…o pega el código del otro (S2~…)" aria-label="Código del otro dispositivo" />
-					<button class="small" onclick={usePasted} disabled={!pasted.trim()}>Usar</button>
+					<input
+						class="grow"
+						bind:value={pasted}
+						placeholder={mode === 'offering' ? '2. Pega aquí la respuesta del otro (S2~a~…)' : 'Pega aquí el código del otro (S2~o~…)'}
+						aria-label="Código del otro dispositivo"
+					/>
+					<button class="small" onclick={() => useText(pasted)} disabled={!pasted.trim()}>Usar</button>
 				</div>
+			{/if}
+			<p class="small dim">
+				En el otro: «{role === 'init' ? 'Unirme' : 'Iniciar'}» → «Copiar y pegar». Sin permisos, el navegador oculta la IP local y en
+				algunas redes no conecta: si pasa, usa sonido o QR.
+			</p>
+		{/if}
+
+		{#if mode === 'answering'}<p class="small muted"><span class="spinner"></span> Esperando que el otro conecte…</p>{/if}
+
+		<!-- svelte-ignore a11y_media_has_caption -->
+		<video bind:this={video} class:hidden={!(method === 'qr' && scanning)} playsinline muted></video>
+
+		{#if active}
+			<div class="row small">
+				<span class="dim">Cambiar a:</span>
+				{#each other as m (m.key)}<button class="ghost small" onclick={() => switchTo(m.key)}>{m.icon} {m.label}</button>{/each}
+				<button class="ghost small" onclick={reset}>Cancelar</button>
 			</div>
 		{/if}
-		<div><button class="ghost small" onclick={reset}>Cancelar</button></div>
 	{/if}
 </div>
 
@@ -381,6 +505,14 @@
 		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 		gap: 0.8rem;
 	}
+	.methods {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 0.6rem;
+	}
+	h3 {
+		margin: 0;
+	}
 	.big {
 		display: flex;
 		flex-direction: column;
@@ -389,20 +521,16 @@
 		padding: 0.9rem 1rem;
 		text-align: left;
 	}
-	.steps {
-		display: flex;
-		flex-direction: column;
-		gap: 0.2rem;
-		color: var(--text-3);
-	}
-	.steps .on {
-		color: var(--text);
-	}
-	.emit {
+	.qr-row {
 		display: flex;
 		gap: 1rem;
 		align-items: flex-start;
 		flex-wrap: wrap;
+	}
+	.qr-row p {
+		flex: 1;
+		min-width: 200px;
+		margin: 0;
 	}
 	.qr {
 		width: 190px;
@@ -417,15 +545,13 @@
 		height: 100%;
 		display: block;
 	}
-	.emit .stack {
-		flex: 1;
-		min-width: 200px;
-	}
 	.code {
 		display: block;
 		word-break: break-all;
-		margin: 0.4rem 0;
 		font-size: 0.8rem;
+		padding: 0.5rem 0.6rem;
+		background: var(--bg-3);
+		border-radius: var(--radius-sm);
 	}
 	.inline {
 		display: flex;

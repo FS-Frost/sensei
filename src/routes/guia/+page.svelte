@@ -334,7 +334,11 @@
 		</p>
 		<ol>
 			<li>Abre <a href="/sincronizar">Sincronizar</a> en ambos. Pulsa «Iniciar» en uno y «Unirme» en el otro.</li>
-			<li>El primero emite su código por sonido; el segundo lo oye y responde por sonido. Si el sonido no llega: QR o copiar y pegar el código.</li>
+			<li>
+				Elige el mismo método en los dos (se recuerda el último): <strong>sonido</strong> (se turnan emitiendo por ultrasonido; pide el
+				micrófono), <strong>QR</strong> (cada uno escanea el del otro; pide la cámara) o <strong>copiar y pegar</strong> (pasas el código
+				por un chat o una nota; sin permisos, pero en algunas redes no conecta). «Cambiar a:» salta a otro método sin volver atrás.
+			</li>
 			<li>Ambos muestran el mismo código de 4 dígitos: confírmalo en los dos (solo la primera vez; con «Recordar» ya no se pide).</li>
 			<li>Sensei decide solo quién tiene lo más nuevo. Si los dos cambiaron, eliges con qué quedarte; lo descartado queda en una copia.</li>
 		</ol>

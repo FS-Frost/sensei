@@ -25,12 +25,16 @@ async function makeDecoder(): Promise<(c: HTMLCanvasElement) => Promise<string |
 	};
 }
 
-/** Escanea desde la cámara trasera hasta leer un QR. `video` muestra la vista previa. */
-export async function scanQr(video: HTMLVideoElement, signal: AbortSignal): Promise<string> {
+/**
+ * Escanea desde la cámara trasera hasta leer un QR. `video` muestra la vista previa. `onStarted` avisa cuando la cámara
+ * ya está abierta (con ese permiso el navegador expone la IP local real a WebRTC).
+ */
+export async function scanQr(video: HTMLVideoElement, signal: AbortSignal, onStarted?: () => void): Promise<string> {
 	const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
 	try {
 		video.srcObject = stream;
 		await video.play();
+		onStarted?.();
 		const decode = await makeDecoder();
 		const canvas = document.createElement('canvas');
 		while (!signal.aborted) {

@@ -33,7 +33,7 @@
 	const err = (e: unknown) => (error = e instanceof Error ? e.message : String(e));
 
 	// ---------- 1. ¿Molesta? ----------
-	let volume = $state(30);
+	let volume = $state(10); // tono continuo: a 15-17 kHz molesta enseguida, empezar bajo
 	let tone: { osc: OscillatorNode; gain: GainNode; timer?: ReturnType<typeof setInterval> } | null = null;
 	let toneLabel = $state('');
 
@@ -428,6 +428,10 @@
 			<button class="small" onclick={sweep}>Barrido 12 → 21 kHz</button>
 			<button class="small ghost" onclick={stopTone} disabled={!toneLabel}>Parar</button>
 		</div>
+		<p class="small warn-text">
+			⚠ Son tonos <strong>continuos</strong> en una sola frecuencia: a 15-17 kHz pueden molestar mucho más que la emisión real (que salta
+			entre frecuencias y dura poco). Empieza con volumen bajo y súbelo de a poco.
+		</p>
 		{#if toneLabel}<p class="small">Sonando: <strong>{toneLabel}</strong></p>{/if}
 		<p class="small dim">
 			La transmisión real (abajo) usa la banda de 15-19,5 kHz y salta de tono en tono: esos saltos son lo que más se oye. Pruébala con
@@ -664,5 +668,8 @@
 	}
 	.ok-text {
 		color: var(--ok);
+	}
+	.warn-text {
+		color: var(--warn);
 	}
 </style>

@@ -95,7 +95,7 @@
 <h1>Sincronizar <HelpLink section="sincronizar" /></h1>
 <p class="muted small">
 	Pasa tu progreso entre este dispositivo y otro (PC ↔ móvil) <strong>sin internet</strong>: se emparejan por sonido y los datos
-	viajan por tu red local. Este dispositivo: <strong>{myName}</strong>.
+	viajan por tu red local. Eliges cómo emparejarlos: sonido, QR o copiar y pegar. Este dispositivo: <strong>{myName}</strong>.
 </p>
 {#if error}<div class="error small">{error}</div>{/if}
 
@@ -205,7 +205,7 @@
 	<ul>
 		<li><strong>Misma red:</strong> ambos en la misma WiFi. Algunas redes de invitados aíslan los dispositivos; en ese caso, usa el móvil como punto de acceso y conecta el PC a él (no hace falta que tenga datos).</li>
 		<li><strong>Sonido:</strong> acerca los dispositivos y cambia a «Audible» si el ultrasonido no llega. Ajusta y calibra el sonido en el <a href="/lab/ultrasonido">laboratorio de ultrasonido</a>.</li>
-		<li><strong>Sin sonido:</strong> escanea el QR del otro o copia y pega su código.</li>
+		<li><strong>Sin sonido:</strong> elige «QR» (cada uno escanea el del otro) o «Copiar y pegar» (pasa el código por un chat o una nota). Durante el emparejamiento, «Cambiar a:» salta a otro método.</li>
 		<li><strong>Red local:</strong> prueba la conexión directa entre tus dispositivos en el <a href="/lab/red-local">laboratorio de red local</a>.</li>
 	</ul>
 </section>
