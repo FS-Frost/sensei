@@ -4,7 +4,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { acceptOffer, bindingFor, codeFor, connectAnswer, createOffer, type Connected } from '../../client/sync/rtc.ts';
 	import { decode, PREFIX, type Signal } from '../../client/sync/signal.ts';
-	import { emitLoop, listen, type Emitter, type Listener } from '../../client/sync/audio.ts';
+	import { createEmitter, listen, type Emitter, type Listener } from '../../client/sync/audio.ts';
 	import { qrSvg, scanQr } from '../../client/sync/qr.ts';
 	import { base } from '../../client/base.ts';
 	import type { ProtocolKey } from '../../client/sound.ts';
@@ -63,12 +63,56 @@
 		error = e instanceof Error ? e.message : String(e);
 	}
 
-	async function startEmit(text: string) {
+	// El sonido es semidúplex: si ambos emiten a la vez en la misma banda, se tapan. Turnos:
+	// - el iniciador emite su oferta y luego CALLA escuchando (ventana = duración + margen), y repite;
+	// - quien se une responde justo al terminar de oír la oferta, es decir, dentro de ese silencio.
+	let phase = $state<'emit' | 'listen' | ''>('');
+	const MARGIN_MS = 5000; // tiempo para que el otro cree la respuesta y empiece a emitir
+
+	async function makeEmitter(text: string) {
 		try {
-			emitter = await emitLoop(text, protocol);
+			emitter = await createEmitter(text, protocol);
+			return emitter;
 		} catch (e) {
 			micError = `No se pudo emitir sonido (${e instanceof Error ? e.message : e}). Usa el QR o el código.`;
+			return null;
 		}
+	}
+
+	const sleepWhile = (ms: number, alive: () => boolean) =>
+		new Promise<void>((resolve) => {
+			const end = Date.now() + ms;
+			const t = setInterval(() => {
+				if (!alive() || Date.now() >= end) {
+					clearInterval(t);
+					resolve();
+				}
+			}, 100);
+		});
+
+	/** Iniciador: emitir una vez → callar escuchando → repetir, hasta recibir la respuesta. */
+	async function offerCycle(em: Emitter) {
+		const alive = () => mode === 'offering' && emitter === em;
+		while (alive()) {
+			phase = 'emit';
+			await em.playOnce();
+			if (!alive()) break;
+			phase = 'listen';
+			await sleepWhile(em.duration * 1000 + MARGIN_MS, alive);
+		}
+		phase = '';
+	}
+
+	let lastAnswerAt = 0;
+	/** Quien se une: responde en el silencio que deja el iniciador tras cada oferta oída. */
+	function answerNow() {
+		const em = emitter;
+		if (!em || em.playing || mode !== 'answering' || Date.now() - lastAnswerAt < 2000) return;
+		lastAnswerAt = Date.now();
+		phase = 'emit';
+		void em.playOnce().then(() => {
+			if (emitter === em) phase = 'listen';
+		});
 	}
 
 	/** Escucha señas del otro: `want` = rol esperado ('o' oferta, 'a' respuesta). */
@@ -112,7 +156,8 @@
 			offer = await createOffer();
 			myText = offer.signal;
 			qr = qrSvg(`${location.origin}${base}${linkPath}#s=${encodeURIComponent(offer.signal)}`);
-			await startEmit(offer.signal);
+			const em = await makeEmitter(offer.signal);
+			if (em) void offerCycle(em);
 		} catch (e) {
 			err(e);
 		}
@@ -145,18 +190,26 @@
 		reset();
 		mode = 'joining';
 		startClock();
-		await startListen('o', (t) => void gotOffer(t));
+		await startListen('o', onOfferHeard);
+	}
+
+	/** Cada vez que se oye la oferta (= el iniciador acaba de terminar de emitir). */
+	function onOfferHeard(t: string) {
+		if (mode === 'joining') void gotOffer(t);
+		else if (mode === 'answering') answerNow();
 	}
 
 	async function gotOffer(text: string) {
 		if (mode !== 'joining' && mode !== 'idle') return;
 		mode = 'answering';
-		stopAudio();
 		try {
+			// Llegó por QR, pegado o enlace: escuchar igualmente para responder en los silencios del iniciador
+			// (y conceder el micrófono antes de crear la respuesta: así se usa la IP local real).
+			if (!listener) await startListen('o', onOfferHeard);
 			const ans = await acceptOffer(text);
 			myText = ans.signal;
 			qr = qrSvg(ans.signal);
-			await startEmit(ans.signal);
+			if (await makeEmitter(ans.signal)) answerNow(); // la oferta acaba de terminar: el iniciador calla ahora
 			const channel = await ans.channel();
 			stopAudio();
 			const code = await codeFor(ans.mine, ans.theirs);
@@ -251,8 +304,13 @@
 				<div class="qr" aria-label="Código QR">{@html qr}</div>
 				<div class="stack">
 					<p class="small">
-						{#if emitter}🔊 Emitiendo por sonido{:else}Sin sonido{/if}
-						{#if mode === 'offering'}— en el otro dispositivo pulsa «Unirme», o escanea este QR con su cámara.{:else}— acerca este dispositivo al otro, o que escanee este QR.{/if}
+						{#if !emitter}Sin sonido
+						{:else if phase === 'emit'}<strong>🔊 Emitiendo{mode === 'answering' ? ' mi respuesta' : ' mi código'}…</strong>
+						{:else if mode === 'offering'}<strong>🤫 En silencio: escuchando la respuesta</strong> (vuelvo a emitir en unos segundos)
+						{:else}Respondo cada vez que el otro termina de emitir{/if}
+					</p>
+					<p class="small dim">
+						{#if mode === 'offering'}En el otro dispositivo pulsa «Unirme» (o escanea este QR con su cámara). Se turnan: uno emite mientras el otro calla.{:else}Mantén los dispositivos cerca (menos de 1 m). Si el otro no la oye, que escanee este QR.{/if}
 					</p>
 					<label class="inline small"
 						>Modo
@@ -281,10 +339,18 @@
 					<div class="meter" role="meter" aria-label="Energía ultrasónica" aria-valuemin="-120" aria-valuemax="-30" aria-valuenow={Math.round(level)}>
 						<div style="width:{pct(level)}%"></div>
 					</div>
+					{#if mode === 'offering'}
+						<p class="small dim">
+							Mientras emito, la barra sube por mi propio sonido. En el silencio, debería subir cuando el otro responda.
+						</p>
+					{/if}
 				{/if}
 				{#if micError}<p class="small warn-text">{micError}</p>{/if}
-				{#if elapsed > 12 && !heard && listener}
-					<p class="small dim">¿No llega? Cambia el otro a «Audible», acerca los dispositivos o usa el QR.</p>
+				{#if elapsed > 25 && !heard && listener}
+					<p class="small dim">
+						¿No llega? Acerca los dispositivos, cambia el modo del que emite a «Ultrasonido · máximo» o «Audible», o usa el QR (en
+						el otro, «📷 Escanear QR»).
+					</p>
 				{/if}
 				<div class="row">
 					{#if scanning}

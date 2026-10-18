@@ -1,5 +1,6 @@
-// Señas por sonido: emitir en bucle y escuchar (ultrasonido; el receptor también decodifica audible).
-// Sobre client/sound.ts (ggwave), lo mismo que validó el laboratorio /lab/ultrasonido.
+// Señas por sonido (ultrasonido; el receptor también decodifica audible), sobre client/sound.ts (ggwave).
+// El sonido es SEMIDÚPLEX: dos dispositivos emitiendo a la vez en la misma banda se tapan. Por eso el emparejamiento
+// se hace por turnos (ver Pairing.svelte): el iniciador emite y luego calla escuchando; el otro responde en ese silencio.
 import type { GGWave, Instance } from 'ggwave';
 import { decodeChunk, encodeToBuffer, makeInstance, type ProtocolKey } from '../sound.ts';
 
@@ -10,46 +11,63 @@ export function audioContext() {
 	return ctx;
 }
 
-export type Emitter = { stop(): void; setProtocol(p: ProtocolKey): void; readonly count: number };
+export type Emitter = {
+	/** Duración de una emisión (s). */
+	readonly duration: number;
+	/** Emite una vez; se resuelve al terminar (o al detener). */
+	playOnce(): Promise<void>;
+	readonly playing: boolean;
+	setProtocol(p: ProtocolKey): void;
+	stop(): void;
+};
 
-/** Emite `text` en bucle (pausa 1,2 s) hasta `stop()`. */
-export async function emitLoop(text: string, protocol: ProtocolKey = 'ultra_fast', volume = 50): Promise<Emitter> {
+export async function createEmitter(text: string, protocol: ProtocolKey = 'ultra_fast', volume = 50): Promise<Emitter> {
 	const c = audioContext();
 	const { g, inst } = await makeInstance(c);
-	let current = protocol;
-	let buf = encodeToBuffer(c, g, inst, text, current, volume);
-	let on = true;
+	let buf = encodeToBuffer(c, g, inst, text, protocol, volume);
 	let src: AudioBufferSourceNode | null = null;
-	let timer: ReturnType<typeof setTimeout> | null = null;
-	let count = 0;
-	const play = () => {
-		if (!on) return;
-		src = c.createBufferSource();
-		src.buffer = buf;
-		src.connect(c.destination);
-		src.onended = () => {
-			if (on) timer = setTimeout(play, 1200);
-		};
-		src.start();
-		count++;
-	};
-	play();
+	let stopped = false;
 	return {
-		get count() {
-			return count;
+		get duration() {
+			return buf.duration;
+		},
+		get playing() {
+			return !!src;
+		},
+		playOnce() {
+			if (stopped || src) return Promise.resolve();
+			return new Promise<void>((resolve) => {
+				const s = c.createBufferSource();
+				s.buffer = buf;
+				s.connect(c.destination);
+				let done = false;
+				const finish = () => {
+					if (done) return;
+					done = true;
+					clearTimeout(timer);
+					if (src === s) src = null;
+					resolve();
+				};
+				// Respaldo: si `onended` no llega (contexto sin salida de audio, pestaña en segundo plano…),
+				// el turno no puede quedarse emitiendo para siempre.
+				const timer = setTimeout(finish, buf.duration * 1000 + 400);
+				s.onended = finish;
+				src = s;
+				if (c.state === 'suspended') void c.resume();
+				s.start();
+			});
 		},
 		setProtocol(p) {
-			current = p;
-			buf = encodeToBuffer(c, g, inst, text, current, volume);
+			buf = encodeToBuffer(c, g, inst, text, p, volume);
 		},
 		stop() {
-			on = false;
-			if (timer) clearTimeout(timer);
+			stopped = true;
 			try {
 				src?.stop();
 			} catch {
 				/* ya terminó */
 			}
+			src = null;
 			g.free(inst);
 		}
 	};
