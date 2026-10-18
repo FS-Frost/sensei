@@ -23,22 +23,30 @@ test('por defecto «sin decidir»; valores raros vuelven a ask', () => {
 	expect(updateSettings(db, { aiMode: 'nada' as never }).aiMode).toBe('ask');
 });
 
-test('modo sin IA: hasGemini falso aunque haya key, y ai() lo explica; al reactivar vuelve', () => {
+// tutor.test.ts reemplaza gemini/client.ts para TODO el proceso (hasGemini siempre true) y el orden de los archivos
+// cambia según el SO: las comprobaciones de hasGemini()/ai() reales solo valen si el módulo no está simulado.
+const realClient = hasGemini.toString().includes('aiOff');
+
+test('modo sin IA: el interruptor se apaga aunque haya key, ai() lo explica; al reactivar vuelve', () => {
 	const db = openDb(':memory:').db;
 	setGeminiApiKey('AIzaClaveDePruebaQueNoSirve_1234567');
-	expect(hasGemini()).toBe(true);
+	if (realClient) expect(hasGemini()).toBe(true);
 	updateSettings(db, { aiMode: 'off' });
-	expect(hasGemini()).toBe(false);
-	expect(() => ai()).toThrow(GeminiUnavailableError);
-	expect(() => ai()).toThrow('La IA está desactivada');
+	expect(config.aiOff).toBe(true);
+	if (realClient) {
+		expect(hasGemini()).toBe(false);
+		expect(() => ai()).toThrow(GeminiUnavailableError);
+		expect(() => ai()).toThrow('La IA está desactivada');
+	}
 	updateSettings(db, { aiMode: 'on' });
-	expect(hasGemini()).toBe(true);
+	expect(config.aiOff).toBe(false);
+	if (realClient) expect(hasGemini()).toBe(true);
 	// La key no se tocó.
 	expect(config.geminiApiKey).toBe('AIzaClaveDePruebaQueNoSirve_1234567');
 	updateSettings(db, { aiMode: 'off' });
 	resetSettings(db);
 	expect(getSettings(db).aiMode).toBe('ask');
-	expect(hasGemini()).toBe(true);
+	expect(config.aiOff).toBe(false);
 });
 
 test('importar los ajustes de otra copia aplica su modo IA', async () => {
