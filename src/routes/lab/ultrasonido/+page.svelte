@@ -2,7 +2,25 @@
 	// Laboratorio: ¿se oye el ultrasonido? ¿se emparejan dos dispositivos por sonido? (experimento, ver docs/sync-qr.md)
 	import { onDestroy } from 'svelte';
 	import type { GGWave, Instance } from 'ggwave';
-	import { decodeChunk, encodeToBuffer, makeInstance, PROTOCOLS, randomPayload, type ProtocolKey } from '#lib/client/sound.ts';
+	import {
+		CAL_LEVELS,
+		calMessage,
+		decodeChunk,
+		DEFAULT_PROFILE,
+		describeProfile,
+		encodeToBuffer,
+		loadProfile,
+		makeInstance,
+		parseCal,
+		PROTOCOLS,
+		randomPayload,
+		recommendVolume,
+		resetProfile,
+		saveProfile,
+		type ProtocolKey,
+		type SoundProfile
+	} from '#lib/client/sound.ts';
+	import { listen, type Listener } from '#lib/client/sync/audio.ts';
 
 	let ctx: AudioContext | null = null;
 	function audio() {
@@ -58,10 +76,32 @@
 		}, 100);
 	}
 
-	// ---------- 2. Emisor ----------
-	let protocol: ProtocolKey = $state('ultra_fast');
+	// ---------- 2. Emisor = perfil de sonido de este dispositivo ----------
+	const initial = loadProfile();
+	let saved = $state(initial);
+	let protocol: ProtocolKey = $state(initial.protocol);
+	let txVolume = $state(initial.volume);
+	let highpassHz = $state(initial.highpassHz);
+	let rampMs = $state(initial.rampMs);
+	const current = (): SoundProfile => ({ protocol, volume: txVolume, highpassHz, rampMs });
+	const dirty = $derived(
+		protocol !== saved.protocol || txVolume !== saved.volume || highpassHz !== saved.highpassHz || rampMs !== saved.rampMs
+	);
+	let profileMsg = $state('');
+
+	function save() {
+		saveProfile(current());
+		saved = current();
+		profileMsg = 'Guardado: el emparejamiento de este dispositivo usará este sonido.';
+	}
+	function restore() {
+		stopTx();
+		saved = resetProfile();
+		({ protocol, volume: txVolume, highpassHz, rampMs } = saved);
+		profileMsg = 'Restablecido el sonido por defecto.';
+	}
+
 	let payloadKind: 'short' | 'key' = $state('short');
-	let txVolume = $state(50);
 	let payload = $state(randomPayload('short'));
 	let txOn = $state(false);
 	let txCount = $state(0);
@@ -70,15 +110,69 @@
 	let txLoop: ReturnType<typeof setTimeout> | null = null;
 	let tx: { g: GGWave; inst: Instance } | null = null;
 
+	async function encoder() {
+		tx ??= await makeInstance(audio());
+		return tx;
+	}
+
+	/** Reproduce un buffer una vez; se resuelve al terminar (o por tiempo, si `onended` no llega). */
+	function playBuffer(buf: AudioBuffer) {
+		const c = audio();
+		return new Promise<void>((resolve) => {
+			const src = c.createBufferSource();
+			src.buffer = buf;
+			src.connect(c.destination);
+			const timer = setTimeout(resolve, buf.duration * 1000 + 400);
+			src.onended = () => {
+				clearTimeout(timer);
+				resolve();
+			};
+			txSource = src;
+			src.start();
+		});
+	}
+	const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+	// Valoración de cada prueba: «¿lo oíste?», para comparar ajustes.
+	type Trial = { at: number; profile: SoundProfile; rating: 'nada' | 'leve' | 'molesto' | '' };
+	let trials: Trial[] = $state([]);
+	const RATINGS = ['nada', 'leve', 'molesto'] as const;
+	const describe = describeProfile;
+	function rate(rating: Trial['rating']) {
+		if (trials[0]) trials[0].rating = rating;
+	}
+
+	/** Misma señal dos veces: primero cruda (como antes) y luego suavizada con este perfil. */
+	let comparing = $state('');
+	async function compare() {
+		error = '';
+		stopTx();
+		try {
+			const c = audio();
+			const { g, inst } = await encoder();
+			payload ||= randomPayload(payloadKind);
+			comparing = 'Sin suavizar…';
+			await playBuffer(encodeToBuffer(c, g, inst, payload, protocol, txVolume));
+			await sleep(1200);
+			comparing = 'Suavizada (filtro + rampa)…';
+			await playBuffer(encodeToBuffer(c, g, inst, payload, protocol, txVolume, current()));
+		} catch (e) {
+			err(e);
+		}
+		comparing = '';
+	}
+
 	async function startTx(once = false) {
 		error = '';
 		try {
 			stopTx();
 			const c = audio();
-			tx ??= await makeInstance(c);
+			const { g, inst } = await encoder();
 			payload ||= randomPayload(payloadKind);
-			const buf = encodeToBuffer(c, tx.g, tx.inst, payload, protocol, txVolume);
+			const buf = encodeToBuffer(c, g, inst, payload, protocol, txVolume, current());
 			txDuration = buf.duration;
+			const trial: Trial = { at: Date.now(), profile: current(), rating: '' };
+			trials = [trial, ...trials].slice(0, 12);
 			txOn = true;
 			txCount = 0;
 			const play = () => {
@@ -116,11 +210,126 @@
 		payload = randomPayload(payloadKind);
 	}
 
+	// ---------- 4. Calibración del volumen (dos dispositivos) ----------
+	// Uno emite niveles crecientes, el otro anota cuáles oyó y responde el volumen recomendado; el primero lo guarda.
+	let calMode = $state<'' | 'emit' | 'listen'>('');
+	let calStatus = $state('');
+	let calHeard: number[] = $state([]);
+	let calId = '';
+	let calListener: Listener | null = null;
+	let calTimer: ReturnType<typeof setTimeout> | undefined;
+	const REPLY_VOLUME = 70; // la respuesta es una sola vez: que llegue
+
+	function stopCal() {
+		clearTimeout(calTimer);
+		calListener?.stop();
+		calListener = null;
+		calMode = '';
+	}
+
+	async function calibrateEmit() {
+		stopCal();
+		stopTx();
+		stopRx();
+		error = '';
+		const id = randomPayload('short').slice(0, 4);
+		calHeard = [];
+		calMode = 'emit';
+		try {
+			// Escuchar desde ya: la respuesta llega justo al terminar los niveles. Mis propios niveles se ignoran.
+			calListener = await listen((t) => {
+				const m = parseCal(t);
+				if (m?.kind === 'r' && m.id === id && calMode === 'emit') finishEmit(m.volume);
+			});
+			const c = audio();
+			const { g, inst } = await encoder();
+			for (const v of CAL_LEVELS) {
+				if (calMode !== 'emit') return;
+				calStatus = `Emitiendo nivel ${v} de ${CAL_LEVELS.at(-1)}…`;
+				await playBuffer(encodeToBuffer(c, g, inst, calMessage({ kind: 'v', volume: v, id }), protocol, v, current()));
+				await sleep(700);
+			}
+			if (calMode !== 'emit') return;
+			calStatus = 'En silencio: esperando el resultado del otro…';
+			calTimer = setTimeout(() => {
+				if (calMode !== 'emit') return;
+				stopCal();
+				calStatus = 'No llegó el resultado. Comprueba que el otro esté en «Calibrar: escucho» y acércalos.';
+			}, 20000);
+		} catch (e) {
+			stopCal();
+			err(e);
+		}
+	}
+
+	function finishEmit(volume: number) {
+		stopCal();
+		if (!volume) {
+			calStatus = 'El otro no oyó ningún nivel: acércalos, prueba otro modo o baja el filtro.';
+			return;
+		}
+		txVolume = volume;
+		save();
+		calStatus = `Listo: volumen ${volume} guardado en este dispositivo (el mínimo que el otro oyó sin fallos, más un escalón de margen).`;
+	}
+
+	async function calibrateListen() {
+		stopCal();
+		stopTx();
+		stopRx();
+		error = '';
+		calHeard = [];
+		calId = '';
+		calMode = 'listen';
+		calStatus = 'Escuchando… en el otro dispositivo pulsa «Calibrar: emito».';
+		try {
+			calListener = await listen((t) => {
+				const m = parseCal(t);
+				if (!m || m.kind !== 'v' || calMode !== 'listen') return;
+				if (calId && m.id !== calId) return;
+				calId = m.id;
+				if (!calHeard.includes(m.volume)) calHeard = [...calHeard, m.volume];
+				calStatus = `Oído el nivel ${m.volume}…`;
+				clearTimeout(calTimer);
+				// Tras el último nivel, o si dejan de llegar (6 s > un nivel + pausa), respondo.
+				if (m.volume === CAL_LEVELS.at(-1)) void reply();
+				else calTimer = setTimeout(() => void reply(), 6000);
+			});
+		} catch (e) {
+			stopCal();
+			err(e);
+		}
+	}
+
+	async function reply() {
+		if (calMode !== 'listen') return;
+		calListener?.stop();
+		calListener = null;
+		const v = recommendVolume(calHeard);
+		calStatus = `Respondo al otro: volumen recomendado ${v || 'ninguno'}…`;
+		try {
+			const c = audio();
+			const { g, inst } = await encoder();
+			const buf = encodeToBuffer(c, g, inst, calMessage({ kind: 'r', volume: v, id: calId }), protocol, REPLY_VOLUME, current());
+			for (let i = 0; i < 3 && calMode === 'listen'; i++) {
+				await playBuffer(buf);
+				await sleep(1500);
+			}
+			if (calMode === 'listen')
+				calStatus = v
+					? `Listo: el otro debería haber guardado volumen ${v}. Para la otra dirección, repite con los papeles al revés.`
+					: 'No oí ningún nivel: acerca los dispositivos o prueba otro modo en el que emite.';
+		} catch (e) {
+			err(e);
+		}
+		calMode = '';
+	}
+
 	// ---------- 3. Receptor ----------
 	type Got = { text: string; at: number; afterMs: number };
 	let rxOn = $state(false);
 	let received: Got[] = $state([]);
-	let level = $state(-120); // dB en la banda 17-21 kHz
+	let level = $state(-120); // dB en la banda 15-20 kHz
 	let rxStart = 0;
 	let rx: {
 		stream: MediaStream;
@@ -159,7 +368,7 @@
 			const meter = () => {
 				analyser.getFloatFrequencyData(bins);
 				let max = -140;
-				for (let i = Math.floor(17000 / hz); i < Math.min(bins.length, Math.ceil(21000 / hz)); i++) max = Math.max(max, bins[i]);
+				for (let i = Math.floor(15000 / hz); i < Math.min(bins.length, Math.ceil(20000 / hz)); i++) max = Math.max(max, bins[i]);
 				level = max;
 				rx!.raf = requestAnimationFrame(meter);
 			};
@@ -186,6 +395,7 @@
 		stopTone();
 		stopTx();
 		stopRx();
+		stopCal();
 		void ctx?.close();
 	});
 
@@ -196,7 +406,7 @@
 <svelte:head><title>Laboratorio: ultrasonido · Sensei</title></svelte:head>
 
 <div class="lab">
-	<a href="/" class="small">← Sensei</a>
+	<div class="row small"><a href="/sincronizar">← Sincronizar</a> <a href="/">Sensei</a></div>
 	<h1>Laboratorio: emparejar por ultrasonido</h1>
 	<p class="muted small">
 		Experimento para decidir si se usa sonido (casi) inaudible para emparejar dispositivos. Abre esta página en dos dispositivos:
@@ -219,18 +429,37 @@
 			<button class="small ghost" onclick={stopTone} disabled={!toneLabel}>Parar</button>
 		</div>
 		{#if toneLabel}<p class="small">Sonando: <strong>{toneLabel}</strong></p>{/if}
-		<p class="small dim">La transmisión real del emisor (abajo) usa la banda de ~18-20 kHz: pruébala también con «Emitir una vez».</p>
+		<p class="small dim">
+			La transmisión real (abajo) usa la banda de 15-19,5 kHz y salta de tono en tono: esos saltos son lo que más se oye. Pruébala con
+			«Emitir una vez» o «Comparar».
+		</p>
 	</section>
 
 	<div class="two">
 		<section class="card stack">
-			<h2>2. Emisor</h2>
+			<h2>2. Emisor · sonido de este dispositivo</h2>
+			<p class="small muted">
+				Lo que ajustes aquí y guardes lo usa el emparejamiento de <strong>este</strong> dispositivo al emitir. Cada uno tiene el suyo.
+			</p>
 			<label class="small"
 				>Modo
 				<select bind:value={protocol} onchange={stopTx}>
 					{#each Object.entries(PROTOCOLS) as [k, p] (k)}<option value={k}>{p.label}</option>{/each}
 				</select>
 			</label>
+			<label class="inline small"
+				>Filtro paso-alto
+				<input type="range" min="0" max="15000" step="500" bind:value={highpassHz} onchange={stopTx} />
+				{highpassHz ? `${(highpassHz / 1000).toFixed(1)} kHz` : 'no'}
+			</label>
+			<label class="inline small"
+				>Rampa <input type="range" min="0" max="150" step="10" bind:value={rampMs} onchange={stopTx} />
+				{rampMs ? `${rampMs} ms` : 'no'}
+			</label>
+			<p class="small dim">
+				El filtro quita lo audible bajo la banda (14 kHz recomendado; por encima de 15 kHz empieza a recortar la señal). La rampa evita el
+				clic al empezar y terminar. No se aplican al modo audible.
+			</p>
 			<label class="small"
 				>Contenido
 				<select
@@ -252,10 +481,38 @@
 				{:else}
 					<button class="primary" onclick={() => startTx()}>Emitir en bucle</button>
 					<button onclick={() => startTx(true)}>Emitir una vez</button>
+					<button onclick={compare} disabled={!!comparing || protocol.startsWith('audible')}>Comparar: cruda → suavizada</button>
 				{/if}
 				<button class="ghost small" onclick={newPayload}>Nuevo código</button>
 			</div>
+			{#if comparing}<p class="small">Sonando: <strong>{comparing}</strong></p>{/if}
 			{#if txDuration}<p class="small dim">Cada emisión dura {txDuration.toFixed(1)} s{#if txOn} · enviadas: {txCount}{/if}.</p>{/if}
+			{#if trials[0]}
+				<div class="row small">
+					¿Lo oíste?
+					{#each RATINGS as r (r)}
+						<button class="small" class:primary={trials[0].rating === r} onclick={() => rate(r)}>{r}</button>
+					{/each}
+				</div>
+			{/if}
+			<div class="row">
+				<button class="primary small" onclick={save} disabled={!dirty}>Guardar como sonido de este dispositivo</button>
+				<button class="ghost small" onclick={restore}>Restablecer</button>
+			</div>
+			{#if profileMsg}<p class="small ok-text">{profileMsg}</p>{/if}
+			{#if dirty}<p class="small dim">Sin guardar. Guardado: {describe(saved)}.</p>{/if}
+			{#if trials.length}
+				<details class="small" open>
+					<summary>Pruebas ({trials.length})</summary>
+					<ul class="trials">
+						{#each trials as t (t.at)}
+							<li>
+								<span class="dim">{time(t.at)}</span> {describe(t.profile)} · <strong>{t.rating || 'sin valorar'}</strong>
+							</li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
 		</section>
 
 		<section class="card stack">
@@ -270,7 +527,7 @@
 				{#if received.length}<button class="ghost small" onclick={() => (received = [])}>Limpiar</button>{/if}
 			</div>
 			{#if rxOn}
-				<div class="small">Energía 17-21 kHz: {level.toFixed(0)} dB</div>
+				<div class="small">Energía 15-20 kHz: {level.toFixed(0)} dB</div>
 				<div class="meter" role="meter" aria-label="Energía ultrasónica captada" aria-valuemin="-120" aria-valuemax="-30" aria-valuenow={Math.round(level)}>
 					<div style="width:{pct(level)}%"></div>
 				</div>
@@ -289,6 +546,32 @@
 			{/each}
 		</section>
 	</div>
+
+	<section class="card stack">
+		<h2>4. Calibrar el volumen (automático)</h2>
+		<p class="small muted">
+			Busca el volumen más bajo que el otro dispositivo oye sin fallos. En este pulsa «Calibrar: emito» y en el otro «Calibrar: escucho»:
+			este emite {CAL_LEVELS.length} niveles ({CAL_LEVELS[0]} → {CAL_LEVELS.at(-1)}, ~25 s) con el modo, filtro y rampa de arriba, y el
+			otro responde el recomendado, que se guarda aquí. Luego repite con los papeles al revés para la otra dirección.
+		</p>
+		<div class="row">
+			{#if calMode}
+				<button class="ghost" onclick={stopCal}>Cancelar</button>
+			{:else}
+				<button class="primary" onclick={calibrateEmit}>Calibrar: emito</button>
+				<button onclick={calibrateListen}>Calibrar: escucho</button>
+			{/if}
+		</div>
+		{#if calStatus}<p class="small">{calStatus}</p>{/if}
+		{#if calHeard.length || calMode === 'listen'}
+			<div class="levels" aria-label="Niveles oídos">
+				{#each CAL_LEVELS as l (l)}<span class:on={calHeard.includes(l)}>{l}</span>{/each}
+			</div>
+		{/if}
+		<p class="small dim">
+			Por defecto: {describe(DEFAULT_PROFILE)}. Ahora guardado: {describe(saved)}.
+		</p>
+	</section>
 
 	<section class="card small stack">
 		<h2>Qué anotar</h2>
@@ -358,5 +641,28 @@
 	ul {
 		margin: 0;
 		padding-left: 1.2rem;
+	}
+	.trials li {
+		margin: 0.15rem 0;
+	}
+	.levels {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+	}
+	.levels span {
+		font-family: ui-monospace, monospace;
+		font-size: 0.85rem;
+		padding: 0.15rem 0.45rem;
+		border-radius: var(--radius-sm);
+		background: var(--bg-3);
+		color: var(--text-3);
+	}
+	.levels span.on {
+		background: var(--ok);
+		color: #fff;
+	}
+	.ok-text {
+		color: var(--ok);
 	}
 </style>

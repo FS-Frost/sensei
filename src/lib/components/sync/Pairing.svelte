@@ -7,7 +7,7 @@
 	import { createEmitter, listen, type Emitter, type Listener } from '../../client/sync/audio.ts';
 	import { qrSvg, scanQr } from '../../client/sync/qr.ts';
 	import { base } from '../../client/base.ts';
-	import type { ProtocolKey } from '../../client/sound.ts';
+	import { loadProfile, type ProtocolKey } from '../../client/sound.ts';
 
 	let {
 		onconnected,
@@ -28,7 +28,8 @@
 	let level = $state(-140);
 	let heard = $state(false);
 	let micError = $state('');
-	let protocol: ProtocolKey = $state('ultra_fast');
+	// Perfil de sonido del dispositivo (volumen, filtro, rampa; se ajusta y calibra en /lab/ultrasonido).
+	let protocol: ProtocolKey = $state(loadProfile().protocol);
 	let pasted = $state('');
 	let scanning = $state(false);
 	let video: HTMLVideoElement | undefined = $state();
@@ -71,7 +72,8 @@
 
 	async function makeEmitter(text: string) {
 		try {
-			emitter = await createEmitter(text, protocol);
+			// Releer al emitir: el perfil pudo cambiar en el laboratorio (otra pestaña).
+			emitter = await createEmitter(text, { ...loadProfile(), protocol });
 			return emitter;
 		} catch (e) {
 			micError = `No se pudo emitir sonido (${e instanceof Error ? e.message : e}). Usa el QR o el código.`;
@@ -315,11 +317,13 @@
 					<label class="inline small"
 						>Modo
 						<select value={protocol} onchange={(e) => setProtocol((e.target as HTMLSelectElement).value as ProtocolKey)}>
+							<option value="ultra_normal">Ultrasonido · lento</option>
 							<option value="ultra_fast">Ultrasonido</option>
 							<option value="ultra_fastest">Ultrasonido · máximo</option>
 							<option value="audible_fast">Audible (más robusto)</option>
 						</select>
 					</label>
+					<a class="small" href="/lab/ultrasonido" target="_blank">¿Se oye o molesta? Ajustar y calibrar el sonido</a>
 					<details class="small">
 						<summary>Ver código en texto</summary>
 						<code class="code">{myText}</code>

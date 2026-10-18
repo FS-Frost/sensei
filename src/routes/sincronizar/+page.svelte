@@ -8,6 +8,11 @@
 	import { channelTransport, deviceName, type Connected } from '#lib/client/sync/rtc.ts';
 	import { SyncSession, type Status, type Summary } from '#lib/client/sync/protocol.ts';
 	import { syncApi } from '#lib/client/sync/api.ts';
+	import { DEFAULT_PROFILE, describeProfile, loadProfile } from '#lib/client/sound.ts';
+
+	// Sonido de este dispositivo (se ajusta y calibra en /lab/ultrasonido; se relee al volver a esta pestaña).
+	let sound = $state(loadProfile());
+	const soundIsDefault = $derived(JSON.stringify(sound) === JSON.stringify(DEFAULT_PROFILE));
 
 	type Peer = { id: string; name: string; lastHash: string | null; lastAt: number | null };
 
@@ -83,6 +88,8 @@
 	});
 </script>
 
+<svelte:window onfocus={() => (sound = loadProfile())} />
+
 <svelte:head><title>Sincronizar · Sensei</title></svelte:head>
 
 <h1>Sincronizar <HelpLink section="sincronizar" /></h1>
@@ -151,6 +158,16 @@
 	{/if}
 </section>
 
+<section class="card stack">
+	<h2>Sonido de este dispositivo</h2>
+	<p class="small">{describeProfile(sound)}{#if soundIsDefault} <span class="dim">(por defecto)</span>{/if}</p>
+	<p class="small muted">
+		¿Se oye o molesta? ¿No llega al otro? Ajusta volumen, filtro y rampa, compáralos y calibra el volumen mínimo entre tus dos
+		dispositivos. Cada uno guarda el suyo.
+	</p>
+	<div><a class="btn" href="/lab/ultrasonido">🔊 Ajustar y calibrar el sonido</a></div>
+</section>
+
 {#if peers.length}
 	<section class="card stack">
 		<h2>Dispositivos recordados</h2>
@@ -187,7 +204,7 @@
 	<h2>Si no funciona</h2>
 	<ul>
 		<li><strong>Misma red:</strong> ambos en la misma WiFi. Algunas redes de invitados aíslan los dispositivos; en ese caso, usa el móvil como punto de acceso y conecta el PC a él (no hace falta que tenga datos).</li>
-		<li><strong>Sonido:</strong> acerca los dispositivos y cambia a «Audible» si el ultrasonido no llega. Prueba tus equipos en el <a href="/lab/ultrasonido">laboratorio de ultrasonido</a>.</li>
+		<li><strong>Sonido:</strong> acerca los dispositivos y cambia a «Audible» si el ultrasonido no llega. Ajusta y calibra el sonido en el <a href="/lab/ultrasonido">laboratorio de ultrasonido</a>.</li>
 		<li><strong>Sin sonido:</strong> escanea el QR del otro o copia y pega su código.</li>
 		<li><strong>Red local:</strong> prueba la conexión directa entre tus dispositivos en el <a href="/lab/red-local">laboratorio de red local</a>.</li>
 	</ul>

@@ -338,6 +338,11 @@
 			<li>Ambos muestran el mismo código de 4 dígitos: confírmalo en los dos (solo la primera vez; con «Recordar» ya no se pide).</li>
 			<li>Sensei decide solo quién tiene lo más nuevo. Si los dos cambiaron, eliges con qué quedarte; lo descartado queda en una copia.</li>
 		</ol>
+		<p>
+			<strong>¿Se oye o molesta?</strong> En Sincronizar → «Sonido de este dispositivo» → <a href="/lab/ultrasonido">Ajustar y calibrar</a>:
+			volumen, filtro y rampa (compara la señal cruda con la suavizada) y una calibración automática entre tus dos dispositivos que busca el
+			volumen más bajo que funciona. Cada dispositivo guarda el suyo.
+		</p>
 		<p class="small muted">
 			Requisitos: misma WiFi (algunas redes de invitados aíslan los dispositivos: usa el móvil como punto de acceso) y haber abierto Sensei
 			una vez con internet en cada dispositivo. Diagnóstico: <a href="/lab/ultrasonido">laboratorio de ultrasonido</a> y

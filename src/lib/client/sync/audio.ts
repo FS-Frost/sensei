@@ -2,7 +2,7 @@
 // El sonido es SEMIDÚPLEX: dos dispositivos emitiendo a la vez en la misma banda se tapan. Por eso el emparejamiento
 // se hace por turnos (ver Pairing.svelte): el iniciador emite y luego calla escuchando; el otro responde en ese silencio.
 import type { GGWave, Instance } from 'ggwave';
-import { decodeChunk, encodeToBuffer, makeInstance, type ProtocolKey } from '../sound.ts';
+import { decodeChunk, encodeToBuffer, makeInstance, type ProtocolKey, type SoundProfile } from '../sound.ts';
 
 let ctx: AudioContext | null = null;
 export function audioContext() {
@@ -21,10 +21,11 @@ export type Emitter = {
 	stop(): void;
 };
 
-export async function createEmitter(text: string, protocol: ProtocolKey = 'ultra_fast', volume = 50): Promise<Emitter> {
+/** Emisor con el perfil de sonido del dispositivo (volumen, paso-alto, rampa; ver sound.ts). */
+export async function createEmitter(text: string, profile: SoundProfile): Promise<Emitter> {
 	const c = audioContext();
 	const { g, inst } = await makeInstance(c);
-	let buf = encodeToBuffer(c, g, inst, text, protocol, volume);
+	let buf = encodeToBuffer(c, g, inst, text, profile.protocol, profile.volume, profile);
 	let src: AudioBufferSourceNode | null = null;
 	let stopped = false;
 	return {
@@ -58,7 +59,7 @@ export async function createEmitter(text: string, protocol: ProtocolKey = 'ultra
 			});
 		},
 		setProtocol(p) {
-			buf = encodeToBuffer(c, g, inst, text, p, volume);
+			buf = encodeToBuffer(c, g, inst, text, p, profile.volume, profile);
 		},
 		stop() {
 			stopped = true;
@@ -75,7 +76,7 @@ export async function createEmitter(text: string, protocol: ProtocolKey = 'ultra
 
 export type Listener = { stop(): void };
 
-/** Escucha el micrófono sin procesado (cancelación de eco y ganancia automática borran los tonos). */
+/** Escucha el micrófono sin procesado (cancelación de eco y ganancia automática borran los tonos). Medidor: banda 15-20 kHz. */
 export async function listen(onText: (t: string) => void, onLevel?: (db: number) => void): Promise<Listener> {
 	const c = audioContext();
 	const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
@@ -99,7 +100,7 @@ export async function listen(onText: (t: string) => void, onLevel?: (db: number)
 		const tick = () => {
 			analyser.getFloatFrequencyData(bins);
 			let max = -140;
-			for (let i = Math.floor(17000 / hz); i < Math.min(bins.length, Math.ceil(21000 / hz)); i++) max = Math.max(max, bins[i]);
+			for (let i = Math.floor(15000 / hz); i < Math.min(bins.length, Math.ceil(20000 / hz)); i++) max = Math.max(max, bins[i]);
 			onLevel(max);
 			raf = requestAnimationFrame(tick);
 		};
