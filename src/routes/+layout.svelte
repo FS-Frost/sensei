@@ -22,6 +22,8 @@
 	import Toaster from '#lib/components/Toaster.svelte';
 	import AiChoice from '#lib/components/AiChoice.svelte';
 	import AiOff from '#lib/components/AiOff.svelte';
+	import AiNews from '#lib/components/AiNews.svelte';
+	import { fade, fly } from 'svelte/transition';
 	import { toast } from '#lib/client/toast.svelte.ts';
 
 	// Temprano: `beforeinstallprompt` puede llegar antes de montar.
@@ -160,10 +162,44 @@
 	const aiLabel = $derived(data.aiMode === 'ask' && data.aiKey ? AI_LABEL.on : AI_LABEL[data.aiMode ?? 'ask']);
 
 	let moreOpen = $state(false);
+	// Al cambiar de ruta o pulsar Esc, el menú se cierra.
+	onNavigate(() => {
+		moreOpen = false;
+	});
+	let reduceMotion = $state(false);
+	onMount(() => {
+		reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+	});
+	// Deslizar el panel hacia la derecha para cerrarlo (dedo o ratón).
+	let dragX = $state(0);
+	let dragFrom: { x: number; y: number; id: number } | null = null;
+	function dragStart(e: PointerEvent) {
+		dragFrom = { x: e.clientX, y: e.clientY, id: e.pointerId };
+	}
+	let dragged = false;
+	function dragMove(e: PointerEvent) {
+		if (!dragFrom || e.pointerId !== dragFrom.id) return;
+		const dx = e.clientX - dragFrom.x;
+		// Solo gesto horizontal hacia la derecha (el vertical es scroll de la lista).
+		if (dx > 8 && Math.abs(dx) > Math.abs(e.clientY - dragFrom.y)) {
+			if (!dragged) (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+			dragged = true;
+			dragX = dx;
+		}
+	}
+	function dragEnd() {
+		if (dragX > 80) moreOpen = false;
+		dragX = 0;
+		dragFrom = null;
+		// El clic que llega al soltar tras deslizar no debe abrir el enlace de debajo.
+		if (dragged) setTimeout(() => (dragged = false), 0);
+	}
 	// Ruta sin la base del sitio (GitHub Pages: /<repo>/…).
 	const path = $derived(page.url.pathname.slice(base.length) || '/');
 	const active = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 </script>
+
+<svelte:window onkeydown={(e) => moreOpen && e.key === 'Escape' && (moreOpen = false)} />
 
 <svelte:head>
 	{#if ready && data.fontVariety}
@@ -239,7 +275,28 @@
 			</button>
 		</nav>
 		{#if moreOpen}
-			<div class="more card">
+			<!-- Panel lateral (móvil): todo el alto, entra desde la derecha; se cierra al tocar el fondo, con Esc, al elegir
+			     algo o deslizándolo hacia la derecha. -->
+			<button class="more-backdrop" aria-label="Cerrar menú" onclick={() => (moreOpen = false)} transition:fade={{ duration: reduceMotion ? 0 : 180 }}></button>
+			<div
+				class="more"
+				role="dialog"
+				aria-modal="true"
+				aria-label="Más opciones"
+				tabindex="-1"
+				transition:fly={{ x: 320, duration: reduceMotion ? 0 : 220, opacity: 1 }}
+				style:transform={dragX ? `translateX(${dragX}px)` : undefined}
+				onpointerdown={dragStart}
+				onpointermove={dragMove}
+				onpointerup={dragEnd}
+				onpointercancel={dragEnd}
+				ondragstart={(e) => e.preventDefault()}
+				onclickcapture={(e) => dragged && (e.preventDefault(), e.stopPropagation())}
+			>
+				<div class="more-head">
+					<span class="brand"><span class="jp">先生</span> Sensei</span>
+					<button class="ghost small" onclick={() => (moreOpen = false)} aria-label="Cerrar">✕</button>
+				</div>
 				{#each groups as g (g.title)}
 					{@const rest = g.items.filter((n) => !n.main)}
 					{#if rest.length}
@@ -269,6 +326,7 @@
 	</div>
 	<DictPopover />
 	{#if showAi}<TutorPanel />{/if}
+	<AiNews />
 {/if}
 <UpdateNotice />
 <Toaster />
@@ -399,7 +457,8 @@
 		display: none;
 	}
 	.bottom,
-	.more {
+	.more,
+	.more-backdrop {
 		display: none;
 	}
 	@media (max-width: 760px) {
@@ -451,13 +510,37 @@
 		.more {
 			display: block;
 			position: fixed;
-			bottom: 4.2rem;
-			right: 0.6rem;
-			z-index: 41;
-			min-width: 220px;
-			padding: 0.4rem;
-			max-height: calc(100vh - 5.5rem);
+			top: 0;
+			bottom: 0;
+			right: 0;
+			z-index: 47; /* sobre la barra inferior (40) y el tutor (45); bajo el diccionario (50) y los toasts (70) */
+			width: min(300px, 86vw);
+			padding: max(0.6rem, env(safe-area-inset-top)) 0.6rem max(0.8rem, env(safe-area-inset-bottom));
+			background: var(--bg-2);
+			border-left: 1px solid var(--line);
+			box-shadow: -12px 0 32px rgb(0 0 0 / 0.3);
 			overflow-y: auto;
+			overscroll-behavior: contain;
+			touch-action: pan-y;
+		}
+		.more-backdrop {
+			display: block;
+			position: fixed;
+			inset: 0;
+			z-index: 46;
+			background: rgb(0 0 0 / 0.45);
+			border: none;
+			border-radius: 0;
+			padding: 0;
+		}
+		.more-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 0.2rem 0.4rem;
+		}
+		.more-head .brand {
+			padding: 0;
 		}
 	}
 </style>

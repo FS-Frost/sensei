@@ -5,9 +5,10 @@
 	import { disableReminder, enableReminder, reminderEnabled, reminderSupport, testNotification } from '#lib/client/reminder.ts';
 	import type { PageProps } from './$types';
 	import { post, errMsg } from '#lib/client/api.ts';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import InstallCard from '#lib/components/InstallCard.svelte';
-	import { aiKey, aiMode, setAiMode } from '#lib/client/ai.svelte.ts';
+	import { aiKey, aiMode, aiNews, setAiMode } from '#lib/client/ai.svelte.ts';
+	import { setTheme, theme, type ThemeMode } from '#lib/client/theme.svelte.ts';
+	import { MODE_DESC } from '#lib/tutorModes.ts';
 	import { refreshAll } from '$app/navigation';
 	import { base } from '#lib/client/base.ts';
 	import type { FuriganaMode } from '#lib/types.ts';
@@ -29,6 +30,7 @@
 	// «Configurar Gemini» solo existe si eliges usar la IA.
 	const STEPS = $derived([
 		'Bienvenida',
+		'Apariencia',
 		'El camino',
 		'Tu punto de partida',
 		'El SRS',
@@ -72,19 +74,44 @@
 		}
 	}
 
+	// ---------- Apariencia ----------
+	const THEMES: { v: ThemeMode; label: string; desc: string }[] = [
+		{ v: 'light', label: 'Claro', desc: 'Fondo claro siempre' },
+		{ v: 'dark', label: 'Oscuro', desc: 'Fondo oscuro siempre' },
+		{ v: 'system', label: 'Sistema', desc: 'Sigue el de tu dispositivo' }
+	];
+
 	// ---------- IA ----------
-	/** En «La IA» hay que elegir (no hay opción por defecto) antes de seguir. */
-	const aiDecided = $derived(aiMode() !== 'ask' || aiKey());
+	/**
+	 * Opción elegida en «La IA». Por defecto «Sin IA» (marcada), salvo que ya hubiera elegido IA o tenga key. Se guarda al
+	 * pulsar «Siguiente», no al tocarla.
+	 */
+	let aiPick = $state<'on' | 'off'>(untrack(() => (aiMode() === 'on' || (aiMode() === 'ask' && aiKey()) ? 'on' : 'off')));
+	/** Al activar la IA aquí, las novedades se muestran al salir de «Configurar Gemini». */
+	let announceAi = false;
 	let aiBusy = $state(false);
-	async function chooseAi(mode: 'on' | 'off') {
-		aiBusy = true;
-		try {
-			await setAiMode(mode);
-			step++; // con «on» lleva a Configurar Gemini; con «off», a ¡A empezar!
-		} catch (e) {
-			toast.error('No se pudo guardar', { detail: errMsg(e) });
-		} finally {
-			aiBusy = false;
+
+	/** «Siguiente»: guarda lo que pide el paso actual y avanza. */
+	async function next() {
+		if (at('La IA')) {
+			aiBusy = true;
+			try {
+				if (aiPick !== aiMode()) {
+					announceAi = aiPick === 'on';
+					await setAiMode(aiPick, { announce: false });
+				}
+			} catch (e) {
+				toast.error('No se pudo guardar', { detail: errMsg(e) });
+				return;
+			} finally {
+				aiBusy = false;
+			}
+		}
+		const leavingGemini = at('Configurar Gemini');
+		step++;
+		if (leavingGemini && announceAi) {
+			announceAi = false;
+			aiNews.open = true;
 		}
 	}
 	const keyOrigin = typeof location !== 'undefined' ? `${location.origin}${base}/*` : '';
@@ -178,7 +205,22 @@
 				próximos pasos verás <strong>cómo funciona</strong> y elegirás tu ritmo. Son unos 3 minutos.
 			</p>
 			<p class="muted small">Puedes volver a esta guía cuando quieras desde la página <a href="/guia">Guía</a>.</p>
-		{:else if step === 1}
+		{:else if at('Apariencia')}
+			<h2>¿Cómo prefieres verla?</h2>
+			<p class="muted small">Se aplica al instante y solo en este dispositivo. Puedes cambiarlo cuando quieras desde el menú (☀/☾/◐).</p>
+			<div class="themes" role="radiogroup" aria-label="Tema">
+				{#each THEMES as t (t.v)}
+					<button class="opt theme-opt" class:sel={theme.mode === t.v} role="radio" aria-checked={theme.mode === t.v} onclick={() => setTheme(t.v)}>
+						<!-- Vista previa: colores fijos de cada tema (en «Sistema», mitad y mitad). -->
+						<span class="preview p-{t.v}" aria-hidden="true">
+							<span class="pv-bar"></span><span class="pv-line"></span><span class="pv-line short"></span><span class="pv-chip jp">あ</span>
+						</span>
+						<strong>{t.label}</strong>
+						<span class="small dim">{t.desc}</span>
+					</button>
+				{/each}
+			</div>
+		{:else if at('El camino')}
 			<h2>El camino: piezas → kanji → palabras → lectura</h2>
 			<ol class="path">
 				<li><strong class="c-kana">Kana</strong> — los dos silabarios (hiragana y katakana), un sonido por letra. Si no los sabes, empiezas por aquí: unos días.</li>
@@ -192,7 +234,7 @@
 				</li>
 			</ol>
 			<p class="muted small">Ejemplo: 休 «descansar» = 亻 persona + 木 árbol → una persona apoyada en un árbol. Aprendes 亻 y 木 antes que 休.</p>
-		{:else if step === 2}
+		{:else if at('Tu punto de partida')}
 			<h2>Tu punto de partida</h2>
 			<p class="muted small">Así Sensei empieza donde estás: desde cero, con una prueba corta o saltando lo que ya dominas.</p>
 			{#each [['hiragana', 'Hiragana (あいう…)', 'Las letras redondeadas: con ellas se escribe la gramática y cualquier palabra.'], ['katakana', 'Katakana (アイウ…)', 'Las angulosas: palabras extranjeras, nombres y onomatopeyas.']] as const as [key, label, desc] (key)}
@@ -214,7 +256,7 @@
 				</div>
 			</fieldset>
 			<p class="small">{planText}</p>
-		{:else if step === 3}
+		{:else if at('El SRS')}
 			<h2>El SRS: repasar justo antes de olvidar</h2>
 			<p>
 				Cada cosa que aprendes se convierte en tarjetas (significado y lectura). Un algoritmo (FSRS) calcula cuándo vas a olvidarla y
@@ -229,7 +271,7 @@
 					protegerte, no un castigo.
 				</li>
 			</ul>
-		{:else if step === 4}
+		{:else if at('Tu ritmo')}
 			<h2>Tu ritmo diario</h2>
 			<p class="muted small">Kanji nuevos por día (y otras tantas palabras). El tiempo incluye los repasos cuando el ritmo se estabiliza.</p>
 			<div class="paces">
@@ -264,7 +306,7 @@
 					{#if notifMsg}<p class="small" class:warning={notif !== 'on'}>{notifMsg}</p>{/if}
 				</div>
 			{/if}
-		{:else if step === 5}
+		{:else if at('Leer sin muletas')}
 			<h2>Leer sin muletas</h2>
 			<p>La <strong>furigana</strong> (lectura pequeña sobre el kanji) ayuda al principio, pero si siempre está, no aprendes a leer.</p>
 			<div class="opts">
@@ -277,7 +319,6 @@
 				<li>Las lecturas se escriben en <strong>romaji y se convierten solas a kana</strong> (escribe «yama» → やま).</li>
 				<li>El botón 🔊 lee en voz alta (si tu sistema tiene voz japonesa).</li>
 			</ul>
-			<div class="row small">Tema: <ThemeToggle /></div>
 		{:else if at('La IA')}
 			<h2>¿Quieres usar IA?</h2>
 			<p>
@@ -288,7 +329,7 @@
 				<div class="ai-col">
 					<h3>Qué añade</h3>
 					<ul class="small">
-						<li>Un <strong>tutor</strong> que conoce tu progreso, tus fallos y confusiones, y recuerda las sesiones.</li>
+						<li>Un <strong>tutor personal</strong> que conoce tu progreso, tus fallos y confusiones, y recuerda las sesiones anteriores.</li>
 						<li><strong>Lecturas graduadas</strong> a tu nivel y un <strong>explicador</strong> de frases o fotos de manga.</li>
 						<li><strong>«¿Por qué?»</strong> al fallar un repaso y mnemotecnias para los kanji que aún no traen.</li>
 					</ul>
@@ -302,16 +343,42 @@
 					</ul>
 				</div>
 			</div>
+			<details class="tutor-more">
+				<summary>Ver todo lo que hace el tutor</summary>
+				<div class="stack small">
+					<p>
+						Es un profesor de japonés en español que <strong>ve tu progreso real</strong>: qué kanji y palabras estudias, cuáles fallas,
+						qué confundes, tu gramática y tu ritmo. No te pregunta lo que aún no viste y vuelve sobre lo que se te resiste.
+					</p>
+					<h4>Modos</h4>
+					<ul>
+						<li><strong>Conversación-quiz</strong> — {MODE_DESC.conversacion} <span class="dim">Ej.: «pregúntame por los kanji de esta semana».</span></li>
+						<li><strong>Quiz a medida</strong> — {MODE_DESC.quiz} <span class="dim">Ej.: «10 preguntas de palabras con 氵».</span></li>
+						<li><strong>Explicador</strong> — {MODE_DESC.explicador} <span class="dim">Ej.: pega 「もう食べた？」 y te la desglosa.</span></li>
+						<li><strong>Detective de confusiones</strong> — {MODE_DESC.confusiones} <span class="dim">Ej.: 未 / 末, ソ / ン.</span></li>
+						<li><strong>Libre</strong> — {MODE_DESC.libre} <span class="dim">Ej.: «¿qué estudio antes de leer este manga?».</span></li>
+					</ul>
+					<h4>Además</h4>
+					<ul>
+						<li><strong>En cualquier pantalla</strong>: el botón 話 abre el tutor sabiendo qué estás viendo (la ficha de un kanji, un repaso fallado, un texto).</li>
+						<li><strong>Actúa por ti</strong>, siempre a la vista: añade palabras a tu cola, pone frases en el SRS o propone cambiar tu ritmo. Lo directo trae «Deshacer»; lo importante pide «Confirmar». Nunca borra tu progreso.</li>
+						<li><strong>Recuerda</strong>: resume cada sesión y guarda notas sobre ti (intereses, dificultades) para la próxima.</li>
+						<li><strong>Con voz</strong>: le hablas en español o japonés, te responde en voz alta y, en manos libres, la conversación sigue sola.</li>
+						<li><strong>Cierre del día</strong>: en la sesión de hoy comenta contigo lo que hiciste y qué viene mañana.</li>
+						<li>Sus lecturas se comprueban contra el diccionario: si algo no cuadra, lo marca.</li>
+					</ul>
+				</div>
+			</details>
 			<p class="small muted">Sin IA: SRS, kana, lecciones, diccionario, biblioteca, velocidad e informes funcionan igual, con el contenido ya preparado.</p>
-			<!-- Sin opción por defecto: hay que elegir para seguir. -->
+			<!-- Sin IA primero y marcada por defecto; se guarda al pulsar «Siguiente». -->
 			<div class="choice-row" role="radiogroup" aria-label="Usar IA">
-				<button class="opt" class:sel={aiMode() === 'on' || (aiMode() === 'ask' && aiKey())} role="radio" aria-checked={aiMode() === 'on'} onclick={() => chooseAi('on')} disabled={aiBusy}>
-					<strong>Sí, usar Gemini</strong>
-					<span class="small dim">Configuro mi API key ahora o luego</span>
+				<button class="opt" class:sel={aiPick === 'off'} role="radio" aria-checked={aiPick === 'off'} onclick={() => (aiPick = 'off')} disabled={aiBusy}>
+					<strong>Sin IA</strong>
+					<span class="small dim">Todo listo sin configurar nada. Puedes activarla cuando quieras en Ajustes</span>
 				</button>
-				<button class="opt" class:sel={aiMode() === 'off'} role="radio" aria-checked={aiMode() === 'off'} onclick={() => chooseAi('off')} disabled={aiBusy}>
-					<strong>No, sin IA</strong>
-					<span class="small dim">Puedes activarla cuando quieras en Ajustes</span>
+				<button class="opt" class:sel={aiPick === 'on'} role="radio" aria-checked={aiPick === 'on'} onclick={() => (aiPick = 'on')} disabled={aiBusy}>
+					<strong>Usar Gemini</strong>
+					<span class="small dim">Con tu API key: te guío para crearla en el paso siguiente</span>
 				</button>
 			</div>
 		{:else if at('Configurar Gemini')}
@@ -394,12 +461,7 @@
 		<button onclick={() => (step = Math.max(0, step - 1))} disabled={step === 0}>← Atrás</button>
 		<button class="ghost small" onclick={() => finish('/')} disabled={saving} title="Guarda tu ritmo y furigana actuales">Saltar guía</button>
 		{#if step < last}
-			<button
-				class="primary"
-				onclick={() => step++}
-				disabled={at('La IA') && !aiDecided}
-				title={at('La IA') && !aiDecided ? 'Elige una opción para seguir' : undefined}>Siguiente →</button
-			>
+			<button class="primary" onclick={next} disabled={aiBusy}>{#if aiBusy}<span class="spinner"></span>{/if} Siguiente →</button>
 		{:else}
 			<span></span>
 		{/if}
@@ -491,6 +553,78 @@
 	}
 	.notif p {
 		margin: 0;
+	}
+	.tutor-more summary {
+		cursor: pointer;
+		font-weight: 600;
+	}
+	.tutor-more h4 {
+		margin: 0.4rem 0 0;
+		font-size: 0.95rem;
+	}
+	.tutor-more ul {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: grid;
+		gap: 0.3rem;
+	}
+	.tutor-more p {
+		margin: 0.4rem 0 0;
+	}
+	.themes {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+		gap: 0.6rem;
+	}
+	.theme-opt {
+		align-items: stretch;
+	}
+	/* Vistas previas con los colores de cada tema (fijos a propósito: muestran el otro tema aunque estés en este). */
+	.preview {
+		display: grid;
+		gap: 0.3rem;
+		padding: 0.5rem;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--line);
+		margin-bottom: 0.35rem;
+		position: relative;
+		height: 4.4rem;
+	}
+	.p-light {
+		background: #f6f5f1;
+		--pv-ink: #1d1f24;
+		--pv-mute: #d6d3cb;
+	}
+	.p-dark {
+		background: #14161b;
+		--pv-ink: #e8e9ec;
+		--pv-mute: #2e3340;
+	}
+	.p-system {
+		background: linear-gradient(135deg, #f6f5f1 50%, #14161b 50%);
+		--pv-ink: #8a8f99;
+		--pv-mute: #8a8f9955;
+	}
+	.pv-bar {
+		height: 0.45rem;
+		width: 55%;
+		border-radius: 999px;
+		background: var(--accent);
+	}
+	.pv-line {
+		height: 0.35rem;
+		border-radius: 999px;
+		background: var(--pv-mute);
+	}
+	.pv-line.short {
+		width: 60%;
+	}
+	.pv-chip {
+		position: absolute;
+		right: 0.5rem;
+		bottom: 0.4rem;
+		color: var(--pv-ink);
+		font-size: 1.1rem;
 	}
 	.howto {
 		margin: 0;

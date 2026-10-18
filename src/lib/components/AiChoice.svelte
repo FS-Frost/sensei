@@ -40,10 +40,10 @@
 			Puedes cambiarlo cuando quieras en Ajustes.
 		</p>
 	</div>
-	<!-- Ninguna opción por defecto: es decisión del alumno. -->
+	<!-- Sin IA primero y destacada (es lo que funciona sin configurar nada); nada queda marcado: es una pregunta. -->
 	<div class="row">
-		<button onclick={() => choose('on')} disabled={busy}>Sí, tengo o crearé una API key</button>
-		<button onclick={() => choose('off')} disabled={busy}>No, seguir sin IA</button>
+		<button class="primary" onclick={() => choose('off')} disabled={busy}>Seguir sin IA</button>
+		<button onclick={() => choose('on')} disabled={busy}>Usar IA (tengo o crearé una API key)</button>
 	</div>
 </div>
 

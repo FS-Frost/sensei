@@ -4,10 +4,35 @@
 	import { backend, installDict } from '../client/backend.svelte.ts';
 	import type { DictVariant } from '../backendProtocol.ts';
 	import InstallCard from './InstallCard.svelte';
+	import { preloadCode } from '$app/navigation';
 
 	const s = $derived(backend.value);
 	const mb = (b: number) => `${(b / 1048576).toFixed(b > 10 * 1048576 ? 0 : 1)} MB`;
 	let variant: DictVariant = $state('common');
+
+	// Mientras se descarga el diccionario, bajar ya el código de las primeras pantallas (bienvenida, inicio): al terminar
+	// de instalar no hay que esperar a la red y la bienvenida aparece enseguida.
+	let preloaded = false;
+	$effect(() => {
+		if (preloaded || (s.state !== 'installing' && s.state !== 'needs-dict')) return;
+		preloaded = true;
+		// Kit 3 tipa las rutas y añade la base del sitio él mismo.
+		for (const p of ['/', '/bienvenida'] as const) void preloadCode(p).catch(() => {});
+	});
+
+	/** Pasos de la primera instalación: descargar → instalar → preparar la primera pantalla (cargar la app y tus datos). */
+	type StepState = 'done' | 'now' | 'todo';
+	const steps = $derived.by((): { label: string; state: StepState }[] => {
+		const phase = s.state === 'installing' ? s.phase : s.state === 'ready' ? 'ready' : null;
+		const order = ['download', 'install', 'ready'];
+		const idx = phase === 'restore' ? 1 : order.indexOf(phase ?? '');
+		const at = (i: number): StepState => (idx > i ? 'done' : idx === i ? 'now' : 'todo');
+		return [
+			{ label: 'Descargar el diccionario', state: at(0) },
+			{ label: phase === 'restore' ? 'Restaurar tu progreso' : 'Instalarlo en este navegador', state: at(1) },
+			{ label: 'Preparar tu primera pantalla', state: at(2) }
+		];
+	});
 </script>
 
 <div class="setup">
@@ -47,22 +72,30 @@
 			{#if s.error}<p class="error small">{s.error}</p>{/if}
 		</div>
 		<InstallCard />
-	{:else if s.state === 'installing'}
+	{:else if s.state === 'installing' || s.state === 'ready'}
+		<!-- «ready» aquí = base lista, pero la primera pantalla aún carga (código de la app y tus datos). -->
 		<div class="card stack">
-			{#if s.phase === 'download'}
-				<p>Descargando el diccionario… {mb(s.loaded)} de {mb(s.total)}</p>
+			<ol class="steps" aria-label="Progreso de la instalación">
+				{#each steps as st (st.label)}
+					<li class={st.state}>
+						<span class="mark" aria-hidden="true">{#if st.state === 'done'}✓{:else if st.state === 'now'}<span class="spinner"></span>{:else}·{/if}</span>
+						<span>{st.label}</span>
+					</li>
+				{/each}
+			</ol>
+			{#if s.state === 'installing' && s.phase === 'download'}
+				<p class="small">{mb(s.loaded)} de {mb(s.total)}</p>
 				<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((s.loaded / (s.total || 1)) * 100)}>
 					<div style="width:{(s.loaded / (s.total || 1)) * 100}%"></div>
 				</div>
-			{:else if s.phase === 'install'}
-				<p><span class="spinner"></span> Instalando…</p>
-			{:else}
-				<p><span class="spinner"></span> Restaurando tu progreso en el diccionario nuevo…</p>
+			{:else if s.state === 'ready'}
+				<p class="small muted">Casi listo: cargando la app y tu primera pantalla…</p>
+				<div class="bar indeterminate" role="progressbar" aria-label="Cargando"><div></div></div>
 			{/if}
 			<p class="small dim">No cierres esta pestaña.</p>
 		</div>
 		<!-- Buen momento: mientras descarga. Instalar no interrumpe la descarga. -->
-		<InstallCard />
+		{#if s.state === 'installing'}<InstallCard />{/if}
 	{:else if s.state === 'locked'}
 		<div class="card stack">
 			<h2>Sensei ya está abierto en otra pestaña</h2>
@@ -134,5 +167,56 @@
 	.bar div {
 		height: 100%;
 		background: var(--series-1);
+		transition: width 0.2s;
+	}
+	.bar.indeterminate div {
+		width: 35%;
+		border-radius: 999px;
+		animation: slide 1.1s ease-in-out infinite;
+	}
+	@keyframes slide {
+		from {
+			transform: translateX(-100%);
+		}
+		to {
+			transform: translateX(290%);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.bar.indeterminate div {
+			animation: none;
+			width: 100%;
+			opacity: 0.5;
+		}
+	}
+	.steps {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.45rem;
+	}
+	.steps li {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+	}
+	.steps .mark {
+		width: 1.3rem;
+		text-align: center;
+		flex: none;
+	}
+	.steps .done {
+		color: var(--text-2);
+	}
+	.steps .done .mark {
+		color: var(--ok);
+		font-weight: 700;
+	}
+	.steps .now {
+		font-weight: 600;
+	}
+	.steps .todo {
+		color: var(--text-3);
 	}
 </style>

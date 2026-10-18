@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import { aiMode, aiUi } from '#lib/client/ai.svelte.ts';
+	import { CONFUSION_HINT, KANA_SAMPLE_FAILS, KANA_SLOW_MS, MASTERED_DAYS, PLACEMENT_PASS, READABLE_DAYS } from '#lib/algoConstants.ts';
 
 	let { data }: PageProps = $props();
 	const j = $derived(data.journey);
@@ -34,6 +35,7 @@
 		['costos', 'Costos de Gemini'],
 		['sincronizar', 'Sincronizar dispositivos'],
 		['datos', 'Datos y copias'],
+		['por-dentro', 'Cómo funciona por dentro'],
 		['ruta', 'La ruta'],
 		['problemas', 'Problemas frecuentes']
 	];
@@ -426,6 +428,100 @@
 		</ul>
 	</section>
 
+	<section id="por-dentro" class="card">
+		<h2>Cómo funciona por dentro</h2>
+		<p class="muted small">
+			Lo que decide qué ves, cuándo y por qué. Cada apartado explica qué es, cómo funciona y por qué te ayuda, con los números
+			que usa Sensei de verdad.
+		</p>
+		<nav class="sub" aria-label="Apartados">
+			<a href="#por-dentro-srs">Repasos (FSRS)</a>
+			<a href="#por-dentro-orden">Orden y ritmo</a>
+			<a href="#por-dentro-adaptativos">Lo que se adapta a ti</a>
+			<a href="#por-dentro-lectura">Lectura y siguiente paso</a>
+		</nav>
+
+		<h3 id="por-dentro-srs">Repasos: el algoritmo FSRS</h3>
+		<p>
+			<strong>Qué es.</strong> Un modelo de tu memoria. Para cada tarjeta guarda dos números: la <strong>estabilidad</strong> (cuántos días
+			tardas en bajar a un 90 % de probabilidad de recordarla) y la <strong>dificultad</strong> (lo que te cuesta ese ítem, de 1 a 10).
+			Con ellos calcula, para cualquier día, la <strong>probabilidad de que la recuerdes</strong>: empieza en casi 100 % justo después de
+			repasar y cae poco a poco (la «curva del olvido»).
+		</p>
+		<p>
+			<strong>Cómo funciona.</strong> Te pregunta la tarjeta el día en que esa probabilidad baja a tu <strong>retención objetivo</strong>
+			(ahora {Math.round(data.algo.retention * 100)} %; por defecto {Math.round(data.algo.defaultRetention * 100)} %). Al responder:
+		</p>
+		<ul>
+			<li><strong>Bien / Fácil</strong>: la estabilidad crece, y crece <em>más</em> cuanto más cerca estabas de olvidarla (recordar con esfuerzo fija más) y cuanto más fácil es el ítem. Por eso los intervalos se alargan: minutos → días → semanas → meses.</li>
+			<li><strong>Difícil</strong>: crece menos y la dificultad sube un poco.</li>
+			<li><strong>Otra vez</strong>: la estabilidad cae, la dificultad sube y la tarjeta vuelve a aprender (minutos).</li>
+		</ul>
+		<p class="small">
+			<strong>Ejemplo:</strong> una tarjeta con estabilidad 10 días y retención objetivo 90 % vuelve en unos 10 días. Si aciertas, su
+			estabilidad pasa a, por ejemplo, 25 días y el siguiente repaso es en ~25. Con objetivo 95 % vendría antes (más repasos, menos
+			olvidos); con 85 %, después (menos repasos, más fallos).
+		</p>
+		<p>
+			<strong>Por qué ayuda.</strong> Dos efectos muy estudiados: recordar activamente (no releer) fija más, y espaciar los repasos
+			rinde más que concentrarlos. Repasar justo antes de olvidar es el punto en que cada repaso cuenta más y se pierde menos tiempo.
+		</p>
+		<ul class="small">
+			<li><strong>Estados</strong>: aprendiendo (aún en minutos u horas), en repaso, y <strong>dominado</strong> cuando la estabilidad llega a {MASTERED_DAYS} días.</li>
+			<li><strong>Calibrar</strong>: FSRS empieza con parámetros de una persona media (21 números). Con {data.algo.minReviews}+ repasos, Ajustes → SRS los ajusta a tu historial y te enseña cuánto cambia tu carga diaria antes de aplicarlo.</li>
+			<li>Cada ítem tiene varias tarjetas (significado y lectura; kana en los dos sentidos): se evalúan por separado y el estado del ítem es el de la peor.</li>
+		</ul>
+
+		<h3 id="por-dentro-orden">Orden y ritmo</h3>
+		<ul>
+			<li>
+				<strong>Componentes + frecuencia.</strong> Los kanji se ordenan por lo que más aparecen en textos reales (los que no tienen dato,
+				por curso escolar y trazos). Justo antes de cada kanji entran los componentes que aún no viste; si un componente es también un
+				kanji, se enseña como kanji. Ejemplo: antes de 休 «descansar» ves 亻 «persona» y 木 «árbol». Así cada kanji nuevo es una combinación
+				de piezas conocidas y lo primero que aprendes es lo que más vas a leer.
+			</li>
+			<li><strong>Kana primero.</strong> Las lecciones de kanji y la gramática esperan a que estudies los {data.algo.hiraganaCore} hiragana básicos: todo en japonés se lee con kana. El katakana sigue en paralelo, fila a fila ({data.algo.kanaPerDay} al día).</li>
+			<li><strong>Vocabulario desbloqueado.</strong> Una palabra entra en las lecciones cuando <em>todos</em> sus kanji tienen el significado en repaso: la aprendes cuando ya puedes leerla.</li>
+			<li><strong>Gramática por nivel.</strong> Cada punto se abre al llegar a cierto número de kanji conocidos, en el orden del currículo.</li>
+			<li><strong>Cupo diario.</strong> Kanji, palabras, gramática y kana nuevos por día ({data.algo.kanjiPerDay} kanji ahora); el «día» empieza a la hora que elijas. Lo que pongas en la cola desde un texto de la Biblioteca entra antes.</li>
+			<li>
+				<strong>Freno automático.</strong> Con {data.brake.half}+ repasos pendientes el cupo de nuevos baja a la mitad; con {data.brake.stop}+
+				se pausa. Cada ítem nuevo trae varios repasos en las semanas siguientes: frenar a tiempo evita una bola de nieve que te haga
+				abandonar.
+			</li>
+		</ul>
+
+		<h3 id="por-dentro-adaptativos">Lo que se adapta a ti</h3>
+		<ul>
+			<li><strong>Furigana adaptativa.</strong> Se oculta en una palabra cuando <em>todos</em> sus kanji tienen la lectura en repaso con {READABLE_DAYS}+ días de estabilidad. Así la ayuda desaparece justo cuando ya no la necesitas (pasa el ratón para verla).</li>
+			<li><strong>Romaji de apoyo.</strong> Igual con los kana: bajo una lectura aparece el romaji solo si tiene algún kana que aún no lees con {READABLE_DAYS}+ días de estabilidad.</li>
+			<li>
+				<strong>Prueba de kana.</strong> Una muestra de ~15 kana por escritura; con {KANA_SAMPLE_FAILS} fallos se corta y esa escritura se
+				aprende desde cero. Si va bien, sigue con el resto: correcto y en menos de {KANA_SLOW_MS / 1000} s = sabido (queda en repaso y se
+				confirma en unas semanas); fallado o lento = a aprender. La lentitud cuenta porque leer exige reconocer sin pensar.
+			</li>
+			<li>
+				<strong>Test de nivel de kanji.</strong> {data.algo.bands} franjas del orden de aprendizaje (hasta el kanji nº {data.algo.lastBand}); de
+				cada una, {data.algo.perBand} kanji al azar. Apruebas una franja con {PLACEMENT_PASS} de {data.algo.perBand}; dos franjas falladas seguidas
+				terminan el test. Todo lo anterior a tu última franja aprobada pasa a repaso, con el primer repaso repartido en 1-14 días: se
+				verifica sin saturarte.
+			</li>
+			<li><strong>Tarjetas que se resisten.</strong> Con {data.algo.leechLapses} fallos ya aprendida, repetirla igual no funciona: Sensei la marca y propone cambiar de estrategia (otra imagen, contrastarla con su parecido, escribirla o apartarla unos días).</li>
+			<li><strong>Confusiones.</strong> Si al fallar respondes justo lo de otro ítem que ya estudias (el significado de otro kanji, el romaji de otro kana), se registra el par. Con {CONFUSION_HINT}+ veces, se propone un ejercicio para separarlos.</li>
+			<li><strong>Kanji parecidos.</strong> Se calculan por componentes compartidos (al menos la mitad en común) y número de trazos parecido (3 o menos de diferencia). Se te avisan al aprender el segundo del par, que es cuando hay que contrastarlos.</li>
+		</ul>
+
+		<h3 id="por-dentro-lectura">Lectura y siguiente paso</h3>
+		<ul>
+			<li><strong>Análisis de un texto.</strong> Lo corta en palabras buscando siempre la coincidencia más larga en el diccionario (y deshaciendo conjugaciones: 食べなかった → 食べる). La <strong>cobertura</strong> es el % de palabras con kanji o katakana que ya repasas.</li>
+			<li><strong>Plan antes de leer.</strong> Toma las palabras desconocidas que más aparecen hasta subir la cobertura unos 15 puntos (entre 5 y 20 palabras): estudiar esas pocas primero rinde más que buscarlas mientras lees.</li>
+			<li><strong>i+1.</strong> Las lecturas graduadas usan casi solo lo que sabes y un poco nuevo: el nivel en que se aprende leyendo sin frustrarse.</li>
+			<li><strong>Relectura espaciada.</strong> Cada texto vuelve a proponerse a los {data.algo.rereadDays.join(', ')} días de leerlo: releer da fluidez, y se mide en caracteres por minuto.</li>
+			<li><strong>Siguiente paso.</strong> Una lista con prioridad fija (bienvenida → kana → informe → repasos → tarjetas que se resisten → lecciones → relectura → velocidad → lectura → objetivo → confusiones → tutor → biblioteca): Inicio te muestra la primera que aplica y por qué.</li>
+			<li><strong>Sesión de hoy.</strong> Usa tu ritmo real (la mediana de lo que tardas por repaso en los últimos 30 días): repasos con tope para que quede tiempo, luego lección, una lectura corta y el cierre, todo dentro de los minutos que elijas.</li>
+		</ul>
+	</section>
+
 	<section id="ruta" class="card">
 		<h2>La ruta</h2>
 		<p class="muted small">Cifras orientativas: un texto real necesita además vocabulario y gramática, no solo kanji. Llevas <strong>{j.known}</strong> kanji aprendidos.</p>
@@ -457,6 +553,16 @@
 </article>
 
 <style>
+	.sub {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem 1rem;
+		font-size: 0.9rem;
+	}
+	#por-dentro h3 {
+		margin: 1rem 0 0.2rem;
+		scroll-margin-top: 1rem;
+	}
 	.toc {
 		display: flex;
 		flex-wrap: wrap;

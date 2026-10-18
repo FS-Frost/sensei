@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { toast } from '#lib/client/toast.svelte.ts';
+	import { PLACEMENT_PASS } from '#lib/algoConstants.ts';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import { goto } from '#lib/client/nav.ts';
 	import { get, post, errMsg } from '#lib/client/api.ts';
 	import AnswerInput from '#lib/components/AnswerInput.svelte';
@@ -21,7 +23,7 @@
 	let busy = $state(false);
 	let applied = $state('');
 
-	const PASS = 4; // de 5
+	const PASS = PLACEMENT_PASS; // de 5
 
 	async function loadBand(band: number) {
 		sample = await get<Sample>(`/api/placement?band=${band}`);
@@ -92,7 +94,7 @@
 
 <svelte:head><title>Test de nivel · Sensei</title></svelte:head>
 
-<h1>Test de nivel de kanji <HelpLink section="nivel" /></h1>
+<h1>Test de nivel de kanji <HelpLink section="nivel" /> <HowItWorks part="adaptativos" /></h1>
 
 {#if stage === 'intro'}
 	<div class="card stack">

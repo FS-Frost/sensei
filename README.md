@@ -72,7 +72,7 @@ bun run dev                     # http://localhost:5173
 
 ## Qué incluye
 
-- **Bienvenida y guía**: un asistente inicial explica el método y fija tu ritmo. La página **Guía** documenta cada pantalla, y el botón «?» de cada una lleva a su sección.
+- **Bienvenida y guía**: un asistente inicial elige tema (claro, oscuro o sistema), explica el método, pregunta tu punto de partida y si usarás IA (sin IA por defecto), y fija tu ritmo. La página **Guía** documenta cada pantalla (el botón «?» de cada una lleva a su sección) y explica **cómo funciona por dentro** cada algoritmo (FSRS, orden y ritmo, lo adaptativo, lectura y siguiente paso), con enlaces «¿Cómo funciona?» desde las pantallas.
 - **Inicio**: el **siguiente paso recomendado y por qué**, tu posición en la **ruta de hitos** (kana → 50 → 100 → 300 → 600 → 1000 → 2000 kanji), repasos pendientes, cupo de lecciones, racha, progreso, previsión, puntos débiles y confusiones.
 - **Kana desde cero o con una prueba**: la bienvenida pregunta tu punto de partida (hiragana, katakana, kanji).
   - **Curso de kana** fila a fila: sonido, una imagen en español para recordar cada kana, palabra real, parecidos (ソ/ン) y trazo; luego ゛/゜, combinados (きゃ), っ, ー y katakana extendido. Repaso en los dos sentidos (kana → romaji y sonido → elegir el kana) y escritura opcional.

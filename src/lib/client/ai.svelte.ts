@@ -15,7 +15,16 @@ export const aiMode = (): AiMode => data().aiMode ?? 'ask';
 /** Hay API key guardada (aunque la IA esté apagada). */
 export const aiKey = () => !!data().aiKey;
 
-export async function setAiMode(mode: AiMode) {
+/** Diálogo «Lo que añade la IA» (AiNews.svelte, montado en el layout). */
+export const aiNews = $state({ open: false });
+
+/**
+ * Guarda el modo. Al pasar de sin IA (o sin decidir) a con IA abre el diálogo de novedades, salvo `announce: false`
+ * (la bienvenida lo abre ella después del paso «Configurar Gemini»).
+ */
+export async function setAiMode(mode: AiMode, opts: { announce?: boolean } = {}) {
+	const before = aiMode();
 	await post('/api/settings', { aiMode: mode });
 	await refreshAll();
+	if (mode === 'on' && before !== 'on' && opts.announce !== false) aiNews.open = true;
 }

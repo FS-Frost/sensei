@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { get, errMsg } from '#lib/client/api.ts';
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import { completeDaily, currentStep, daily, dailyDone, endDaily, goNext, startDaily, type DailyStepId } from '#lib/client/daily.svelte.ts';
 	import { keepAwake } from '#lib/client/wakeLock.ts';
 
@@ -70,7 +71,7 @@
 
 <svelte:head><title>Hoy · Sensei</title></svelte:head>
 
-<h1>Tu sesión de hoy <HelpLink section="hoy" /></h1>
+<h1>Tu sesión de hoy <HelpLink section="hoy" /> <HowItWorks part="lectura" /></h1>
 
 {#if finished || resumen}
 	<section class="card stack done">

@@ -3,6 +3,7 @@
 	import BarChart from '#lib/components/BarChart.svelte';
 	import ProgressMeter from '#lib/components/ProgressMeter.svelte';
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import { fmtUsd } from '#lib/cost.ts';
 	import InstallCard from '#lib/components/InstallCard.svelte';
 	import { onMount } from 'svelte';
@@ -94,7 +95,7 @@
 			<h2>{first.title}</h2>
 			<a class="btn primary" href={first.href}>{first.cta} →</a>
 		</div>
-		<p class="why"><strong>Por qué:</strong> {first.why}</p>
+		<p class="why"><strong>Por qué:</strong> {first.why} <HowItWorks part="lectura" /></p>
 		{#if rest.length}
 			<details>
 				<summary class="small muted">Después, o si prefieres ({rest.length})</summary>

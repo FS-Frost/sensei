@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import { onMount } from 'svelte';
 	import { refreshAll } from '$app/navigation';
 	import { get, errMsg } from '#lib/client/api.ts';
@@ -91,7 +92,7 @@
 <svelte:head><title>Lección · Sensei</title></svelte:head>
 
 <div class="spread">
-	<h1>Lección <HelpLink section="leccion" /></h1>
+	<h1>Lección <HelpLink section="leccion" /> <HowItWorks part="orden" /></h1>
 	<div class="row">
 		<select bind:value={kind} onchange={load} aria-label="Tipo de lección" style="width:auto">
 			<option value="auto">Automática</option>

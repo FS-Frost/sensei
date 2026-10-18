@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { refreshAll } from '$app/navigation';
 	import type { PageProps } from './$types';
@@ -189,7 +190,7 @@
 <p class="small muted">¿Quieres volver a los valores por defecto? <a href="/datos">Datos → Restablecer ajustes</a>.</p>
 
 <div class="card stack">
-	<h2>Ritmo</h2>
+	<h2>Ritmo <HowItWorks part="orden" /></h2>
 	<div class="cols">
 		<div>
 			<label for="nk">Kanji nuevos por día</label>
@@ -253,7 +254,7 @@
 </div>
 
 <div class="card stack">
-	<h2>SRS</h2>
+	<h2>SRS <HowItWorks part="srs" /></h2>
 	<div>
 		<label for="ret">Retención objetivo: {Math.round(s.desiredRetention * 100)}%</label>
 		<input id="ret" type="range" min="0.8" max="0.95" step="0.01" bind:value={s.desiredRetention} />
@@ -339,13 +340,14 @@
 		con el contenido ya preparado, y desaparecen de la interfaz las funciones de IA. El modo viaja en tus copias y al sincronizar.
 	</p>
 	<div class="row modes" role="radiogroup" aria-label="Modo de IA">
-		<button class="mode" class:sel={ai} role="radio" aria-checked={ai} onclick={() => changeAi('on')} disabled={aiBusy}>
-			<strong>智 IA activada</strong>
-			<span class="small dim">{aiKey() ? 'con tu API key' : 'falta pegar la API key abajo'}</span>
-		</button>
+		<!-- Sin IA primero (CLAUDE.md: misma regla en bienvenida, tarjeta y aquí). -->
 		<button class="mode" class:sel={aiMode() === 'off'} role="radio" aria-checked={aiMode() === 'off'} onclick={() => changeAi('off')} disabled={aiBusy}>
 			<strong>無 Sin IA</strong>
 			<span class="small dim">{aiKey() ? 'la key se conserva sin usarse' : 'sin llamadas a Gemini'}</span>
+		</button>
+		<button class="mode" class:sel={ai} role="radio" aria-checked={ai} onclick={() => changeAi('on')} disabled={aiBusy}>
+			<strong>智 IA activada</strong>
+			<span class="small dim">{aiKey() ? 'con tu API key' : 'necesita tu API key (abajo)'}</span>
 		</button>
 	</div>
 	{#if aiMode() === 'ask' && !aiKey()}<p class="small">Aún no elegiste: elige una opción.</p>{/if}

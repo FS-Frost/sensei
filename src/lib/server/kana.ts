@@ -20,8 +20,9 @@ import {
 } from '../kanaCourse.ts';
 import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, KATAKANA_BASIC, KATAKANA_DAKUTEN } from '../kana.ts';
 
+import { MASTERED_DAYS, READABLE_DAYS } from '../algoConstants.ts';
+
 const DAY = 86_400_000;
-const MASTERED_DAYS = 21;
 
 /** Lo que cubría el diagnóstico antiguo (básicos y dakuten de ambas escrituras). */
 const LEGACY_SET = [...HIRAGANA_BASIC, ...HIRAGANA_DAKUTEN, ...KATAKANA_BASIC, ...KATAKANA_DAKUTEN];
@@ -202,7 +203,7 @@ export function weakKanaChars(db: DB): string {
 		sql`select item_key as k, state, stability as stab from card where item_type = 'kana' and facet = 'reading'`
 	);
 	const solid = new Set<string>();
-	for (const r of rows) if (r.state === State.Review && r.stab >= 7) for (const ch of r.k) solid.add(ch);
+	for (const r of rows) if (r.state === State.Review && r.stab >= READABLE_DAYS) for (const ch of r.k) solid.add(ch);
 	for (const k of legacyKnownKana(db)) for (const ch of k) solid.add(ch);
 	const all = new Set(COURSE_KANA.flatMap((k) => [...k]));
 	return [...all].filter((ch) => !solid.has(ch)).join('');

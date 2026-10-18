@@ -11,20 +11,80 @@
 		await run();
 		if (!keep) dismiss(t.id);
 	}
+
+	// ---------- Deslizar para cerrar (dedo o ratón): hacia los lados o hacia arriba; los `persistent`, no ----------
+	const START = 8; // px antes de considerarlo arrastre (así los botones siguen recibiendo su clic)
+	const CLOSE_X = 90;
+	const CLOSE_UP = 45;
+	type Drag = { id: number; pointer: number; x0: number; y0: number; t0: number; dx: number; dy: number; active: boolean };
+	let drag: Drag | null = $state(null);
+	/** Hacia dónde sale cada toast cerrado con gesto (para que la animación siga al dedo). */
+	const exit = new Map<number, { x: number; y: number }>();
+	let swallowClick = false;
+
+	function down(e: PointerEvent, t: Toast) {
+		if (t.persistent || e.button > 0) return;
+		drag = { id: t.id, pointer: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), dx: 0, dy: 0, active: false };
+	}
+	function move(e: PointerEvent) {
+		if (!drag || e.pointerId !== drag.pointer) return;
+		const dx = e.clientX - drag.x0;
+		const dy = Math.min(0, e.clientY - drag.y0); // hacia abajo no
+		if (!drag.active && Math.hypot(dx, dy) > START) {
+			drag.active = true;
+			pause(drag.id);
+			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		}
+		if (drag.active) {
+			drag.dx = dx;
+			drag.dy = dy;
+		}
+	}
+	function up(e: PointerEvent) {
+		if (!drag || e.pointerId !== drag.pointer) return;
+		const d = drag;
+		drag = null;
+		if (!d.active) return;
+		swallowClick = true;
+		setTimeout(() => (swallowClick = false), 0);
+		// Un golpe rápido también cierra aunque no llegue al umbral.
+		const ms = Math.max(1, performance.now() - d.t0);
+		const fast = Math.hypot(d.dx, d.dy) / ms > 0.6;
+		const horizontal = Math.abs(d.dx) >= Math.abs(d.dy);
+		if (horizontal ? Math.abs(d.dx) > CLOSE_X || (fast && Math.abs(d.dx) > 30) : -d.dy > CLOSE_UP || (fast && -d.dy > 20)) {
+			exit.set(d.id, horizontal ? { x: Math.sign(d.dx) * 420, y: 0 } : { x: 0, y: -120 });
+			dismiss(d.id);
+		} else resume(d.id);
+	}
+	const offset = (t: Toast) => (drag?.id === t.id && drag.active ? { x: drag.dx, y: drag.dy } : null);
+	const outOf = (id: number) => {
+		const e = exit.get(id);
+		exit.delete(id);
+		return e ? { x: e.x, y: e.y, duration: 160, opacity: 0 } : { y: -10, duration: 150 };
+	};
 </script>
 
 <div class="toaster" aria-live="polite">
 	{#each toasts.list as t (t.id)}
+		{@const off = offset(t)}
 		<div
 			class="toast {t.kind}"
+			class:dragging={!!off}
 			role={t.kind === 'error' || t.kind === 'warn' ? 'alert' : 'status'}
 			in:fly={{ y: -16, duration: 180 }}
-			out:fly={{ y: -10, duration: 150 }}
+			out:fly={outOf(t.id)}
 			animate:flip={{ duration: 180 }}
+			style:transform={off ? `translate(${off.x}px, ${off.y}px)` : undefined}
+			style:opacity={off ? Math.max(0.25, 1 - Math.max(Math.abs(off.x) / 260, -off.y / 110)) : undefined}
 			onmouseenter={() => pause(t.id)}
-			onmouseleave={() => resume(t.id)}
+			onmouseleave={() => !drag && resume(t.id)}
 			onfocusin={() => pause(t.id)}
 			onfocusout={() => resume(t.id)}
+			onpointerdown={(e) => down(e, t)}
+			onpointermove={move}
+			onpointerup={up}
+			onpointercancel={up}
+			onclickcapture={(e) => swallowClick && (e.stopPropagation(), e.preventDefault())}
 		>
 			<span class="icon" aria-hidden="true">{ICON[t.kind]}</span>
 			<div class="body">
@@ -73,6 +133,16 @@
 		border-left: 4px solid var(--tone);
 		box-shadow: 0 8px 28px rgb(0 0 0 / 0.28);
 		font-size: 0.92rem;
+		/* Deja el scroll vertical de la página; el gesto lo gestionamos nosotros. */
+		touch-action: pan-y;
+		user-select: none;
+		transition:
+			transform 0.18s,
+			opacity 0.18s;
+	}
+	.toast.dragging {
+		transition: none;
+		cursor: grabbing;
 	}
 	.success {
 		--tone: var(--ok);

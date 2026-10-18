@@ -2,6 +2,7 @@
 	// Kana: tu avance (mapa por estado), el diagnóstico adaptativo (si ya sabes algo) y práctica de lectura con
 	// palabras reales. Las lecciones de kana viven en /leccion, como el resto.
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import type { PageProps } from './$types';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
@@ -50,7 +51,7 @@
 
 <svelte:head><title>Kana · Sensei</title></svelte:head>
 
-<h1>Kana <HelpLink section="kana" /></h1>
+<h1>Kana <HelpLink section="kana" /> <HowItWorks part="adaptativos" /></h1>
 
 {#if stage === 'diag'}
 	<div class="card stack">

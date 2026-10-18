@@ -39,11 +39,15 @@ export function initTheme() {
 	}
 }
 
+/** Elige un tema concreto (bienvenida → Apariencia). */
+export function setTheme(mode: ThemeMode) {
+	theme.mode = mode;
+	if (mode === 'system') localStorage.removeItem(THEME_KEY);
+	else localStorage.setItem(THEME_KEY, mode);
+	apply(mode);
+}
+
 /** claro → oscuro → sistema → claro… */
 export function cycleTheme() {
-	const next = ORDER[(ORDER.indexOf(theme.mode) + 1) % ORDER.length];
-	theme.mode = next;
-	if (next === 'system') localStorage.removeItem(THEME_KEY);
-	else localStorage.setItem(THEME_KEY, next);
-	apply(next);
+	setTheme(ORDER[(ORDER.indexOf(theme.mode) + 1) % ORDER.length]);
 }

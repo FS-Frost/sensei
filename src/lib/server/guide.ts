@@ -11,6 +11,7 @@ import { rereadsDue } from './text/library.ts';
 import { reportDue } from './report.ts';
 import { kanaProgress, nextKana } from './kana.ts';
 import { rowOf } from '../kanaCourse.ts';
+import { CONFUSION_HINT } from '../algoConstants.ts';
 
 export type Step = { id: string; title: string; why: string; href: string; cta: string };
 
@@ -230,7 +231,7 @@ export function nextSteps(db: DB, now = new Date()): Step[] {
 			cta: 'Ajustar ritmo'
 		});
 
-	const hard = profile.confusions.filter((c) => c.count >= 3);
+	const hard = profile.confusions.filter((c) => c.count >= CONFUSION_HINT);
 	if (gemini && hard.length)
 		steps.push({
 			id: 'confusions',

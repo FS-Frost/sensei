@@ -6,7 +6,7 @@ import { State } from './srs/fsrs.ts';
 import { deinflect, posMatches, T } from '../deinflect.ts';
 import { COMPONENT_FULL_FORM } from './import/radicals.ts';
 
-const MASTERED_DAYS = 21;
+import { MASTERED_DAYS, READABLE_DAYS } from '../algoConstants.ts';
 
 /** Estado agregado de un ítem a partir de sus tarjetas (el peor de sus facetas). */
 export function statusOf(cards: { state: number; stability: number }[]): ItemStatus {
@@ -283,7 +283,7 @@ export function readableKanji(db: DB): Set<string> {
 					eq(s.card.itemType, 'kanji'),
 					eq(s.card.facet, 'reading'),
 					eq(s.card.state, State.Review),
-					sql`${s.card.stability} >= 7`
+					sql`${s.card.stability} >= ${READABLE_DAYS}`
 				)
 			)
 			.all()

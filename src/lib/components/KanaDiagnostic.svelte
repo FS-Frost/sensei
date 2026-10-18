@@ -12,13 +12,14 @@
 	import { acceptedRomaji, kanaScript } from '../kana.ts';
 	import { KANA_ROWS, SPECIAL_WORDS, isSpecialKana, type KanaScript } from '../kanaCourse.ts';
 	import AnswerInput from './AnswerInput.svelte';
+	import { KANA_SAMPLE_FAILS } from '../algoConstants.ts';
 
 	let { scripts = ['hiragana', 'katakana'], ondone }: { scripts?: KanaScript[]; ondone?: (r: Outcome) => void } = $props();
 
 	type Result = { kana: string; answer: string; ms: number };
 	type Q = { kana: string; prompt: string };
 
-	const SAMPLE_FAILS = 6;
+	const SAMPLE_FAILS = KANA_SAMPLE_FAILS;
 	const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 	const promptOf = (k: string) => (isSpecialKana(k) ? shuffle(SPECIAL_WORDS[k])[0].word : k);
 

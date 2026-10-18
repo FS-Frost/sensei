@@ -10,6 +10,7 @@
 	import ReadTimer from '#lib/components/ReadTimer.svelte';
 	import MineSentence from '#lib/components/MineSentence.svelte';
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import { setScreenContext } from '#lib/client/tutorContext.svelte.ts';
 
 	type Read = { cpm: number; createdAt: number; furigana: string };
@@ -135,7 +136,7 @@
 	<span class="spinner"></span>
 {:else}
 	{@const st = data.stats}
-	<h1>{data.text.title} <HelpLink section="biblioteca" /></h1>
+	<h1>{data.text.title} <HelpLink section="biblioteca" /> <HowItWorks part="lectura" /></h1>
 	{#if data.text.truncated}<div class="warning small">Texto muy largo: se analizan los primeros {st.chars} caracteres.</div>{/if}
 	{#if rereading}
 		<div class="card small">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import HowItWorks from '#lib/components/HowItWorks.svelte';
 	import { onMount } from 'svelte';
 	import { refreshAll } from '$app/navigation';
 	import { get, errMsg } from '#lib/client/api.ts';
@@ -38,7 +39,7 @@
 <svelte:head><title>Repaso · Sensei</title></svelte:head>
 
 <div class="spread">
-	<h1>Repaso <HelpLink section="repaso" /></h1>
+	<h1>Repaso <HelpLink section="repaso" /> <HowItWorks part="srs" /></h1>
 	{#if total > limit}<span class="muted small">{fromDaily ? 'Sesión de hoy' : 'Mostrando'}: {limit} de {total}</span>{/if}
 </div>
 

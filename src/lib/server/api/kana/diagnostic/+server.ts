@@ -5,8 +5,7 @@ import { applyReview, ensureCard, recordConfusion } from '#lib/server/srs/servic
 import { acceptedRomaji, ALL_KANA, kanaScript } from '#lib/kana.ts';
 import { knownCard, markKanaAssessed } from '#lib/server/kana.ts';
 
-/** Más lento que esto se considera "dudoso" y entra al SRS aunque sea correcto. */
-const SLOW_MS = 4000;
+import { KANA_SLOW_MS as SLOW_MS } from '#lib/algoConstants.ts';
 
 type Result = { kana: string; answer: string; ms: number };
 
