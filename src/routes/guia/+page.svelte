@@ -307,6 +307,13 @@
 		<ul>
 			<li><strong>API key de Gemini</strong>: se pega en Ajustes y se guarda solo en este navegador (no viaja en exportaciones ni copias). Restríngela en Google Cloud a la dirección del sitio y ponle presupuesto en Costos.</li>
 			<li><strong>Diccionario</strong>: «palabras comunes» (ligero) o «JMdict completo» (mejores búsquedas). Cambiar de uno a otro, o actualizar cuando se publica uno nuevo, conserva tu progreso.</li>
+			<li>
+				<strong>App</strong>: botón «Instalar Sensei», <strong>recordatorio de repasos</strong> (como mucho un aviso al día entre las 8 y
+				las 22 h, y el número de pendientes en el icono; solo Chrome/Edge con la app instalada) y lo que se hace desde otras apps:
+				<strong>Compartir → Sensei</strong> (texto o foto al Explicador; .txt/.srt/.epub a la Biblioteca), <strong>abrir con Sensei</strong>
+				en el PC (también copias .zip) y atajos al mantener pulsado el icono. La pantalla no se apaga mientras repasas, lees cronometrando
+				o sincronizas.
+			</li>
 		</ul>
 	</section>
 

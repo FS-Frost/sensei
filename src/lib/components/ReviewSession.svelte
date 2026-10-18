@@ -8,6 +8,11 @@
 	import { FONT_LABELS, pickFont } from '../client/state.svelte.ts';
 	import { askTutor, setScreenContext, tutor } from '../client/tutorContext.svelte.ts';
 	import type { PromptFont } from '../types.ts';
+	import { onMount } from 'svelte';
+	import { keepAwake } from '../client/wakeLock.ts';
+
+	// Pantalla encendida mientras dura la sesión (repaso o mini-quiz de lección).
+	onMount(() => keepAwake());
 
 	let {
 		items,

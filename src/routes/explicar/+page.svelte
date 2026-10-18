@@ -9,6 +9,16 @@
 	import { setScreenContext } from '#lib/client/tutorContext.svelte.ts';
 	import CostNote from '#lib/components/CostNote.svelte';
 	import type { OperationCost } from '#lib/cost.ts';
+	import { onMount } from 'svelte';
+	import { takePending } from '#lib/client/inbox.ts';
+
+	// Llegó compartido hacia Sensei (/compartir): texto o imagen listos para explicar.
+	onMount(() => {
+		const p = takePending('explicar');
+		if (!p) return;
+		if (p.text) text = p.text;
+		if (p.files[0]) pick(p.files[0]).catch((err) => (error = errMsg(err)));
+	});
 
 	type Explanation = {
 		transcription: string;

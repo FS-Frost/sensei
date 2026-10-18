@@ -326,6 +326,18 @@ export function dueCount(db: DB, until = Date.now()): number {
 	);
 }
 
+/** Vencimientos (ms, ordenados) de las tarjetas activas que vencen hasta `until` (para el recordatorio del service worker). */
+export function upcomingDue(db: DB, until: number, limit = 3000): number[] {
+	return db
+		.select({ due: s.card.due })
+		.from(s.card)
+		.where(and(lte(s.card.due, until), eq(s.card.suspended, false)))
+		.orderBy(asc(s.card.due))
+		.limit(limit)
+		.all()
+		.map((r) => r.due);
+}
+
 /** Mezcla tarjetas evitando que dos facetas del mismo ítem queden seguidas. */
 export function interleave<T extends { itemType: string; itemKey: string }>(cards: T[]): T[] {
 	const id = (c: T) => `${c.itemType}:${c.itemKey}`;

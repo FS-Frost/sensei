@@ -9,6 +9,7 @@
 	import { SyncSession, type Status, type Summary } from '#lib/client/sync/protocol.ts';
 	import { syncApi } from '#lib/client/sync/api.ts';
 	import { DEFAULT_PROFILE, describeProfile, loadProfile } from '#lib/client/sound.ts';
+	import { keepAwake } from '#lib/client/wakeLock.ts';
 
 	// Sonido de este dispositivo (se ajusta y calibra en /lab/ultrasonido; se relee al volver a esta pestaña).
 	let sound = $state(loadProfile());
@@ -79,12 +80,15 @@
 	const kb = (n: number) => (n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
 	onMount(() => {
+		// Pantalla encendida en esta página: si se apaga a mitad, el navegador corta el sonido, la cámara y la conexión.
+		const release = keepAwake();
 		const m = location.hash.match(/[#&]s=([^&]+)/);
 		if (m) {
 			offerFromLink = decodeURIComponent(m[1]);
 			history.replaceState(null, '', location.pathname); // un solo uso: no reutilizar al recargar
 		}
 		loadPeers().catch((e) => (error = errMsg(e)));
+		return release;
 	});
 </script>
 

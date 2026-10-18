@@ -31,6 +31,7 @@
 		'/guia': 'Guía',
 		'/datos': 'Datos y copias',
 		'/sincronizar': 'Sincronizar',
+		'/compartir': 'Compartido con Sensei',
 		'/ajustes': 'Ajustes',
 		'/nivel': 'Test de nivel',
 		'/bienvenida': 'Bienvenida'

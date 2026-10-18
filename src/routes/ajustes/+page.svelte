@@ -10,6 +10,7 @@
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ModelPicker from '#lib/components/ModelPicker.svelte';
 	import { version } from '$app/env';
+	import AppSettings from '#lib/components/AppSettings.svelte';
 	import { ago } from '#lib/client/version.ts';
 
 	const builtAt = import.meta.env.VITE_BUILT_AT as string | undefined;
@@ -359,6 +360,8 @@
 		{/if}
 	</div>
 </div>
+
+<AppSettings />
 
 <p class="small dim">
 	Versión de Sensei: <code>{version}</code>{#if builtAt && version !== 'dev'} · publicada {ago(builtAt)}

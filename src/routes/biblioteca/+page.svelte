@@ -4,6 +4,7 @@
 	import { del, get, errMsg, ApiError } from '#lib/client/api.ts';
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import { takePending } from '#lib/client/inbox.ts';
 
 	type Item = {
 		id: number;
@@ -29,7 +30,7 @@
 		texts = (await get<{ texts: Item[] }>('/api/library')).texts;
 	}
 
-	async function upload(file?: File) {
+	async function upload(file?: File, open = true) {
 		busy = true;
 		error = '';
 		try {
@@ -42,7 +43,7 @@
 			if (!res.ok) throw new ApiError(res.status, data.error ?? 'Error');
 			title = '';
 			text = '';
-			if (data.ids.length === 1) goto(`/biblioteca/${data.ids[0]}`);
+			if (open && data.ids.length === 1) goto(`/biblioteca/${data.ids[0]}`);
 			else await load();
 		} catch (e) {
 			error = errMsg(e);
@@ -61,7 +62,22 @@
 	const ORIGIN: Record<string, string> = { paste: 'pegado', txt: '.txt', srt: 'subtítulos', epub: 'EPUB', html: 'web' };
 	onMount(() => {
 		load().catch((e) => (error = errMsg(e)));
+		// Llegó compartido o abierto con Sensei (/compartir): archivos se suben solos; un texto queda listo para añadir.
+		const p = takePending('biblioteca');
+		if (!p) return;
+		if (p.files.length) void uploadAll(p.files);
+		else if (p.text) {
+			text = p.text;
+			title = p.title ?? '';
+		}
 	});
+
+	async function uploadAll(files: File[]) {
+		for (const f of files) {
+			await upload(f, files.length === 1);
+			if (error) return;
+		}
+	}
 </script>
 
 <svelte:head><title>Biblioteca · Sensei</title></svelte:head>

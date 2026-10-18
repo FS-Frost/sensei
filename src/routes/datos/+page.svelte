@@ -6,6 +6,13 @@
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { downloadFrom } from '#lib/client/backend.svelte.ts';
+	import { takePending } from '#lib/client/inbox.ts';
+
+	// Llegó un .zip compartido o abierto con Sensei (/compartir): mostrar qué contiene y pedir confirmación.
+	onMount(() => {
+		const f = takePending('datos')?.files[0];
+		if (f) void previewImport(f);
+	});
 
 	type Counts = Record<string, number>;
 	type Backup = { name: string; kind: string; label: string; createdAt: number; size: number };
@@ -81,7 +88,11 @@
 	async function pickFile(e: Event) {
 		const f = (e.target as HTMLInputElement).files?.[0];
 		(e.target as HTMLInputElement).value = '';
-		if (!f) return;
+		if (f) await previewImport(f);
+	}
+
+	/** Vista previa (sin cambiar nada) y diálogo de confirmación: también para un .zip compartido o abierto con Sensei. */
+	async function previewImport(f: File) {
 		error = '';
 		try {
 			importPreview = await upload(f, true);

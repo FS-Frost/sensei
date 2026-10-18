@@ -15,6 +15,11 @@
 	import { startBaseLinks } from '#lib/client/basePath.ts';
 	import { registerServiceWorker } from '#lib/client/pwa.ts';
 	import UpdateNotice from '#lib/components/UpdateNotice.svelte';
+	import { initInstall } from '#lib/client/install.svelte.ts';
+	import { publishSchedule, setBadge } from '#lib/client/reminder.ts';
+
+	// Temprano: `beforeinstallprompt` puede llegar antes de montar.
+	initInstall();
 	import { refreshAll } from '$app/navigation';
 	import { base } from '#lib/client/base.ts';
 
@@ -34,6 +39,15 @@
 	});
 	// Al cambiar de pantalla, el contexto anterior deja de valer; la nueva página publica el suyo.
 	onNavigate(() => setScreenContext(null));
+
+	// Repasos pendientes: número en el icono de la app y vencimientos para el recordatorio del service worker.
+	let scheduleTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		if (!ready || data.due === undefined) return;
+		setBadge(data.due);
+		clearTimeout(scheduleTimer);
+		scheduleTimer = setTimeout(() => void publishSchedule(), 2000);
+	});
 
 	$effect.pre(() => {
 		if (ready && data.readable !== undefined)

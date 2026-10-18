@@ -3,6 +3,7 @@
 	import { onDestroy } from 'svelte';
 	import { post, errMsg } from '../client/api.ts';
 	import { prefs } from '../client/state.svelte.ts';
+	import { keepAwake } from '../client/wakeLock.ts';
 
 	type Log = { cpm: number; createdAt: number; furigana: string };
 
@@ -27,10 +28,13 @@
 	let result: { log: Log; nextReread: number | null } | null = $state(null);
 	let error = $state('');
 	let timer: ReturnType<typeof setInterval> | undefined;
+	let release: (() => void) | null = null; // pantalla encendida mientras corre el cronómetro
 
 	function start() {
 		result = null;
 		error = '';
+		release?.();
+		release = keepAwake();
 		startedAt = Date.now();
 		elapsed = 0;
 		timer = setInterval(() => (elapsed = Date.now() - (startedAt ?? Date.now())), 250);
@@ -39,6 +43,8 @@
 	async function finish() {
 		if (!startedAt) return;
 		clearInterval(timer);
+		release?.();
+		release = null;
 		const durationMs = Date.now() - startedAt;
 		startedAt = null;
 		try {
@@ -57,7 +63,10 @@
 		}
 	}
 
-	onDestroy(() => clearInterval(timer));
+	onDestroy(() => {
+		clearInterval(timer);
+		release?.();
+	});
 
 	const best = $derived(previous.length ? Math.max(...previous.map((p) => p.cpm)) : null);
 	const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
