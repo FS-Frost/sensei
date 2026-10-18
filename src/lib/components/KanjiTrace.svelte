@@ -3,7 +3,8 @@
 	// Modos: «guiado» (silueta de fondo) o «de memoria». Un trazo correcto se sustituye por su forma limpia; tras 2 fallos
 	// en el mismo trazo se muestra la pista animada. Ver docs/kanji-writing.md.
 	import { onMount } from 'svelte';
-	import { bestMatch, matchStroke, parseKanjiVG, pathPoints, REASON_ES, type Pt } from '../strokes.ts';
+	import { bestMatch, fitFrame, matchStroke, NOTE_ES, parseKanjiVG, pathPoints, REASON_ES, toTemplate, type Pt, type Strictness } from '../strokes.ts';
+	import { prefs } from '../client/state.svelte.ts';
 
 	let {
 		char,
@@ -30,6 +31,9 @@
 	let drawing: Pt[] = $state([]);
 	let svg: SVGSVGElement | undefined = $state();
 	let finished = $state(false);
+	/** Trazos ya aceptados (lo dibujado y su plantilla): fijan tu escala y posición. */
+	let accepted: { drawn: Pt[]; expected: Pt[] }[] = [];
+	const level: Strictness = $derived(prefs.writingStrictness);
 
 	async function load() {
 		error = '';
@@ -45,6 +49,7 @@
 	}
 
 	export function reset() {
+		accepted = [];
 		doneCount = 0;
 		mistakes = 0;
 		failsHere = 0;
@@ -73,14 +78,19 @@
 	}
 	function up() {
 		if (!drawing.length) return;
-		const stroke = drawing;
+		const raw = drawing;
 		drawing = [];
-		const v = matchStroke(stroke, expected[doneCount]);
-		if (v.ok) {
+		// Fuera de «estricta», se compara en la escala y posición de tu propio dibujo (ajustadas con lo ya aceptado).
+		const stroke = level === 'strict' ? raw : toTemplate(raw, fitFrame(accepted));
+		const v = matchStroke(stroke, expected[doneCount], level);
+		const later = bestMatch(stroke, expected.slice(doneCount + 1));
+		// Aceptado «por desplazado», pero en realidad coincide con un trazo posterior (二, 三…): es un error de orden.
+		if (v.ok && !(v.note === 'shifted' && later >= 0)) {
+			accepted = [...accepted, { drawn: raw, expected: expected[doneCount] }];
 			doneCount++;
 			failsHere = 0;
 			hint = false;
-			msg = '';
+			msg = v.note ? NOTE_ES[v.note] : '';
 			if (doneCount === paths.length) {
 				finished = true;
 				msg = mistakes ? `Completo, con ${mistakes} fallo${mistakes === 1 ? '' : 's'}.` : '¡Perfecto! ✓';
@@ -90,8 +100,7 @@
 		}
 		mistakes++;
 		failsHere++;
-		const later = bestMatch(stroke, expected.slice(doneCount + 1));
-		msg = REASON_ES[later >= 0 ? 'order' : v.reason];
+		msg = REASON_ES[later >= 0 ? 'order' : v.ok ? 'position' : v.reason];
 		bad = true;
 		setTimeout(() => (bad = false), 450);
 		if (failsHere >= 2) hint = true;
@@ -135,9 +144,9 @@
 			{#if msg}<span class:warn-text={!finished} class:ok-text={finished}>{msg}</span>{/if}
 			<span class="grow"></span>
 			{#if !finished && doneCount < paths.length}
-				<button class="ghost small" onclick={() => (hint = true)} title="Ver cómo va el siguiente trazo">Pista</button>
+				<button class="small tool" onclick={() => (hint = true)} title="Ver cómo va el siguiente trazo">💡 Pista</button>
 			{/if}
-			<button class="ghost small" onclick={reset}>Otra vez</button>
+			<button class="small tool" onclick={reset} title="Borrar y empezar de nuevo">↺ Otra vez</button>
 		</div>
 	{/if}
 </div>
@@ -199,6 +208,17 @@
 	}
 	.grow {
 		flex: 1;
+	}
+	/* Botones de verdad (no «ghost»): con borde y fondo, fáciles de ver y de tocar. */
+	.tool {
+		border: 1px solid var(--line);
+		background: var(--bg-3);
+		color: var(--text);
+		padding: 0.35rem 0.75rem;
+		min-height: 2.2rem;
+	}
+	.tool:hover {
+		border-color: var(--text-3);
 	}
 	.warn-text {
 		color: var(--warn);

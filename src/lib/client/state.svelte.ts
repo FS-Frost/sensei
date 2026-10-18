@@ -7,10 +7,20 @@ export const prefs = $state({
 	fontVariety: true,
 	readable: new Set<string>(),
 	/** Kana que aún no lees con soltura: bajo ellos se muestra romaji de apoyo (KanaHint). */
-	weakKana: new Set<string>()
+	weakKana: new Set<string>(),
+	/** Exigencia al corregir la escritura (KanjiTrace). */
+	writingStrictness: 'normal' as 'relaxed' | 'normal' | 'strict'
 });
 
-export function setPrefs(p: { furigana: FuriganaMode; ttsEnabled: boolean; fontVariety: boolean; readable: string; weakKana?: string }) {
+export function setPrefs(p: {
+	furigana: FuriganaMode;
+	ttsEnabled: boolean;
+	fontVariety: boolean;
+	readable: string;
+	weakKana?: string;
+	writingStrictness?: 'relaxed' | 'normal' | 'strict';
+}) {
+	prefs.writingStrictness = p.writingStrictness ?? 'normal';
 	prefs.furigana = p.furigana;
 	prefs.ttsEnabled = p.ttsEnabled;
 	prefs.fontVariety = p.fontVariety;

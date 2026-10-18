@@ -182,6 +182,8 @@
 	});
 	async function finish(target: string) {
 		saving = true;
+		// El contenido pasa a ser una tarjeta corta: volver arriba para que no quede desplazada.
+		scrollTo({ top: 0, behavior: 'instant' });
 		finishing = { phase: 'save', dest: DEST[target] ?? (target.startsWith('/kana') ? 'la prueba de kana' : 'la siguiente pantalla') };
 		try {
 			await post('/api/settings', {
@@ -207,7 +209,11 @@
 {#if finishing}
 	<!-- Mientras se guarda y carga la primera pantalla: el mismo progreso que la instalación inicial. -->
 	<div class="wiz">
-		<div class="card stack page">
+		<!-- Misma fila de puntos (todos hechos): la tarjeta queda donde estaba, sin salto. -->
+		<div class="dots" aria-hidden="true">
+			{#each STEPS as s (s)}<span class="dot past"></span>{/each}
+		</div>
+		<div class="card stack">
 			<h2><span class="jp accent">先生</span> ¡Listo!</h2>
 			<ProgressSteps
 				steps={finishSteps}

@@ -49,6 +49,8 @@ export type Settings = {
 	startLevel: StartLevel | null;
 	/** Pasó por el diagnóstico de kana nuevo: los kana sin tarjeta ya no cuentan como «sabidos de antes» (server/kana.ts). */
 	kanaAssessed: boolean;
+	/** Exigencia al corregir la escritura a mano (strokes.ts `Strictness`). */
+	writingStrictness: 'relaxed' | 'normal' | 'strict';
 };
 
 export type AiMode = 'ask' | 'on' | 'off';
@@ -88,7 +90,8 @@ export const DEFAULT_SETTINGS: Settings = {
 	aiMode: 'ask',
 	newKanaPerDay: 10,
 	startLevel: null,
-	kanaAssessed: false
+	kanaAssessed: false,
+	writingStrictness: 'normal'
 };
 
 /** Vuelve a los valores por defecto. Conserva los valores internos (`_…`, p. ej. el secreto de sesión). */
@@ -154,6 +157,7 @@ export function updateSettings(db: DB, patch: Partial<Settings>) {
 	if (!['ask', 'on', 'off'].includes(next.aiMode)) next.aiMode = 'ask';
 	next.newKanaPerDay = clampInt(next.newKanaPerDay, 0, 40);
 	next.kanaAssessed = !!next.kanaAssessed;
+	if (!['relaxed', 'normal', 'strict'].includes(next.writingStrictness)) next.writingStrictness = 'normal';
 	if (next.startLevel) {
 		const l = next.startLevel;
 		const kana = (x: unknown): KanaSelf => (['none', 'some', 'slow', 'fluent'].includes(String(x)) ? (x as KanaSelf) : 'none');

@@ -312,6 +312,14 @@
 			cambia el estado de tus kanji.
 		</span>
 	</label>
+	<div class="strict">
+		<label for="ws">Exigencia al corregir la escritura (repasos y práctica de trazos)</label>
+		<select id="ws" bind:value={s.writingStrictness} style="width:auto">
+			<option value="relaxed">Relajada — forma aproximada; cuentan la dirección y el orden</option>
+			<option value="normal">Normal (recomendada) — se adapta a tu tamaño y posición; desvíos leves no cuentan</option>
+			<option value="strict">Estricta — cada trazo en su sitio exacto de la plantilla</option>
+		</select>
+	</div>
 	<label class="check"><input type="checkbox" bind:checked={s.ttsEnabled} /> Botones de audio (TTS del navegador)</label>
 	{#if s.ttsEnabled}
 		{#if voices.length}
@@ -526,6 +534,14 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 		gap: 0.8rem;
+	}
+	.strict {
+		display: grid;
+		gap: 0.3rem;
+		margin-left: 1.6rem;
+	}
+	.strict select {
+		max-width: 100%;
 	}
 	.check {
 		display: flex;

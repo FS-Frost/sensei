@@ -26,6 +26,28 @@
 	const p = $derived(data.profile);
 	const k = $derived(p.counts.kanji ?? { learning: 0, review: 0, mastered: 0 });
 	const v = $derived(p.counts.vocab ?? { learning: 0, review: 0, mastered: 0 });
+	// «Lecciones hoy»: solo lo que de verdad se puede aprender hoy (sin «0 kanji» mientras se aprenden kana, ni
+	// palabras que aún no se desbloquearon).
+	const q = $derived(data.quota);
+	const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+	const lessonsLeft = $derived(
+		[
+			q.kanaAvailable > 0 && q.kanaLeft > 0 ? `${q.kanaLeft} kana` : '',
+			!q.kanjiLocked && q.kanjiLeft > 0 ? `${q.kanjiLeft} kanji` : '',
+			q.vocabAvailable > 0 && q.vocabLeft > 0 ? plural(q.vocabLeft, 'palabra', 'palabras') : '',
+			q.grammarAvailable > 0 && q.grammarLeft > 0 ? plural(q.grammarLeft, 'punto de gramática', 'puntos de gramática') : ''
+		]
+			.filter(Boolean)
+			.join(' · ')
+	);
+	const lessonsDone = $derived.by(() => {
+		const parts = [
+			q.kanaLearnedToday ? `${q.kanaLearnedToday} kana` : '',
+			q.kanjiLearnedToday ? `${q.kanjiLearnedToday} kanji` : '',
+			q.vocabLearnedToday ? plural(q.vocabLearnedToday, 'palabra', 'palabras') : ''
+		].filter(Boolean);
+		return parts.length ? `Hoy ya aprendiste ${parts.join(', ')}` : 'Aún nada nuevo hoy';
+	});
 	const brakeMsg = $derived(
 		data.quota.brake === 'stop'
 			? 'Lecciones en pausa: tienes muchos repasos pendientes.'
@@ -163,10 +185,11 @@
 	</a>
 	<a class="card tile" href="/leccion">
 		<span class="small muted">Lecciones hoy</span>
-		<span class="value">{data.quota.kanjiLeft} kanji · {data.quota.vocabLeft} palabras</span>
-		<span class="small dim">
-			{data.quota.kanjiLearnedToday} kanji y {data.quota.vocabLearnedToday} palabras nuevas hoy
-		</span>
+		<span class="value">{lessonsLeft || 'Cupo de hoy completo'}</span>
+		<span class="small dim">{lessonsDone}</span>
+		{#if q.kanjiLocked}
+			<span class="small dim">Los kanji empiezan al terminar el hiragana básico (te faltan {q.hiraganaLeft}).</span>
+		{/if}
 	</a>
 	<div class="card tile">
 		<span class="small muted">Precisión (7 días)</span>

@@ -1,6 +1,6 @@
 // Escritura: trazos de KanjiVG y comparación con lo dibujado (variaciones razonables sí; dirección u orden mal, no).
 import { expect, test } from 'bun:test';
-import { bestMatch, matchStroke, parseKanjiVG, pathPoints, resample, writingGrade, type Pt } from '../src/lib/strokes.ts';
+import { bestMatch, fitFrame, matchStroke, parseKanjiVG, pathPoints, resample, toTemplate, writingGrade, type Pt } from '../src/lib/strokes.ts';
 
 // 十 de KanjiVG (dos trazos: horizontal y vertical), formato real con curvas relativas.
 const JUU = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 109 109">
@@ -39,6 +39,53 @@ test('acepta un trazo a mano (tembloroso, algo desplazado); rechaza dirección i
 	expect(tiny.ok).toBe(false);
 	// Orden: dibujar el vertical primero coincide con el «siguiente» que no toca.
 	expect(bestMatch(resample(v, 20), [h, v])).toBe(1);
+});
+
+test('exigencia: dibujo más pequeño y desplazado vale en normal (con tu marco), no en estricta; la dirección cuenta siempre', () => {
+	const [h, v] = parseKanjiVG(JUU).map((d) => pathPoints(d));
+	// El alumno escribe el kanji al 60 % y desplazado hacia arriba a la izquierda.
+	const mine = (pts: Pt[]) => jitter(resample(pts, 20).map((p) => ({ x: p.x * 0.6 + 4, y: p.y * 0.6 + 2 })), 1.5);
+	const h1 = mine(h);
+	expect(matchStroke(h1, h, 'strict').ok).toBe(false);
+	// Primer trazo: aún no hay marco; en normal se acepta por la forma, con aviso.
+	const first = matchStroke(h1, h, 'normal');
+	expect(first.ok).toBe(true);
+	if (first.ok) expect(first.note).toBe('shifted');
+	// Segundo trazo: ya con el marco del primero, cae en su sitio.
+	const frame = fitFrame([{ drawn: h1, expected: h }]);
+	expect(frame.scale).toBeGreaterThan(0.45);
+	const v1 = mine(v);
+	expect(matchStroke(toTemplate(v1, frame), v, 'normal').ok).toBe(true);
+	expect(matchStroke(v1, v, 'strict').ok).toBe(false);
+	// Al revés no vale en ningún nivel.
+	for (const lvl of ['relaxed', 'normal', 'strict'] as const) {
+		const r = matchStroke([...toTemplate(v1, frame)].reverse(), v, lvl);
+		expect(r.ok, lvl).toBe(false);
+		if (!r.ok) expect(r.reason).toBe('direction');
+	}
+	// Otro trazo (vertical en lugar del horizontal) tampoco, en ningún nivel ni desplazado.
+	for (const lvl of ['relaxed', 'normal'] as const) {
+		expect(matchStroke(resample(v, 20), h, lvl).ok, lvl).toBe(false);
+		expect(matchStroke(resample(h, 20), v, lvl).ok, lvl).toBe(false);
+		expect(matchStroke(resample(h, 20).map((p) => ({ x: p.x * 0.7 + 10, y: p.y * 0.7 + 5 })), v, lvl).ok, lvl).toBe(false);
+	}
+});
+
+test('forma: una raya recta no vale por un «<» aunque baje igual', () => {
+	// く: de arriba a la derecha, al centro a la izquierda, abajo a la derecha. い (1er trazo): casi vertical.
+	const ku: Pt[] = [{ x: 62, y: 18 }, { x: 36, y: 54 }, { x: 64, y: 92 }];
+	const line: Pt[] = [{ x: 40, y: 20 }, { x: 42, y: 56 }, { x: 46, y: 90 }];
+	for (const lvl of ['relaxed', 'normal'] as const) {
+		expect(matchStroke(resample(line, 20), resample(ku, 20), lvl).ok, lvl).toBe(false);
+		// Y el propio «<» a mano, algo más pequeño, sí.
+		const mine = jitter(resample(ku, 20).map((p) => ({ x: p.x * 0.85 + 6, y: p.y * 0.85 + 4 })), 1.5);
+		expect(matchStroke(mine, resample(ku, 20), lvl).ok, lvl).toBe(true);
+		// Tembloroso (dedo en el móvil), varias semillas: sigue valiendo.
+		for (const seed of [1, 7, 42]) {
+			const shaky = jitter(resample(ku, 24), 3, seed);
+			expect(matchStroke(shaky, resample(ku, 20), lvl).ok, `${lvl} semilla ${seed}`).toBe(true);
+		}
+	}
 });
 
 test('calificación según fallos', () => {

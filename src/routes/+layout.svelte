@@ -108,7 +108,7 @@
 
 	$effect.pre(() => {
 		if (ready && data.readable !== undefined)
-			setPrefs({ furigana: data.furigana, ttsEnabled: data.ttsEnabled, fontVariety: data.fontVariety, readable: data.readable, weakKana: data.weakKana });
+			setPrefs({ furigana: data.furigana, ttsEnabled: data.ttsEnabled, fontVariety: data.fontVariety, readable: data.readable, weakKana: data.weakKana, writingStrictness: data.writingStrictness });
 	});
 
 	/** `ai`: solo con las funciones de IA visibles (modo sin IA = fuera del menú). */

@@ -15,6 +15,7 @@ export const load = () => {
 		furigana: st.furigana,
 		ttsEnabled: st.ttsEnabled,
 		fontVariety: st.fontVariety,
+		writingStrictness: st.writingStrictness,
 		readable: [...readableKanji(db)].join(''),
 		weakKana: weakKanaChars(db),
 		due: dueCount(db),
