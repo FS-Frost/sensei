@@ -17,9 +17,12 @@
 	import UpdateNotice from '#lib/components/UpdateNotice.svelte';
 	import { initInstall, install, promptInstall } from '#lib/client/install.svelte.ts';
 	import { publishSchedule, setBadge } from '#lib/client/reminder.ts';
+	import { initDaily } from '#lib/client/daily.svelte.ts';
+	import DailyBar from '#lib/components/DailyBar.svelte';
 
 	// Temprano: `beforeinstallprompt` puede llegar antes de montar.
 	initInstall();
+	initDaily();
 	import { refreshAll } from '$app/navigation';
 	import { base } from '#lib/client/base.ts';
 
@@ -31,6 +34,11 @@
 	const ready = $derived(backend.value.state === 'ready');
 	const update = $derived(backend.value.state === 'ready' ? backend.value.update : null);
 	let updateDismissed = $state(false);
+	let topH = $state(0);
+	$effect(() => {
+		// Más el hueco (gap) que deja main entre la franja y la página, si la franja tiene algo.
+		document.documentElement.style.setProperty('--top-h', `${topH ? topH + 16 : 0}px`);
+	});
 
 	onMount(() => {
 		initTheme();
@@ -60,6 +68,7 @@
 			title: 'Estudiar',
 			items: [
 				{ href: '/', label: 'Inicio', icon: '家', main: true },
+				{ href: '/hoy', label: 'Sesión de hoy', icon: '今', main: false },
 				{ href: '/repaso', label: 'Repaso', icon: '復', main: true },
 				{ href: '/leccion', label: 'Lección', icon: '学', main: true },
 				{ href: '/tutor', label: 'Tutor', icon: '話', main: true },
@@ -140,6 +149,9 @@
 		</nav>
 
 		<main>
+			<!-- Avisos de arriba: su altura (--top-h) la descuentan las páginas de altura fija (el chat del tutor). -->
+			<div class="top" bind:clientHeight={topH}>
+			<DailyBar />
 			{#if update && !updateDismissed}
 				<div class="warning row">
 					<span>Hay un diccionario nuevo publicado. Actualizarlo conserva tu progreso (antes se guarda una copia).</span>
@@ -155,6 +167,7 @@
 					<a href="/ajustes#gemini">Añádela en Ajustes</a>.
 				</div>
 			{/if}
+			</div>
 			{@render children()}
 		</main>
 
@@ -300,6 +313,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+	.top {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+	.top:empty {
+		display: none;
 	}
 	.bottom,
 	.more {

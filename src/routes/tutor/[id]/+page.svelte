@@ -92,7 +92,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.6rem;
-		height: calc(100vh - 4.5rem);
+		height: calc(100vh - 4.5rem - var(--top-h, 0px));
 		max-width: 820px;
 		width: 100%;
 	}
@@ -105,7 +105,7 @@
 	}
 	@media (max-width: 760px) {
 		.page {
-			height: calc(100vh - 7rem);
+			height: calc(100vh - 7rem - var(--top-h, 0px));
 		}
 	}
 </style>

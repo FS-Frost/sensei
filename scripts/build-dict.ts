@@ -12,6 +12,10 @@ import { sql } from 'drizzle-orm';
 import { openDb } from '../src/lib/server/db/bun.ts';
 import { runImport } from '../src/lib/server/import/run.ts';
 import type { DictBuild, DictManifest, DictVariant } from '../src/lib/backendProtocol.ts';
+import { applyPregen, type PregenContent } from '../src/lib/server/data/pregen.ts';
+
+/** Contenido pregenerado versionado (scripts/pregen.ts). */
+const PREGEN = 'content/pregen.json';
 
 const args = process.argv.slice(2);
 const opt = (name: string, def: string) => {
@@ -38,6 +42,11 @@ for (const variant of variants) {
 	for (const f of [path, `${path}-wal`, `${path}-shm`]) if (existsSync(f)) rmSync(f);
 	const { sqlite, db } = openDb(path, { wal: false });
 	await runImport(db, { full: variant === 'full', examples });
+	// Contenido pregenerado (scripts/pregen.ts): mnemotecnias, nombres, glosas… para empezar sin key ni gasto.
+	if (existsSync(PREGEN)) {
+		const n = applyPregen(db, JSON.parse(readFileSync(PREGEN, 'utf8')) as PregenContent);
+		console.log(`  contenido pregenerado: ${n} valores`);
+	}
 	const count = (table: string) => db.all<{ n: number }>(sql.raw(`select count(*) as n from ${table}`))[0].n;
 	const stats = { kanji: count('kanji'), vocab: count('vocab'), sentences: count('sentence') };
 	// Formato compacto y sin WAL: sqlite-wasm importa el archivo tal cual.

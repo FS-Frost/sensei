@@ -4,14 +4,16 @@ import { expect, mock, test } from 'bun:test';
 type FakePart = Record<string, unknown>;
 const scripts: FakePart[][] = [];
 const seenContents: unknown[] = [];
+const seenSystem: unknown[] = [];
 /** Próximas llamadas que fallarán con 503. */
 let failures = 0;
 
 mock.module('../src/lib/server/gemini/client.ts', () => ({
 	ai: () => ({
 		models: {
-			generateContentStream: async (req: { contents: unknown }) => {
+			generateContentStream: async (req: { contents: unknown; config?: { systemInstruction?: unknown } }) => {
 				seenContents.push(structuredClone(req.contents));
+				seenSystem.push(req.config?.systemInstruction);
 				if (failures > 0) {
 					failures--;
 					throw new Error('{"error":{"code":503,"message":"The service is currently unavailable.","status":"UNAVAILABLE"}}');
@@ -221,4 +223,77 @@ test('resumen de sesión', async () => {
 	scripts.push([{ text: 'Hola, ¿qué quieres leer hoy?' }]);
 	await collect(runTurn(db, sess.id, { text: 'Hola' }));
 	expect(await summarizeSession(db, sess.id)).toBe('Resumen falso.');
+});
+
+test('caché: instrucción de sistema fija; el estado del alumno va como parte y solo se reenvía si cambia', async () => {
+	const sess = createSession(db, 'libre');
+	const texts = (c: unknown) => (c as { parts: { text?: string }[] }[]).flatMap((m) => m.parts.map((p) => p.text ?? ''));
+	seenSystem.length = 0;
+	seenContents.length = 0;
+	scripts.push([{ text: 'uno' }], [{ text: 'dos' }], [{ text: 'tres' }]);
+	await collect(runTurn(db, sess.id, { text: 'primero' }));
+	await collect(runTurn(db, sess.id, { text: 'segundo' }));
+	// Cambia el estado entre turnos (una tarjeta nueva pendiente).
+	db.insert(s.card).values({ itemType: 'kanji', itemKey: '山', facet: 'meaning', state: 2, due: Date.now() - 1000, stability: 1, fsrs: {}, createdAt: Date.now() }).run();
+	await collect(runTurn(db, sess.id, { text: 'tercero' }));
+
+	expect(seenSystem).toHaveLength(3);
+	expect(new Set(seenSystem).size).toBe(1); // prefijo idéntico en todas las llamadas
+	expect(String(seenSystem[0])).not.toContain('Repasos pendientes');
+	const states = texts(seenContents[2]).filter((t) => t.startsWith('[Estado del alumno'));
+	expect(states).toHaveLength(2); // el inicial y el actualizado; el segundo turno no repitió nada
+	expect(states[1]).toContain('(actualizado)');
+	// El historial enviado en el turno 2 empieza igual que el del turno 1 (prefijo cacheable).
+	expect(JSON.stringify(seenContents[1]).startsWith(JSON.stringify(seenContents[0]).slice(0, -1))).toBe(true);
+});
+
+test('voz: el audio viaja al modelo; «[Oído: …]» pasa al mensaje del alumno y luego sustituye al audio', async () => {
+	const sess = createSession(db, 'libre');
+	seenContents.length = 0;
+	scripts.push([{ text: '[Oído: «¿cómo se lee 山?»]\n山 se lee やま.' }], [{ text: 'De nada.' }]);
+	const ev = await collect(runTurn(db, sess.id, { audio: { mimeType: 'audio/wav', data: 'UklGRg==', seconds: 3 } }));
+	expect(ev.find((e) => e.type === 'heard') as unknown).toEqual({ type: 'heard', transcript: '¿cómo se lee 山?' });
+	const first = JSON.stringify(seenContents[0]);
+	expect(first).toContain('"inlineData"');
+	const msgs = getSessionMessages(db, sess.id);
+	const userUi = msgs[0].ui as { type: string; transcript?: string; seconds?: number }[];
+	expect(userUi.find((b) => b.type === 'audio')).toEqual({ type: 'audio', seconds: 3, transcript: '¿cómo se lee 山?' });
+	const modelUi = msgs[1].ui as { type: string; text?: string }[];
+	expect(modelUi.find((b) => b.type === 'text')?.text).toBe('山 se lee やま.');
+	// Turno siguiente: el audio ya no se reenvía; va lo entendido.
+	await collect(runTurn(db, sess.id, { text: 'gracias' }));
+	const second = JSON.stringify(seenContents[1]);
+	expect(second).not.toContain('UklGRg==');
+	expect(second).toContain('El alumno dijo por voz: «¿cómo se lee 山?»');
+	await expect(collect(runTurn(db, sess.id, { audio: { mimeType: 'video/mp4', data: 'x', seconds: 1 } }))).rejects.toThrow('Audio no válido');
+});
+
+test('historial: medios de turnos anteriores fuera; sesiones largas recortadas en el inicio de un turno, por bloques', async () => {
+	const { buildHistory, HISTORY_WINDOW, HISTORY_BLOCK } = await import('../src/lib/server/gemini/tutor.ts');
+	type M = Parameters<typeof buildHistory>[0][number];
+	const user = (t: string, extra: M['parts'] = []): M => ({ role: 'user', parts: [{ text: t }, ...extra], ui: [{ type: 'text', text: t }] });
+	const model = (t: string): M => ({ role: 'model', parts: [{ text: t }], ui: [{ type: 'text', text: t }] });
+	const img = { inlineData: { mimeType: 'image/jpeg', data: 'AAAA' } };
+	const audio = { inlineData: { mimeType: 'audio/webm', data: 'BBBB' } };
+
+	const h = buildHistory([user('mira', [img]), model('veo un gato'), user('y esto', [audio])], null);
+	expect(JSON.stringify(h[0])).not.toContain('AAAA');
+	expect(JSON.stringify(h[0])).toContain('[Imagen de un turno anterior]');
+	expect(JSON.stringify(h[2])).toContain('BBBB'); // el del turno actual sí viaja
+
+	// Una llamada a herramienta y su respuesta nunca se separan.
+	const long: M[] = [];
+	for (let i = 0; long.length < HISTORY_WINDOW + 25; i++) {
+		long.push(user(`p${i}`), { role: 'model', parts: [{ functionCall: { name: 'x', args: {} } }], ui: [] });
+		long.push({ role: 'user', parts: [{ functionResponse: { name: 'x', response: {} } }], ui: [] }, model(`r${i}`));
+	}
+	const cut = buildHistory(long, 'Resumen de antes.');
+	expect(cut.length).toBeLessThanOrEqual(HISTORY_WINDOW);
+	expect(cut[0].role).toBe('user');
+	expect(cut[0].parts?.some((p) => p.functionResponse)).toBe(false);
+	expect(cut[0].parts?.[0].text).toContain('Resumen de antes.');
+	// Un mensaje más no mueve el corte (prefijo estable dentro del bloque).
+	const next = buildHistory([...long, user('otro')], 'Resumen de antes.');
+	expect(JSON.stringify(next[0])).toBe(JSON.stringify(cut[0]));
+	expect(HISTORY_BLOCK).toBeGreaterThan(1);
 });

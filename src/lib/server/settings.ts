@@ -33,6 +33,10 @@ export type Settings = {
 	monthlyBudgetUsd: number | null;
 	/** Al superar el presupuesto, bloquear las llamadas a Gemini (por defecto solo avisa). */
 	budgetHardStop: boolean;
+	/** Repasos de escritura (trazar kanji): opcional, desactivado por defecto (añade carga). */
+	writingReviews: boolean;
+	/** Kanji nuevos al día que entran a los repasos de escritura (si están activados). */
+	newWritingPerDay: number;
 };
 
 export type Goal = {
@@ -62,7 +66,9 @@ export const DEFAULT_SETTINGS: Settings = {
 	goal: null,
 	modelPrices: null,
 	monthlyBudgetUsd: null,
-	budgetHardStop: false
+	budgetHardStop: false,
+	writingReviews: false,
+	newWritingPerDay: 5
 };
 
 /** Vuelve a los valores por defecto. Conserva los valores internos (`_…`, p. ej. el secreto de sesión). */
@@ -110,6 +116,8 @@ export function updateSettings(db: DB, patch: Partial<Settings>) {
 	const budget = next.monthlyBudgetUsd == null || (next.monthlyBudgetUsd as unknown) === '' ? NaN : Number(next.monthlyBudgetUsd);
 	next.monthlyBudgetUsd = Number.isFinite(budget) && budget > 0 ? Math.round(budget * 100) / 100 : null;
 	next.budgetHardStop = !!next.budgetHardStop;
+	next.writingReviews = !!next.writingReviews;
+	next.newWritingPerDay = clampInt(next.newWritingPerDay, 1, 30);
 	next.newKanjiPerDay = clampInt(next.newKanjiPerDay, 0, 50);
 	next.newVocabPerDay = clampInt(next.newVocabPerDay, 0, 50);
 	next.dayStartHour = clampInt(next.dayStartHour, 0, 23);

@@ -39,7 +39,9 @@ const PRECACHED = new Set(PRECACHE);
  */
 async function precacheWorkerGraph(cache: Cache) {
 	const seen = new Set<string>();
-	const queue = PRECACHE.filter((p) => p.includes('/_app/immutable/workers/') && p.endsWith('.js'));
+	const isWorker = (p: string) => p.includes('/_app/immutable/workers/');
+	// También los chunks del cliente: referencian módulos de workers/ (p. ej. el AudioWorklet de captura de sonido).
+	const queue = PRECACHE.filter((p) => p.endsWith('.js'));
 	queue.forEach((p) => seen.add(p));
 	while (queue.length) {
 		const p = queue.shift()!;
@@ -48,7 +50,8 @@ async function precacheWorkerGraph(cache: Cache) {
 		const js = await res.text();
 		const refs = [
 			...[...js.matchAll(/[`"']([^`"'\s]*\/_app\/immutable\/workers\/[\w./-]+\.(?:js|wasm))[`"']/g)].map((m) => m[1]),
-			...[...js.matchAll(/[`"'](\.{1,2}\/[\w./-]+\.js)[`"']/g)].map((m) => new URL(m[1], new URL(p, sw.location.origin)).pathname)
+			// Rutas relativas solo dentro de los workers (los chunks del cliente ya están todos en PRECACHE).
+			...(isWorker(p) ? [...js.matchAll(/[`"'](\.{1,2}\/[\w./-]+\.js)[`"']/g)].map((m) => new URL(m[1], new URL(p, sw.location.origin)).pathname) : [])
 		];
 		for (const r of refs) {
 			const path = new URL(r, sw.location.origin).pathname;
@@ -175,7 +178,7 @@ async function remind() {
 		body: reminderText(count),
 		tag: PERIODIC_TAG,
 		icon: url('icons/icon-192.png'),
-		data: { url: url('repaso') }
+		data: { url: url('hoy') } // la sesión diaria: repasos primero, y lo demás si hay tiempo
 	});
 	await cache.put(notifiedKey(BASE), Response.json({ day: dayKey(now) }));
 }

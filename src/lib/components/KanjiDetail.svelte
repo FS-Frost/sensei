@@ -3,9 +3,13 @@
 	import Markdown from './Markdown.svelte';
 	import SpeakButton from './SpeakButton.svelte';
 	import StatusBadge from './StatusBadge.svelte';
+	import KanjiTrace from './KanjiTrace.svelte';
 
 	let { k, compact = false }: { k: KanjiInfo; compact?: boolean } = $props();
 	let showStrokes = $state(false);
+	// «#escribir» (desde «Tarjetas que se resisten») abre la práctica directamente.
+	let practice = $state<'guided' | 'memory' | null>(typeof location !== 'undefined' && location.hash === '#escribir' ? 'guided' : null);
+	let practiceMsg = $state('');
 	const meanings = $derived(k.meaningsEs.length ? k.meaningsEs : k.meaningsEn);
 
 	// La API la atiende el Worker: <img src> no pasa por él, así que se pide con fetch y se muestra como blob.
@@ -76,6 +80,27 @@
 	{#if !compact}
 		<div>
 			<button class="small" onclick={() => (showStrokes = !showStrokes)}>{showStrokes ? 'Ocultar' : 'Ver'} orden de trazos</button>
+			<button class="small" onclick={() => (practice = practice ? null : 'guided')}>✍ {practice ? 'Cerrar práctica' : 'Practicar escritura'}</button>
+			{#if practice}
+				<div class="practice stack">
+					<div class="row small">
+						<button class="small" class:primary={practice === 'guided'} onclick={() => (practice = 'guided')}>Con silueta</button>
+						<button class="small" class:primary={practice === 'memory'} onclick={() => (practice = 'memory')}>De memoria</button>
+						<span class="dim">Traza cada trazo en orden y en su dirección.</span>
+					</div>
+					{#key practice}
+						<KanjiTrace
+							char={k.char}
+							guided={practice === 'guided'}
+							onfinish={(r) => {
+								if (practice === 'guided' && r.mistakes === 0) practiceMsg = '¡Sin fallos! Prueba ahora de memoria.';
+								else practiceMsg = '';
+							}}
+						/>
+					{/key}
+					{#if practiceMsg}<p class="small ok-text">{practiceMsg}</p>{/if}
+				</div>
+			{/if}
 			{#if showStrokes}
 				{#await strokesUrl(k.char)}
 					<p class="dim small"><span class="spinner"></span> Cargando trazos…</p>
@@ -156,6 +181,12 @@
 	}
 	.vf {
 		font-size: 1.2rem;
+	}
+	.practice {
+		margin-top: 0.6rem;
+	}
+	.ok-text {
+		color: var(--ok);
 	}
 	.strokes {
 		display: block;

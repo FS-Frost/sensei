@@ -287,6 +287,14 @@
 		<input type="checkbox" bind:checked={s.fontVariety} />
 		<span>Fuentes variadas en los repasos (mincho, a mano, pincel, manga…): reconocer un kanji en una sola fuente no basta para leerlo en una viñeta</span>
 	</label>
+	<label class="check">
+		<input type="checkbox" bind:checked={s.writingReviews} />
+		<span>
+			✍ Repasos de escritura: trazar de memoria los kanji que ya reconoces (opcional; añade repasos). Entran
+			<input type="number" min="1" max="30" bind:value={s.newWritingPerDay} style="width:4rem" disabled={!s.writingReviews} /> nuevos al día. No
+			cambia el estado de tus kanji.
+		</span>
+	</label>
 	<label class="check"><input type="checkbox" bind:checked={s.ttsEnabled} /> Botones de audio (TTS del navegador)</label>
 	{#if s.ttsEnabled}
 		{#if voices.length}

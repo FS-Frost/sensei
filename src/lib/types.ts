@@ -1,13 +1,14 @@
 // Tipos compartidos cliente/servidor.
 
 export type ItemType = 'kana' | 'component' | 'kanji' | 'vocab' | 'grammar' | 'sentence';
-export type Facet = 'meaning' | 'reading';
+/** `writing`: trazar el kanji (opcional; no cuenta para el estado del ítem). */
+export type Facet = 'meaning' | 'reading' | 'writing';
 
 /**
- * Cómo se responde: romaji puro (kana), romaji→kana en vivo (lecturas), español (significados)
- * o elegir entre opciones (gramática).
+ * Cómo se responde: romaji puro (kana), romaji→kana en vivo (lecturas), español (significados),
+ * elegir entre opciones (gramática) o trazar el kanji (escritura).
  */
-export type AnswerMode = 'romaji' | 'kana' | 'meaning' | 'choice';
+export type AnswerMode = 'romaji' | 'kana' | 'meaning' | 'choice' | 'trace';
 
 /** Fuente con la que se muestra el enunciado (variedad para reconocer kanji en manga, juegos, carteles). */
 export type PromptFont = 'gothic' | 'mincho' | 'kyokasho' | 'maru' | 'brush' | 'manga';
@@ -180,6 +181,8 @@ export type UiBlock =
 	| { type: 'quiz'; quiz: Quiz; answers?: QuizAnswer[] }
 	| { type: 'tool'; name: string; label: string }
 	| { type: 'image'; mimeType: string }
+	/** Mensaje de voz del alumno (el audio no se guarda en la UI; sí lo que el tutor entendió). */
+	| { type: 'audio'; seconds: number; transcript?: string }
 	/** Respuestas de herramientas retenidas hasta que el usuario responda el quiz (no se muestra). */
 	| { type: 'pending'; parts: unknown[] }
 	/** Acción del tutor: comprobante (directa, con deshacer) o propuesta (con confirmar/rechazar). */
@@ -196,7 +199,7 @@ export type UiBlock =
 
 /** Lo que el alumno está viendo cuando abre el tutor (se adjunta como contexto visible). */
 export type ScreenContext = {
-	kind: 'kanji' | 'component' | 'word' | 'review' | 'lesson' | 'library' | 'reading' | 'explain' | 'page';
+	kind: 'kanji' | 'component' | 'word' | 'review' | 'lesson' | 'library' | 'reading' | 'explain' | 'page' | 'daily';
 	label: string;
 	/** Datos concretos para el modelo (se serializan en el mensaje). */
 	data: Record<string, unknown>;
@@ -204,4 +207,5 @@ export type ScreenContext = {
 
 export type FuriganaMode = 'adaptive' | 'always' | 'never';
 
-export type ChatMode ='conversacion' | 'quiz' | 'explicador' | 'confusiones' | 'libre';
+/** `cierre`: cierre de la sesión diaria (/hoy); no aparece en la lista de modos del tutor. */
+export type ChatMode = 'conversacion' | 'quiz' | 'explicador' | 'confusiones' | 'libre' | 'cierre';

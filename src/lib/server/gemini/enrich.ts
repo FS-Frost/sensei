@@ -102,7 +102,7 @@ export async function ensureMnemonics(db: DB, chars: string[]) {
 	});
 	for (const it of res.items) {
 		db.update(s.kanji)
-			.set({ mnemonicMeaning: it.meaning, mnemonicReading: it.reading })
+			.set({ mnemonicMeaning: it.meaning, mnemonicReading: it.reading, mnemonicSource: 'gemini' })
 			.where(eq(s.kanji.char, it.char))
 			.run();
 	}
@@ -152,7 +152,7 @@ export async function ensureSimilarTips(db: DB, pairs: { a: string; b: string }[
 	for (const it of res.items) {
 		const [a, b] = it.a < it.b ? [it.a, it.b] : [it.b, it.a];
 		db.update(s.similarKanji)
-			.set({ tip: it.tip })
+			.set({ tip: it.tip, tipSource: 'gemini' })
 			.where(and(eq(s.similarKanji.a, a), eq(s.similarKanji.b, b)))
 			.run();
 	}
@@ -189,7 +189,10 @@ export async function regenerateMnemonic(db: DB, char: string, interests: string
 		},
 		temperature: 1
 	});
-	db.update(s.kanji).set({ mnemonicMeaning: res.meaning, mnemonicReading: res.reading }).where(eq(s.kanji.char, char)).run();
+	db.update(s.kanji)
+		.set({ mnemonicMeaning: res.meaning, mnemonicReading: res.reading, mnemonicSource: 'gemini' })
+		.where(eq(s.kanji.char, char))
+		.run();
 	return res;
 }
 
@@ -265,5 +268,5 @@ export async function ensureSentencesEs(db: DB, vocabIds: string[]) {
 		},
 		temperature: 0.2
 	});
-	for (const it of res.items) db.update(s.sentence).set({ es: it.es }).where(eq(s.sentence.id, it.id)).run();
+	for (const it of res.items) db.update(s.sentence).set({ es: it.es, esSource: 'gemini' }).where(eq(s.sentence.id, it.id)).run();
 }

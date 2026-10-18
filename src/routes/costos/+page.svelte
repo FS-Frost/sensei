@@ -11,7 +11,18 @@
 	type Tier = { from: string; input: number; cached: number; output: number };
 	type Prices = Record<string, Tier[]>;
 	type Part = { key: string; label: string; usd: number; calls: number };
-	type Group = { key: string; label: string; usd: number; calls: number; prompt: number; output: number; parts: Part[] };
+	type Group = {
+		key: string;
+		label: string;
+		usd: number;
+		calls: number;
+		prompt: number;
+		cached: number;
+		cacheRatio: number;
+		saved: number;
+		output: number;
+		parts: Part[];
+	};
 	type Report = {
 		range: number;
 		totals: {
@@ -282,6 +293,11 @@
 							<div class="small dim">
 								{#each f.parts as p, i (p.key)}{i ? ' · ' : ''}<code>{p.key}</code>{#if roleOf(p.key)}&nbsp;({ROLE[roleOf(p.key)!]}){/if}{f.parts.length > 1 ? ` ${fmtUsd(p.usd)}` : ''}{/each}
 							</div>
+							{#if f.prompt}
+								<div class="small dim" title="Entrada servida desde la caché de Gemini: se cobra a ~1/10">
+									Caché: {Math.round(f.cacheRatio * 100)} % de la entrada{#if f.saved >= 0.001} · ahorro ≈ {fmtUsd(f.saved)}{/if}
+								</div>
+							{/if}
 						</li>
 					{/each}
 				</ul>

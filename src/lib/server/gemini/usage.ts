@@ -5,7 +5,7 @@ import type { GenerateContentResponseUsageMetadata } from '@google/genai';
 import type { DB } from '../db/index.ts';
 import * as s from '../db/schema.ts';
 import { getSettings } from '../settings.ts';
-import { costOf, effectivePrices, type Tokens } from './pricing.ts';
+import { costOf, effectivePrices, priceKey, tierAt, type Tokens } from './pricing.ts';
 import type { OperationCost } from '../../cost.ts';
 
 /** Para qué se llama a Gemini. Las claves se guardan en `gemini_usage.feature`: no renombrarlas. */
@@ -235,6 +235,7 @@ export function costReport(db: DB, range: CostRange, now = new Date()) {
 			usd: sql<number>`coalesce(sum(${u.costUsd}), 0)`,
 			calls: sql<number>`count(*)`,
 			prompt: sql<number>`coalesce(sum(${u.promptTokens}), 0)`,
+			cached: sql<number>`coalesce(sum(${u.cachedTokens}), 0)`,
 			output: sql<number>`coalesce(sum(${u.outputTokens} + ${u.thoughtsTokens}), 0)`,
 			last: sql<number>`max(${u.at})`
 		})
@@ -242,18 +243,39 @@ export function costReport(db: DB, range: CostRange, now = new Date()) {
 		.where(inRange)
 		.groupBy(u.feature, u.model)
 		.all();
+	// Ahorro de la caché: lo que habría costado la entrada cacheada a precio normal, menos lo pagado (precios de hoy).
+	const prices = effectivePrices(getSettings(db).modelPrices);
+	const savedBy = (model: string, cached: number) => {
+		const key = priceKey(prices, model);
+		const t = key ? tierAt(prices[key], now.getTime()) : null;
+		return t ? (cached * (t.input - t.cached)) / 1e6 : 0;
+	};
+	type Group = {
+		key: string;
+		usd: number;
+		calls: number;
+		prompt: number;
+		cached: number;
+		saved: number;
+		output: number;
+		parts: { key: string; usd: number; calls: number }[];
+	};
 	const group = <K extends 'feature' | 'model'>(key: K, other: 'feature' | 'model') => {
-		const m = new Map<string, { key: string; usd: number; calls: number; prompt: number; output: number; parts: { key: string; usd: number; calls: number }[] }>();
+		const m = new Map<string, Group>();
 		for (const p of pairs) {
-			const g = m.get(p[key]) ?? { key: p[key], usd: 0, calls: 0, prompt: 0, output: 0, parts: [] };
+			const g = m.get(p[key]) ?? { key: p[key], usd: 0, calls: 0, prompt: 0, cached: 0, saved: 0, output: 0, parts: [] };
 			g.usd += p.usd;
 			g.calls += p.calls;
 			g.prompt += p.prompt;
+			g.cached += p.cached;
+			g.saved += savedBy(p.model, p.cached);
 			g.output += p.output;
 			g.parts.push({ key: p[other], usd: p.usd, calls: p.calls });
 			m.set(p[key], g);
 		}
-		return [...m.values()].map((g) => ({ ...g, parts: g.parts.sort((a, b) => b.usd - a.usd || b.calls - a.calls) })).sort((a, b) => b.usd - a.usd || b.calls - a.calls);
+		return [...m.values()]
+			.map((g) => ({ ...g, cacheRatio: g.prompt ? g.cached / g.prompt : 0, parts: g.parts.sort((a, b) => b.usd - a.usd || b.calls - a.calls) }))
+			.sort((a, b) => b.usd - a.usd || b.calls - a.calls);
 	};
 	const byFeature = group('feature', 'model').map((g) => ({
 		...g,

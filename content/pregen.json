@@ -1,0 +1,720 @@
+{
+	"format": 1,
+	"updatedAt": "2026-10-18T14:30:59.417Z",
+	"kanji": [
+		"日",
+		"一",
+		"王",
+		"国",
+		"二",
+		"会",
+		"人",
+		"十",
+		"干",
+		"年",
+		"大",
+		"木",
+		"本",
+		"口",
+		"中",
+		"長"
+	],
+	"mnemonics": [
+		{
+			"char": "一",
+			"meaning": "Una sola línea horizontal trazada en el suelo representa el número **uno**.",
+			"reading": "Para la lectura イチ, imagina que tienes solo uno y te da un capricho (イチ)."
+		},
+		{
+			"char": "中",
+			"meaning": "Un palo atraviesa una boca justo por el **centro** y se queda **dentro**.",
+			"reading": "La lectura más útil es チュウ. Imagina que estás en el centro y alguien te besa: ¡«chuu»!"
+		},
+		{
+			"char": "二",
+			"meaning": "Dos líneas paralelas, una sobre otra, representan claramente el número **dos**.",
+			"reading": "Para la lectura ニ, piensa que no tengo ni (ニ) dos monedas en el bolsillo."
+		},
+		{
+			"char": "人",
+			"meaning": "El dibujo simple de dos piernas dando un paso representa a una **persona** caminando.",
+			"reading": "Para la lectura ジン, imagina a una persona vestida con un pantalón de jean (ジン)."
+		},
+		{
+			"char": "会",
+			"meaning": "Bajo un techo de persona, dos individuos hablan en privado durante una **reunión** secreta.",
+			"reading": "Para la lectura カイ, ten cuidado y no te caigas (カイ) al entrar a la reunión."
+		},
+		{
+			"char": "十",
+			"meaning": "Dos líneas que se cruzan formando una cruz exacta representan el número **diez**.",
+			"reading": "Para la lectura ジュウ, imagina que diez personas hacen lluvia (ジュウ) de ideas."
+		},
+		{
+			"char": "口",
+			"meaning": "Un pequeño recinto cuadrado en tu cara que se abre y se cierra es tu **boca**.",
+			"reading": "La lectura más útil es くち. Si te hacen cosquillas cerca de la boca, dicen: «¡cuchi, cuchi!»."
+		},
+		{
+			"char": "国",
+			"meaning": "Dentro de un gran recinto amurallado, el rey guarda una gota de joya que simboliza todo su **país**.",
+			"reading": "Para la lectura コク, piensa en un país tropical lleno de palmeras y cocos (コク)."
+		},
+		{
+			"char": "大",
+			"meaning": "Parece una persona con los brazos y las piernas totalmente abiertos para verse muy **grande**.",
+			"reading": "La lectura más útil es ダイ. Ese gigante es tan grande que si te pisa, «¡ay, me dai!»."
+		},
+		{
+			"char": "干",
+			"meaning": "Pones uno y hasta diez trapos en un poste bajo el sol para que empiecen a **secarse**.",
+			"reading": "La lectura más útil es カン. De tanto secar la ropa al sol, hasta los perros («can») tienen calor."
+		},
+		{
+			"char": "年",
+			"meaning": "Haces un barrido de uno de los granos que pusiste a secarse bajo la tapa inclinada para celebrar que pasó un **año**.",
+			"reading": "La lectura más útil es ネン. Cada año que pasa, el «nene» crece un poco más."
+		},
+		{
+			"char": "日",
+			"meaning": "El dibujo de una ventana con el sol brillando en el centro anuncia que ya es de **día**.",
+			"reading": "Para la lectura ニチ, imagina que de día el sol ilumina hasta el último nicho (ニチ)."
+		},
+		{
+			"char": "木",
+			"meaning": "Este dibujo muestra el tronco, las ramas arriba y las raíces abajo de un **árbol**.",
+			"reading": "La lectura más útil es き. ¿Quién plantó este árbol? ¡Yo lo planté «aquí»!"
+		},
+		{
+			"char": "本",
+			"meaning": "Si marcas con el número uno la base de un árbol, encuentras el **origen** del papel con el que se hace un **libro**.",
+			"reading": "La lectura más útil es ホン. Es un libro tan profundo y de origen tan antiguo que llega a lo más «hondo»."
+		},
+		{
+			"char": "王",
+			"meaning": "Un bastón vertical que une tres niveles del mundo: el cielo, los hombres y la tierra; ese poder solo lo tiene el **rey**.",
+			"reading": "Para la lectura オウ, el rey lleva una corona pesada hecha de oro (オウ)."
+		},
+		{
+			"char": "長",
+			"meaning": "Imagina a un anciano de pelo muy **largo** al viento; por su sabiduría, él es el **jefe**.",
+			"reading": "La lectura más útil es チョウ. El jefe lleva un abrigo tan largo que parece un «chal» o «poncho»."
+		}
+	],
+	"componentNames": [],
+	"glosses": [
+		{
+			"id": "jm:1011740",
+			"glosses": [
+				"mero",
+				"simple",
+				"solo",
+				"apenas"
+			]
+		},
+		{
+			"id": "jm:1172350",
+			"glosses": [
+				"torbellino",
+				"vórtice",
+				"vorágine",
+				"en medio de un conflicto"
+			]
+		},
+		{
+			"id": "jm:1175350",
+			"glosses": [
+				"pasar el año",
+				"despedir el año",
+				"pasar el invierno"
+			]
+		},
+		{
+			"id": "jm:1181450",
+			"glosses": [
+				"corona",
+				"diadema",
+				"chapa de botella"
+			]
+		},
+		{
+			"id": "jm:1202640",
+			"glosses": [
+				"abertura",
+				"apertura",
+				"abrir la boca",
+				"empezar a hablar"
+			]
+		},
+		{
+			"id": "jm:1212030",
+			"glosses": [
+				"llanura de marea",
+				"marisma"
+			]
+		},
+		{
+			"id": "jm:1212060",
+			"glosses": [
+				"desecación de tierras",
+				"ganar tierras al mar"
+			]
+		},
+		{
+			"id": "jm:1281640",
+			"glosses": [
+				"madera en bruto",
+				"tronco con corteza",
+				"madera sin curar"
+			]
+		},
+		{
+			"id": "jm:1288170",
+			"glosses": [
+				"madera sin descortezar",
+				"tronco con corteza"
+			]
+		},
+		{
+			"id": "jm:1334470",
+			"glosses": [
+				"once",
+				"11",
+				"sota"
+			]
+		},
+		{
+			"id": "jm:2083570",
+			"glosses": [
+				"durante todo",
+				"por todo",
+				"a lo largo de",
+				"en el transcurso de"
+			]
+		}
+	],
+	"sentences": [
+		{
+			"vocabId": "jm:1011740",
+			"jp": "クリスマスはほんの２週間先です。",
+			"es": "La Navidad es dentro de tan solo dos semanas."
+		},
+		{
+			"vocabId": "jm:1150710",
+			"jp": "家庭愛に愛国精神の根源がある。",
+			"es": "El amor por la familia es la raíz del patriotismo."
+		},
+		{
+			"vocabId": "jm:1150870",
+			"jp": "ここだけの話だが、彼には愛人がいる。",
+			"es": "Que quede entre nosotros, pero él tiene una amante."
+		},
+		{
+			"vocabId": "jm:1155920",
+			"jp": "リンカーンは偉大な政治家であった。",
+			"es": "Lincoln fue un gran estadista."
+		},
+		{
+			"vocabId": "jm:1160030",
+			"jp": "ビルは結局医大に行くそうだ。",
+			"es": "Parece que al final Bill irá a la facultad de medicina."
+		},
+		{
+			"vocabId": "jm:1160790",
+			"jp": "これは東京一のインドレストランです。",
+			"es": "Este es el mejor restaurante indio de Tokio."
+		},
+		{
+			"vocabId": "jm:1160790",
+			"jp": "それは壱万円と計算されている。",
+			"es": "Se ha calculado en diez mil yenes."
+		},
+		{
+			"vocabId": "jm:1160790",
+			"jp": "卵を一ダースづつつめなさい。",
+			"es": "Empaqueta los huevos por docenas."
+		},
+		{
+			"vocabId": "jm:1160790",
+			"jp": "津山一高い山は滝山だと思っていました。",
+			"es": "Pensaba que la montaña más alta de Tsuyama era Takiyama."
+		},
+		{
+			"vocabId": "jm:1160820",
+			"jp": "１つが通り過ぎたかと思うと、すぐに次の台風が接近する。",
+			"es": "Apenas pasa un tifón, ya se está acercando el siguiente."
+		},
+		{
+			"vocabId": "jm:1160820",
+			"jp": "一つには、私は貧しいし、それにまた忙しくもある。",
+			"es": "Por un lado, soy pobre; y por otro, también estoy ocupado."
+		},
+		{
+			"vocabId": "jm:1160820",
+			"jp": "妻の死の知らせを聞いてもまゆ一つ動かさなかった。",
+			"es": "Ni siquiera pestañeó al enterarse de la muerte de su esposa."
+		},
+		{
+			"vocabId": "jm:1161020",
+			"jp": "あなたか私のどちらかが一位を取るだろう。",
+			"es": "Tú o yo obtendremos el primer puesto."
+		},
+		{
+			"vocabId": "jm:1162370",
+			"jp": "ライオンはウサギをひと口で食べた。",
+			"es": "El león se comió al conejo de un solo bocado."
+		},
+		{
+			"vocabId": "jm:1162370",
+			"jp": "一口乗りたがっている人が大勢だ。",
+			"es": "Hay mucha gente que quiere participar con una parte."
+		},
+		{
+			"vocabId": "jm:1162530",
+			"jp": "国民総生産は一定の期間における一国の財及びサービスを貨幣価値で計った総生産高である。",
+			"es": "El producto nacional bruto es el valor monetario de la producción total de bienes y servicios de un país durante un período determinado."
+		},
+		{
+			"vocabId": "jm:1166600",
+			"jp": "「もう一本くれ」と彼が言った。",
+			"es": "«Dame otra botella», dijo él."
+		},
+		{
+			"vocabId": "jm:1170340",
+			"jp": "だれか人に、言い分があったら、陰口をいわないで、その人に面と向かっていいなさい。",
+			"es": "Si tienes alguna queja con alguien, díselo a la cara en lugar de hablar a sus espaldas."
+		},
+		{
+			"vocabId": "jm:1176320",
+			"jp": "宴会はたけなわだった。",
+			"es": "El banquete estaba en su pleno apogeo."
+		},
+		{
+			"vocabId": "jm:1181420",
+			"jp": "誰が王位を継ぐのですか。",
+			"es": "¿Quién heredará el trono?"
+		},
+		{
+			"vocabId": "jm:1181450",
+			"jp": "彼女は出廷したとき、王冠のようなものをかぶっていた。",
+			"es": "Cuando compareció ante el tribunal, llevaba puesta una especie de corona."
+		},
+		{
+			"vocabId": "jm:1181450",
+			"jp": "百円じゃなくて、王冠でした。",
+			"es": "No eran cien yenes, era una chapa de botella."
+		},
+		{
+			"vocabId": "jm:1181460",
+			"jp": "国王とその家族は王宮に住んでいる。",
+			"es": "El rey y su familia viven en el palacio real."
+		},
+		{
+			"vocabId": "jm:1189240",
+			"jp": "何日滞在する予定ですか。",
+			"es": "¿Cuántos días piensas quedarte?"
+		},
+		{
+			"vocabId": "jm:1198170",
+			"jp": "この会に出席している他の代表者に直接話すのではなく、どうか議長に話して下さい。",
+			"es": "Por favor, diríjase al presidente de la mesa y no directamente a los demás representantes de esta reunión."
+		},
+		{
+			"vocabId": "jm:1198170",
+			"jp": "この会の名称はＥ．Ｓ．Ｓ．とする。",
+			"es": "El nombre de esta asociación será E.S.S."
+		},
+		{
+			"vocabId": "jm:1198180",
+			"jp": "前に彼にあったのを覚えている。",
+			"es": "Recuerdo haberlo conocido antes."
+		},
+		{
+			"vocabId": "jm:1198180",
+			"jp": "駅へ行く途中でにわか雨に遭った。",
+			"es": "Me pilló un chaparrón de camino a la estación."
+		},
+		{
+			"vocabId": "jm:1198230",
+			"jp": "会員は５人に減った。",
+			"es": "El número de miembros se redujo a cinco."
+		},
+		{
+			"vocabId": "jm:1202380",
+			"jp": "絵本は子供たちの頭を啓発する。",
+			"es": "Los libros ilustrados estimulan la mente de los niños."
+		},
+		{
+			"vocabId": "jm:1212030",
+			"jp": "有明海は日本のもっとも広い干潟の一つです。",
+			"es": "El mar de Ariake es una de las marismas más extensas de Japón."
+		},
+		{
+			"vocabId": "jm:1212050",
+			"jp": "僕のことに干渉しないでくれ。",
+			"es": "No te metas en mis asuntos."
+		},
+		{
+			"vocabId": "jm:1275640",
+			"jp": "あの人は口と腹が反対だ。",
+			"es": "Esa persona dice una cosa pero piensa otra muy distinta."
+		},
+		{
+			"vocabId": "jm:1275640",
+			"jp": "あの仕事の口はまだあるよ。",
+			"es": "Esa vacante de trabajo todavía está disponible."
+		},
+		{
+			"vocabId": "jm:1275640",
+			"jp": "外米はぼそぼそしていて、日本人の口には合わない。",
+			"es": "El arroz importado es seco y quebradizo, por lo que no se adapta al paladar japonés."
+		},
+		{
+			"vocabId": "jm:1275640",
+			"jp": "椅子に横たわる私に、歯科衛生士の女性が「はい、お口を開けてください」と言ったのです。",
+			"es": "Mientras estaba tumbado en el sillón, la higienista dental me dijo: «Abra la boca, por favor»."
+		},
+		{
+			"vocabId": "jm:1275640",
+			"jp": "瓶の口までいっぱいに入れて空気が入らないようにしなさい。",
+			"es": "Llena la botella hasta el borde para que no entre aire."
+		},
+		{
+			"vocabId": "jm:1275640",
+			"jp": "私たちはそのまま洞窟の口にボートで突っ込んで行きました。",
+			"es": "Nos adentramos directamente en la entrada de la cueva con el bote."
+		},
+		{
+			"vocabId": "jm:1296660",
+			"jp": "ひろしは材木をひいて板にしています。",
+			"es": "Hiroshi está serrando la madera para hacer tablas."
+		},
+		{
+			"vocabId": "jm:1334470",
+			"jp": "私達は全部で十一名です。",
+			"es": "Somos once en total."
+		},
+		{
+			"vocabId": "jm:1415400",
+			"jp": "チューリッヒはロンドンに次ぐ世界第二位の金市場である。",
+			"es": "Zúrich es el segundo mercado de oro más grande del mundo después de Londres."
+		},
+		{
+			"vocabId": "jm:1423310",
+			"jp": "これらの商品の中から１つ選びなさい。",
+			"es": "Elige uno de entre estos productos."
+		},
+		{
+			"vocabId": "jm:1423310",
+			"jp": "彼は自分のお金を全部箱の中に入れた。",
+			"es": "Él metió todo su dinero dentro de la caja."
+		},
+		{
+			"vocabId": "jm:1423310",
+			"jp": "身を切るような寒い中でわざわざ遊ばなくてもいいじゃない。",
+			"es": "No hace falta que te pongas a jugar afuera con este frío tan cortante."
+		},
+		{
+			"vocabId": "jm:1429740",
+			"jp": "チームの長として私は彼に有能な助力を得た。",
+			"es": "Como líder del equipo, recibí de él una ayuda muy competente."
+		},
+		{
+			"vocabId": "jm:1461140",
+			"jp": "その穴は直径二メートルです。",
+			"es": "El agujero tiene dos metros de diámetro."
+		},
+		{
+			"vocabId": "jm:1461160",
+			"jp": "２つの質問をしてもよいですか。",
+			"es": "¿Puedo hacerle un par de preguntas?"
+		},
+		{
+			"vocabId": "jm:1463770",
+			"jp": "この服は寒い冬の日には向かない。",
+			"es": "Esta ropa no es adecuada para un día frío de invierno."
+		},
+		{
+			"vocabId": "jm:1463770",
+			"jp": "この部屋はあまり日が当たらない。",
+			"es": "A esta habitación no le da mucho el sol."
+		},
+		{
+			"vocabId": "jm:1463770",
+			"jp": "われわれは過ぎし日の事を、必ずしも愛情とは言えないまでも少なくとも一種の憧れを持ってふりかえるのである。",
+			"es": "Recordamos los días pasados, si no necesariamente con cariño, al menos con cierta nostalgia."
+		},
+		{
+			"vocabId": "jm:1463770",
+			"jp": "会議の日を決めなさい。",
+			"es": "Fija la fecha para la reunión."
+		},
+		{
+			"vocabId": "jm:1463770",
+			"jp": "冬が近づくにつれて日が短くなる。",
+			"es": "A medida que se acerca el invierno, los días se hacen más cortos."
+		},
+		{
+			"vocabId": "jm:1468060",
+			"jp": "お年をお聞きしてよろしいでしょうか。",
+			"es": "¿Me permite preguntarle su edad?"
+		},
+		{
+			"vocabId": "jm:1468060",
+			"jp": "一月は年の一番目の月です。",
+			"es": "Enero es el primer mes del año."
+		},
+		{
+			"vocabId": "jm:1522150",
+			"jp": "ウイスキーを１本持っています。",
+			"es": "Tengo una botella de whisky."
+		},
+		{
+			"vocabId": "jm:1522150",
+			"jp": "性能のよさとデザインの優美さが両々相まって本機種の声価を高めてきた。",
+			"es": "El buen rendimiento y la elegancia del diseño se han combinado para elevar la reputación de este modelo."
+		},
+		{
+			"vocabId": "jm:1522150",
+			"jp": "昨日はその本を８０ページまで読んだ。",
+			"es": "Ayer leí ese libro hasta la página 80."
+		},
+		{
+			"vocabId": "jm:1534520",
+			"jp": "その木には実がたわわになっていた。",
+			"es": "El árbol estaba cargado de frutos."
+		},
+		{
+			"vocabId": "jm:1579840",
+			"jp": "その会は十時に終わった。",
+			"es": "La reunión terminó a las diez."
+		},
+		{
+			"vocabId": "jm:1580640",
+			"jp": "この人は画家だ！",
+			"es": "¡Esta persona es pintor!"
+		},
+		{
+			"vocabId": "jm:1580640",
+			"jp": "人がなんと言おうと僕は君の味方だ。",
+			"es": "Digan lo que digan los demás, yo estoy de tu lado."
+		},
+		{
+			"vocabId": "jm:1580640",
+			"jp": "人は意識のある生き物だ。",
+			"es": "El ser humano es un ser consciente."
+		},
+		{
+			"vocabId": "jm:1580640",
+			"jp": "確かに彼はハンサムでないが、人がよい。",
+			"es": "Es verdad que no es muy apuesto, pero es una buena persona."
+		},
+		{
+			"vocabId": "jm:1592250",
+			"jp": "『北の国から』は、北海道富良野市を舞台にしたフジテレビジョン制作のテレビドラマ。",
+			"es": "«Desde el país del norte» es una serie de televisión producida por Fuji Television y ambientada en la ciudad de Furano, Hokkaido."
+		},
+		{
+			"vocabId": "jm:1592250",
+			"jp": "その王がその国を治めていた。",
+			"es": "El rey gobernaba ese país."
+		},
+		{
+			"vocabId": "jm:1592250",
+			"jp": "その科学者は国の内外で有名である。",
+			"es": "Ese científico es famoso tanto dentro como fuera del país."
+		},
+		{
+			"vocabId": "jm:1620400",
+			"jp": "１０人中３人はビデオを持っている。",
+			"es": "Tres de cada diez personas tienen reproductor de vídeo."
+		},
+		{
+			"vocabId": "jm:1620400",
+			"jp": "ある調査によると、今日では５人中３人が外交問題には無関心のようだ。",
+			"es": "Según una encuesta, hoy en día tres de cada cinco personas parecen indiferentes a la política exterior."
+		},
+		{
+			"vocabId": "jm:1620400",
+			"jp": "彼は旅行中に病気になった。",
+			"es": "Él se enfermó durante el viaje."
+		},
+		{
+			"vocabId": "jm:1620400",
+			"jp": "空気中のごく小さい粒子がガンのもとになり得る。",
+			"es": "Las partículas diminutas que hay en el aire pueden ser causa de cáncer."
+		},
+		{
+			"vocabId": "jm:1620400",
+			"jp": "隣の部屋では会議中です。",
+			"es": "En la habitación de al lado están en mitad de una reunión."
+		},
+		{
+			"vocabId": "jm:1629200",
+			"jp": "彼らは王の殺害をたくらんでいる。",
+			"es": "Están conspirando para matar al rey."
+		},
+		{
+			"vocabId": "jm:2082140",
+			"jp": "大口叩きは何もできない。",
+			"es": "Los que mucho hablan poco hacen."
+		},
+		{
+			"vocabId": "jm:2082450",
+			"jp": "この決定はあなたの提案に負うところ大であった。",
+			"es": "Esta decisión se debió en gran medida a tu propuesta."
+		},
+		{
+			"vocabId": "jm:2082450",
+			"jp": "大か、小か。",
+			"es": "¿Grande o pequeño?"
+		},
+		{
+			"vocabId": "jm:2082450",
+			"jp": "嵐は作物に大損害を与えた。",
+			"es": "La tormenta causó grandes daños a los cultivos."
+		},
+		{
+			"vocabId": "jm:2082450",
+			"jp": "彼女はハーバード大に入学した。",
+			"es": "Ella ingresó a la Universidad de Harvard."
+		},
+		{
+			"vocabId": "jm:2082450",
+			"jp": "瞬くうちにテニスボール大の団子が消え去った。",
+			"es": "En un abrir y cerrar de ojos, la bola de masa del tamaño de una pelota de tenis desapareció."
+		},
+		{
+			"vocabId": "jm:2083570",
+			"jp": "最終提案は来週中に発表されます。",
+			"es": "La propuesta final se anunciará en el transcurso de la próxima semana."
+		},
+		{
+			"vocabId": "jm:2083570",
+			"jp": "彼は夏中ずっと長野にいた。",
+			"es": "Él estuvo en Nagano durante todo el verano."
+		}
+	],
+	"similarTips": [
+		{
+			"a": "主",
+			"b": "国",
+			"tip": "主 lleva una corona superior que distingue al señor, mientras que 国 contiene un recinto cerrado de cuatro lados que delimita el país."
+		},
+		{
+			"a": "主",
+			"b": "王",
+			"tip": "主 añade un punto superior como una corona sobre el rey 王 para indicar quién es el señor y dueño."
+		},
+		{
+			"a": "人",
+			"b": "入",
+			"tip": "人 apoya el trazo izquierdo arriba como una persona caminando, mientras que 入 tiene el trazo derecho extendido hacia arriba como una flecha que entra."
+		},
+		{
+			"a": "会",
+			"b": "伝",
+			"tip": "会 reúne a las personas bajo un mismo techo central, mientras que 伝 coloca a la persona a la izquierda pasando un mensaje que se transmite."
+		},
+		{
+			"a": "会",
+			"b": "芸",
+			"tip": "会 lleva un tejado que congrega a los asistentes de la reunión, mientras que 芸 lleva arriba el radical de hierba alusivo al cultivo del arte."
+		},
+		{
+			"a": "千",
+			"b": "干",
+			"tip": "千 tiene un primer trazo diagonal arriba para contar miles, mientras que 干 lleva dos trazos horizontales planos como un tendedero."
+		},
+		{
+			"a": "午",
+			"b": "干",
+			"tip": "午 tiene un trazo superior inclinado que conecta con el mediodía, mientras que 干 presenta dos barras horizontales paralelas rectas."
+		},
+		{
+			"a": "口",
+			"b": "囚",
+			"tip": "囚 encierra a una persona dentro del recinto de 口 para indicar a un prisionero en su celda."
+		},
+		{
+			"a": "口",
+			"b": "四",
+			"tip": "四 contiene dos trazos curvos dentro del marco de 口, distinguiéndose de la boca vacía para formar el número cuatro."
+		},
+		{
+			"a": "口",
+			"b": "回",
+			"tip": "回 encierra un cuadro pequeño dentro de otro mayor, ilustrando un ciclo que gira sobre sí mismo."
+		},
+		{
+			"a": "口",
+			"b": "因",
+			"tip": "因 coloca el kanji de grande dentro del recinto de 口, simbolizando un motivo de gran peso que causa algo."
+		},
+		{
+			"a": "口",
+			"b": "団",
+			"tip": "団 reúne trazos cerrados dentro del contorno de 口 para simbolizar a varias personas unidas en grupo."
+		},
+		{
+			"a": "国",
+			"b": "宝",
+			"tip": "宝 cobija la joya bajo el techo de un hogar como tesoro familiar, mientras que 国 la encierra dentro de las fronteras de una nación."
+		},
+		{
+			"a": "国",
+			"b": "往",
+			"tip": "国 está cerrado por una frontera cuadrada, mientras que 往 lleva a la izquierda el radical de pasos abiertos para ir de viaje."
+		},
+		{
+			"a": "国",
+			"b": "柱",
+			"tip": "国 forma un cajón cerrado de fronteras, mientras que 柱 antepone el árbol de madera que sirve como pilar maestro."
+		},
+		{
+			"a": "国",
+			"b": "注",
+			"tip": "国 es un recinto cercado por completo, mientras que 注 tiene tres gotas de agua a la izquierda que se derraman hacia el señor."
+		},
+		{
+			"a": "国",
+			"b": "玉",
+			"tip": "国 rodea completamente a la joya 玉 con murallas cuadradas para resguardar las riquezas del país."
+		},
+		{
+			"a": "国",
+			"b": "球",
+			"tip": "国 encierra la joya dentro de un muro cuadrado, mientras que 球 la coloca al lado izquierdo para describir una pelota o esfera tridimensional."
+		},
+		{
+			"a": "大",
+			"b": "太",
+			"tip": "太 añade un punto entre las piernas de 大 para representar el peso adicional de alguien gordo."
+		},
+		{
+			"a": "大",
+			"b": "犬",
+			"tip": "犬 añade una marca en la parte superior derecha de 大, simulando la oreja o la cola de un perro."
+		},
+		{
+			"a": "木",
+			"b": "本",
+			"tip": "本 añade una línea horizontal en la base de 木 para marcar las raíces, indicando el origen del árbol."
+		},
+		{
+			"a": "末",
+			"b": "本",
+			"tip": "末 resalta el extremo superior alargando la copa del árbol, mientras que 本 marca la base para señalar la raíz o el origen."
+		},
+		{
+			"a": "本",
+			"b": "林",
+			"tip": "本 es un único árbol con una marca en la raíz, mientras que 林 junta dos árboles completos para formar una arboleda."
+		},
+		{
+			"a": "玉",
+			"b": "王",
+			"tip": "玉 tiene un punto inferior que representa el destello de la joya que sostiene el rey 王."
+		}
+	]
+}

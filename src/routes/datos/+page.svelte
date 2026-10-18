@@ -7,6 +7,12 @@
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { downloadFrom } from '#lib/client/backend.svelte.ts';
 	import { takePending } from '#lib/client/inbox.ts';
+	import StoragePanel from '#lib/components/StoragePanel.svelte';
+	import PregenPanel from '#lib/components/PregenPanel.svelte';
+	import { page } from '$app/state';
+
+	// La key de Gemini la conoce el layout (data.gemini en todas las páginas).
+	const gemini = $derived(!!(page.data as { gemini?: boolean }).gemini);
 
 	// Llegó un .zip compartido o abierto con Sensei (/compartir): mostrar qué contiene y pedir confirmación.
 	onMount(() => {
@@ -352,6 +358,10 @@
 		<p class="small dim">Todavía no hay copias. La primera automática se hará cuando tengas datos.</p>
 	{/if}
 </div>
+
+<StoragePanel onchange={() => void load()} />
+
+<PregenPanel gemini={gemini} />
 
 <div class="card stack">
 	<h2>Reiniciar progreso</h2>

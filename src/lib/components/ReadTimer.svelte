@@ -4,6 +4,7 @@
 	import { post, errMsg } from '../client/api.ts';
 	import { prefs } from '../client/state.svelte.ts';
 	import { keepAwake } from '../client/wakeLock.ts';
+	import { completeDaily } from '../client/daily.svelte.ts';
 
 	type Log = { cpm: number; createdAt: number; furigana: string };
 
@@ -57,6 +58,7 @@
 				comprehension
 			});
 			result = r;
+			completeDaily('reading'); // cualquier lectura cronometrada cuenta para la sesión de hoy
 			onlogged?.(r);
 		} catch (e) {
 			error = errMsg(e);

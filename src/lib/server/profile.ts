@@ -66,7 +66,7 @@ export function buildProfile(db: DB, now = Date.now()): LearnerProfile {
 			count(distinct case when state != ${State.Review} then item_key end) as learning,
 			count(distinct case when state = ${State.Review} and stability < 21 then item_key end) as review,
 			count(distinct case when state = ${State.Review} and stability >= 21 then item_key end) as mastered
-		from card group by item_type
+		from card where facet != 'writing' group by item_type
 	`);
 	const counts: LearnerProfile['counts'] = {};
 	for (const r of statRows) counts[r.t] = { learning: r.learning, review: r.review, mastered: r.mastered };

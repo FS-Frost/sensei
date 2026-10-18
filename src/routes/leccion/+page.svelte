@@ -9,6 +9,7 @@
 	import SpeakButton from '#lib/components/SpeakButton.svelte';
 	import PromptText from '#lib/components/PromptText.svelte';
 	import { setScreenContext } from '#lib/client/tutorContext.svelte.ts';
+	import { completeDaily } from '#lib/client/daily.svelte.ts';
 
 	type Quota = { kanjiLeft: number; vocabLeft: number; grammarLeft: number; brake: string; due: number; queued: number };
 	type Lesson = { items: LessonItem[]; quiz: ReviewItem[]; quota: Quota; warning: string | null };
@@ -27,6 +28,7 @@
 		idx = 0;
 		try {
 			lesson = await get<Lesson>(`/api/lesson?kind=${kind}`);
+			if (!lesson.items.length) completeDaily('lesson'); // nada que aprender hoy: el bloque de la sesión diaria cuenta
 		} catch (e) {
 			error = errMsg(e);
 		} finally {
@@ -192,6 +194,7 @@
 			requeueWrong
 			onfinish={() => {
 				stage = 'done';
+				completeDaily('lesson');
 				refreshAll();
 			}}
 		/>

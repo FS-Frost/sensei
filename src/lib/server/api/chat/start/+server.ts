@@ -13,11 +13,11 @@ import type { ChatMode } from '#lib/types.ts';
 export const POST: RequestHandler = ({ request }) =>
 	handle(async () => {
 		if (!hasGemini()) throw new HttpError(503, 'Falta la API key de Gemini: añádela en Ajustes.');
-		const b = await body<UserInput & { mode: ChatMode; origin?: 'page' | 'panel' }>(request);
+		const b = await body<UserInput & { mode: ChatMode; origin?: 'page' | 'panel' | 'daily' }>(request);
 		if (!(b.mode in MODE_LABELS)) throw new HttpError(400, 'Modo inválido');
-		if (!b.text?.trim()) throw new HttpError(400, 'Escribe un mensaje');
-		const session = createSession(db, b.mode, b.origin === 'panel' ? 'panel' : 'page');
+		if (!b.text?.trim() && !b.audio) throw new HttpError(400, 'Escribe un mensaje');
+		const session = createSession(db, b.mode, b.origin === 'panel' || b.origin === 'daily' ? b.origin : 'page');
 		// Memoria: resumir en segundo plano las sesiones anteriores inactivas.
 		void summarizePending(db, session.id);
-		return turnStream(db, session.id, { text: b.text, context: b.context ?? null }, [{ type: 'session', id: session.id }]);
+		return turnStream(db, session.id, { text: b.text, audio: b.audio, context: b.context ?? null }, [{ type: 'session', id: session.id }]);
 	});

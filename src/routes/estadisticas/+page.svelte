@@ -79,11 +79,13 @@
 				{#each data.leeches as l (l.id)}
 					<tr>
 						<td class="jp big-cell">{#if l.type === 'kanji'}<a href="/kanji/{l.key}">{l.display}</a>{:else}<span data-lookup={l.display}>{l.display}</span>{/if}</td>
-						<td>{TYPE[l.type] ?? l.type} · {l.facet === 'meaning' ? 'significado' : 'lectura'}</td>
+						<td>{TYPE[l.type] ?? l.type} · {l.facet === 'meaning' ? 'significado' : l.facet === 'writing' ? 'escritura' : 'lectura'}</td>
 						<td class="num">{l.lapses}</td>
 						<td class="acts">
 							{#if l.type === 'kanji'}
 								<button class="small" onclick={() => treat(l.id, 'mnemonic')} disabled={busy[l.id]}>Nueva mnemotecnia</button>
+								<!-- Escribirlo a mano fija la forma: ayuda a separarlo de sus parecidos. -->
+								<a class="btn small" href="/kanji/{l.key}#escribir">✍ Escribirlo</a>
 							{/if}
 							<button class="small" onclick={() => treat(l.id, 'pause')} disabled={busy[l.id]}>Apartar 7 días</button>
 							{#if msg[l.id]}<span class="muted">{msg[l.id]}</span>{/if}

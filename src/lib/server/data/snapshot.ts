@@ -96,7 +96,10 @@ export function buildSnapshot(db: DB): Snapshot {
 			mnemonics: db
 				.select({ char: s.kanji.char, meaning: s.kanji.mnemonicMeaning, reading: s.kanji.mnemonicReading })
 				.from(s.kanji)
-				.where(sql`${s.kanji.mnemonicMeaning} is not null or ${s.kanji.mnemonicReading} is not null`)
+				// Lo pregenerado viene con el diccionario: no se exporta (data/pregen.ts).
+				.where(
+					sql`(${s.kanji.mnemonicMeaning} is not null or ${s.kanji.mnemonicReading} is not null) and coalesce(${s.kanji.mnemonicSource}, 'gemini') != 'pregen'`
+				)
 				.orderBy(asc(s.kanji.char))
 				.all(),
 			componentNames: db
@@ -114,7 +117,7 @@ export function buildSnapshot(db: DB): Snapshot {
 			sentences: db
 				.select({ vocabId: s.sentence.vocabId, jp: s.sentence.jp, es: s.sentence.es })
 				.from(s.sentence)
-				.where(and(isNotNull(s.sentence.es), isNotNull(s.sentence.vocabId)))
+				.where(and(isNotNull(s.sentence.es), isNotNull(s.sentence.vocabId), sql`coalesce(${s.sentence.esSource}, 'gemini') != 'pregen'`))
 				.orderBy(asc(s.sentence.id))
 				.all() as { vocabId: string; jp: string; es: string }[],
 			userVocab: userVocab.map((v) => ({
@@ -137,7 +140,7 @@ export function buildSnapshot(db: DB): Snapshot {
 			similarTips: db
 				.select({ a: s.similarKanji.a, b: s.similarKanji.b, tip: s.similarKanji.tip })
 				.from(s.similarKanji)
-				.where(isNotNull(s.similarKanji.tip))
+				.where(and(isNotNull(s.similarKanji.tip), sql`coalesce(${s.similarKanji.tipSource}, 'gemini') != 'pregen'`))
 				.orderBy(asc(s.similarKanji.a), asc(s.similarKanji.b))
 				.all() as { a: string; b: string; tip: string }[]
 		}
@@ -341,7 +344,7 @@ export function applySnapshot(db: DB, snap: Snapshot) {
 		insert(s.geminiUsage, snap.generated.usage ?? [], 300);
 		for (const t of snap.content.similarTips ?? [])
 			tx.update(s.similarKanji)
-				.set({ tip: t.tip })
+				.set({ tip: t.tip, tipSource: 'gemini' })
 				.where(and(eq(s.similarKanji.a, t.a), eq(s.similarKanji.b, t.b)))
 				.run();
 		insert(
@@ -356,7 +359,7 @@ export function applySnapshot(db: DB, snap: Snapshot) {
 		}
 		for (const m of snap.content.mnemonics)
 			tx.update(s.kanji)
-				.set({ mnemonicMeaning: m.meaning, mnemonicReading: m.reading })
+				.set({ mnemonicMeaning: m.meaning, mnemonicReading: m.reading, mnemonicSource: 'gemini' })
 				.where(eq(s.kanji.char, m.char))
 				.run();
 		for (const c of snap.content.componentNames)
@@ -369,7 +372,7 @@ export function applySnapshot(db: DB, snap: Snapshot) {
 				.run();
 		for (const x of snap.content.sentences)
 			tx.update(s.sentence)
-				.set({ es: x.es })
+				.set({ es: x.es, esSource: 'gemini' })
 				.where(and(eq(s.sentence.vocabId, x.vocabId), eq(s.sentence.jp, x.jp)))
 				.run();
 	});

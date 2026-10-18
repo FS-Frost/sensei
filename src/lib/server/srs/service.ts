@@ -7,7 +7,8 @@ import { acceptedRomaji, kanaRomaji, kanaScript, ALL_KANA } from '../../kana.ts'
 import { emptyCard, revive, schedule, serialize, Rating, State, type Grade, type SchedulerConfig } from './fsrs.ts';
 import { GRAMMAR, GRAMMAR_BY_ID } from '../../grammar.ts';
 import { exampleFor, similarTo } from '../items.ts';
-import { getSettings } from '../settings.ts';
+import { dayStart, getSettings } from '../settings.ts';
+import { writingGrade } from '../../strokes.ts';
 
 /** Fallos acumulados a partir de los cuales una tarjeta se trata como «sanguijuela». */
 export const LEECH_LAPSES = 6;
@@ -42,6 +43,7 @@ export function acceptedAnswers(db: DB, type: ItemType, key: string, facet: Face
 	if (type === 'kanji') {
 		const k = kanjiRow(db, key);
 		if (!k) return { accepted: [], display: [] };
+		if (facet === 'writing') return { accepted: [key], display: [key] };
 		if (facet === 'meaning') {
 			const es = k.meaningsEs.length ? k.meaningsEs : k.meaningsEn;
 			return { accepted: [...es, ...k.meaningsEn], display: es.slice(0, 4) };
@@ -103,6 +105,13 @@ export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemTy
 			meaning: (v?.glossesEs ?? v?.glossesEn ?? []).slice(0, 3).join('; '),
 			example: v ? exampleFor(db, v.id, v.mainForm) : null
 		};
+	} else if (c.itemType === 'kanji' && c.facet === 'writing') {
+		// Escritura: se muestra el significado y la lectura; el alumno traza el kanji.
+		const k = kanjiRow(db, c.itemKey);
+		const meanings = (k?.meaningsEs.length ? k.meaningsEs : (k?.meaningsEn ?? [])).slice(0, 3).join('; ');
+		const readings = [...(k?.kunReadings ?? []), ...(k?.onReadings ?? [])].slice(0, 3).join('、');
+		prompt = meanings || c.itemKey;
+		extra = { meaning: meanings, reading: readings, mnemonic: k?.mnemonicMeaning };
 	} else if (c.itemType === 'kanji') {
 		const k = kanjiRow(db, c.itemKey);
 		extra = {
@@ -125,9 +134,19 @@ export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemTy
 		extra = { meaning: m?.es ?? undefined, reading: m?.targetReading };
 	}
 	const answerMode =
-		c.itemType === 'kana' ? 'romaji' : c.itemType === 'grammar' ? 'choice' : c.facet === 'reading' ? 'kana' : 'meaning';
+		c.facet === 'writing'
+			? 'trace'
+			: c.itemType === 'kana'
+				? 'romaji'
+				: c.itemType === 'grammar'
+					? 'choice'
+					: c.facet === 'reading'
+						? 'kana'
+						: 'meaning';
 	const facetLabel =
-		c.itemType === 'kana'
+		c.facet === 'writing'
+			? 'escritura'
+			: c.itemType === 'kana'
 			? 'romaji'
 			: c.itemType === 'grammar'
 				? '¿qué expresa?'
@@ -155,6 +174,8 @@ export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemTy
 export function gradeAnswer(db: DB, type: ItemType, key: string, facet: Facet, answer: string): GradeResult {
 	const { accepted, display } = acceptedAnswers(db, type, key, facet);
 	if (type === 'grammar') return { correct: accepted.includes(answer.trim()), answers: display };
+	// Escritura: el cliente compara los trazos (strokes.ts) y manda cuántos falló.
+	if (facet === 'writing') return { correct: writingGrade(Number(answer) || 0).correct, answers: display };
 	if (type === 'kana') {
 		const a = answer.trim().toLowerCase();
 		const correct = accepted.includes(a);
@@ -165,7 +186,13 @@ export function gradeAnswer(db: DB, type: ItemType, key: string, facet: Facet, a
 		}
 		return { correct, answers: display, confusedWith };
 	}
-	const correct = facet === 'meaning' ? meaningMatches(answer, accepted) : readingMatches(answer, accepted);
+	let correct = facet === 'meaning' ? meaningMatches(answer, accepted) : readingMatches(answer, accepted);
+	// Respuesta por voz: el reconocimiento puede devolver la palabra en kanji. Si es exactamente la palabra, se pronunció bien.
+	if (!correct && facet === 'reading' && type === 'vocab' && kanjiIn(answer).length) {
+		const v = db.select().from(s.vocab).where(eq(s.vocab.id, key)).get();
+		const said = answer.trim().replace(/[。、！？!?\s]/g, '');
+		correct = !!v && (said === v.mainForm || v.kanjiForms.includes(said));
+	}
 	if (correct) return { correct, answers: display };
 
 	let confusedWith: string | null = null;
@@ -267,6 +294,28 @@ export function applyReview(db: DB, cardId: number, input: ReviewInput, now = ne
 			.run();
 	});
 	return { due: card.due.getTime(), state: card.state, stability: card.stability, leech };
+}
+
+/**
+ * Repasos de escritura (si están activados): cada día entran hasta `newWritingPerDay` kanji nuevos, en orden de
+ * aprendizaje, de los que ya reconoces (significado en repaso). Así la carga crece poco a poco.
+ */
+export function ensureWritingCards(db: DB, now = new Date()) {
+	const st = getSettings(db);
+	if (!st.writingReviews) return 0;
+	const start = dayStart(now, st.dayStartHour);
+	const today =
+		db.get<[number]>(sql`select count(*) from card where facet = 'writing' and created_at >= ${start}`)?.[0] ?? 0;
+	const left = st.newWritingPerDay - today;
+	if (left <= 0) return 0;
+	const next = db.all<{ k: string }>(sql`
+		select c.item_key as k from card c join kanji k on k.char = c.item_key
+		where c.item_type = 'kanji' and c.facet = 'meaning' and c.state = ${State.Review}
+			and not exists (select 1 from card w where w.item_type = 'kanji' and w.item_key = c.item_key and w.facet = 'writing')
+		order by coalesce(k.learn_order, 99999), c.created_at
+		limit ${left}`);
+	for (const { k } of next) ensureCard(db, 'kanji', k, 'writing', now);
+	return next.length;
 }
 
 /** Tarjetas «sanguijuela»: muchos fallos acumulados. Repetirlas igual no funciona; hay que cambiar de estrategia. */

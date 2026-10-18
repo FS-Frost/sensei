@@ -10,6 +10,10 @@
 	import type { PromptFont } from '../types.ts';
 	import { onMount } from 'svelte';
 	import { keepAwake } from '../client/wakeLock.ts';
+	import KanjiTrace from './KanjiTrace.svelte';
+	import { writingGrade } from '../strokes.ts';
+	import { recognizeJapanese, speechRecognitionSupported } from '../client/voice.ts';
+	import { isKana, toHiragana } from 'wanakana';
 
 	// Pantalla encendida mientras dura la sesión (repaso o mini-quiz de lección).
 	onMount(() => keepAwake());
@@ -101,6 +105,30 @@
 			}
 		});
 	});
+
+	// Lecturas en voz alta (reconocimiento del navegador, ja-JP): kana → se corrige como lo escrito; si el navegador
+	// devuelve la palabra en kanji, el servidor la acepta si es exactamente esa palabra.
+	const voiceOk = speechRecognitionSupported();
+	let listening = $state(false);
+	async function sayIt() {
+		if (listening || result) return;
+		listening = true;
+		warn = '';
+		try {
+			const alts = await recognizeJapanese().result;
+			if (!alts.length) {
+				warn = 'No te oí: prueba otra vez o escríbelo.';
+				return;
+			}
+			const kana = alts.map((a) => toHiragana(a.replace(/[。、！？!?\s]/g, ''))).find((a) => isKana(a));
+			answer = kana ?? alts[0];
+			await check();
+		} catch (e) {
+			warn = `Sin reconocimiento de voz: ${errMsg(e)}`;
+		} finally {
+			listening = false;
+		}
+	}
 
 	function choose(opt: string) {
 		if (result || busy) return;
@@ -207,7 +235,8 @@
 		if (!result || busy) return;
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			next(result.correct ? 3 : undefined);
+			if (current?.answerMode === 'trace') next(result.correct ? writingGrade(Number(answer)).grade : undefined);
+			else next(result.correct ? 3 : undefined);
 		} else if (result.correct && ['1', '2', '3'].includes(e.key)) {
 			e.preventDefault();
 			next({ '1': 2, '2': 3, '3': 4 }[e.key]);
@@ -255,7 +284,9 @@
 		{/if}
 
 		<div class="prompt type-{current.itemType} facet-{current.facet}">
-			{#if current.itemType === 'grammar' || current.itemType === 'sentence'}
+			{#if current.answerMode === 'trace'}
+				<span class="sentence">✍ {current.prompt}</span>
+			{:else if current.itemType === 'grammar' || current.itemType === 'sentence'}
 				<span class="jp sentence"><PromptText text={current.prompt} highlight={current.highlight} {font} /></span>
 			{:else}
 				<span class="jp big f-{font}">{current.prompt}</span>
@@ -266,7 +297,21 @@
 			{#if font !== 'gothic'}<span class="fontname">· fuente {FONT_LABELS[font]}</span>{/if}
 		</div>
 
-		{#if current.answerMode === 'choice' && current.options}
+		{#if current.answerMode === 'trace'}
+			<!-- Escritura: de memoria; al terminar, los fallos de trazo deciden la nota (strokes.ts → writingGrade). -->
+			{#key current.cardId ?? current.itemKey}
+				<KanjiTrace
+					char={current.itemKey}
+					guided={false}
+					onfinish={(r) => {
+						if (result) return;
+						answer = String(r.mistakes);
+						void check();
+					}}
+				/>
+			{/key}
+			{#if current.extra?.reading && !result}<p class="small muted center jp">Lectura: {current.extra.reading}</p>{/if}
+		{:else if current.answerMode === 'choice' && current.options}
 			<div class="choices">
 				{#each current.options as opt (opt)}
 					<button
@@ -279,7 +324,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class:shake>
+			<div class:shake class="answer-row">
 				<AnswerInput
 					bind:value={answer}
 					mode={current.answerMode}
@@ -287,7 +332,18 @@
 					status={result ? (result.correct ? 'ok' : 'bad') : warn ? 'warn' : 'idle'}
 					onsubmit={check}
 				/>
+				{#if current.answerMode === 'kana' && voiceOk && !result}
+					<button
+						class="mic"
+						class:on={listening}
+						onclick={sayIt}
+						disabled={busy}
+						title="Decir la lectura en voz alta (reconocimiento del navegador)"
+						aria-label="Responder en voz alta">🎙</button
+					>
+				{/if}
 			</div>
+			{#if listening}<div class="small muted center">🎙 Di la lectura…</div>{/if}
 		{/if}
 		{#if warn}<div class="warning small">{warn}</div>{/if}
 		{#if error}<div class="error small">{error}</div>{/if}
@@ -335,14 +391,18 @@
 				{#if why}<div class="small tutor"><Markdown text={why} /></div>{/if}
 
 				<div class="row actions">
-					{#if result.correct}
+					{#if result.correct && current.answerMode === 'trace'}
+						<!-- La nota sale de los fallos de trazo: 0 = Bien, 1-2 = Difícil. -->
+						<span class="small muted">{Number(answer) ? `${answer} trazo(s) fallado(s)` : 'Sin fallos'}</span>
+						<button class="primary" onclick={() => next(writingGrade(Number(answer)).grade)} disabled={busy}>Continuar <kbd>↵</kbd></button>
+					{:else if result.correct}
 						<button onclick={() => next(2)} disabled={busy}>Difícil <kbd>1</kbd></button>
 						<button class="primary" onclick={() => next(3)} disabled={busy}>Bien <kbd>2/↵</kbd></button>
 						<button onclick={() => next(4)} disabled={busy}>Fácil <kbd>3</kbd></button>
 					{:else}
 						<button class="primary" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
 						<button onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
-						{#if current.itemType !== 'kana'}
+						{#if current.itemType !== 'kana' && current.answerMode !== 'trace'}
 							<button onclick={explain} disabled={whyLoading}>
 								{#if whyLoading}<span class="spinner"></span>{/if} ¿Por qué?
 							</button>
@@ -452,6 +512,39 @@
 		color: #14161b;
 		/* borde para que la franja clara se distinga también sobre el fondo del tema claro */
 		border: 1px solid var(--line);
+	}
+	.facet-writing.prompt {
+		background: color-mix(in srgb, var(--kanji) 70%, #000);
+	}
+	.label.facet-writing {
+		background: var(--bg-3);
+		color: var(--text);
+		border: 1px dashed var(--line);
+	}
+	.center {
+		text-align: center;
+	}
+	.answer-row {
+		display: flex;
+		gap: 0.4rem;
+		align-items: stretch;
+	}
+	.answer-row > :global(:first-child) {
+		flex: 1;
+		min-width: 0;
+	}
+	.mic {
+		font-size: 1.2rem;
+		padding: 0 0.8rem;
+	}
+	.mic.on {
+		border-color: var(--bad);
+		animation: blink 1s infinite;
+	}
+	@keyframes blink {
+		50% {
+			opacity: 0.5;
+		}
 	}
 	.label.facet-reading {
 		background: #0b0c0f;

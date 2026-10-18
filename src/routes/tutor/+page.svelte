@@ -1,7 +1,7 @@
 <script lang="ts">
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import SessionsTable from '#lib/components/SessionsTable.svelte';
-	import { MODE_DESC, MODE_LABEL } from '#lib/tutorModes.ts';
+	import { LISTED_MODES, MODE_DESC, MODE_LABEL } from '#lib/tutorModes.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -15,10 +15,10 @@
 </p>
 
 <div class="modes">
-	{#each Object.entries(MODE_LABEL) as [mode, label] (mode)}
+	{#each LISTED_MODES as mode (mode)}
 		<a class="card mode" href="/tutor/nueva?modo={mode}">
-			<strong>{label}</strong>
-			<span class="small muted">{MODE_DESC[mode as keyof typeof MODE_DESC]}</span>
+			<strong>{MODE_LABEL[mode]}</strong>
+			<span class="small muted">{MODE_DESC[mode]}</span>
 		</a>
 	{/each}
 </div>

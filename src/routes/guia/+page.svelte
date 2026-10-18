@@ -72,6 +72,20 @@
 		<p>Cada recomendación explica <em>por qué</em>. Debajo verás tu posición en <a href="#ruta">la ruta</a>.</p>
 	</section>
 
+	<section id="hoy" class="card">
+		<h2>Sesión de hoy</h2>
+		<p>
+			<a href="/hoy">Hoy</a> encadena lo que toca en el orden correcto, sin volver a Inicio entre medias: <strong>repasos</strong> (con
+			tope, para que no se coman la sesión) → <strong>lección</strong> → <strong>lectura corta</strong> → <strong>cierre</strong> con el
+			tutor (o un resumen en números, sin API key).
+		</p>
+		<ul>
+			<li>Eliges cuánto tiempo tienes: 10, 20 o 40 minutos. Los tiempos se calculan con tu ritmo real (lo que tardas por repaso).</li>
+			<li>Una barra arriba muestra el progreso en cualquier pantalla; puedes saltar un bloque o terminar cuando quieras.</li>
+			<li>La sesión es de este dispositivo y de hoy: mañana empieza otra. El recordatorio de repasos abre esta página.</li>
+		</ul>
+	</section>
+
 	<section id="kana" class="card">
 		<h2>Diagnóstico de kana</h2>
 		<p>

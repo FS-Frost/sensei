@@ -22,7 +22,8 @@ export const MODE_LABELS: Record<ChatMode, string> = {
 	quiz: 'Quiz a medida',
 	explicador: 'Explicador',
 	confusiones: 'Detective de confusiones',
-	libre: 'Libre'
+	libre: 'Libre',
+	cierre: 'Cierre del día'
 };
 
 const MODE_PROMPTS: Record<ChatMode, string> = {
@@ -41,15 +42,20 @@ const MODE_PROMPTS: Record<ChatMode, string> = {
 		'MODO DETECTIVE DE CONFUSIONES: llama a get_confusions. Para cada par, explica en qué se diferencian (componentes, forma, ' +
 		'significado) y prepara ejercicios de discriminación con present_quiz que mezclen ambos. Si no hay confusiones registradas, ' +
 		'propón pares típicos para su nivel (p. ej. 未/末, 土/士, 人/入).',
-	libre: 'MODO LIBRE: responde a lo que pida el alumno como tutor experto de lectura en japonés.'
+	libre: 'MODO LIBRE: responde a lo que pida el alumno como tutor experto de lectura en japonés.',
+	cierre:
+		'MODO CIERRE DEL DÍA: el alumno acaba de terminar su sesión diaria; el contexto de pantalla trae lo que hizo hoy. Responde en 3-5 líneas: ' +
+		'qué salió bien (concreto, con sus ítems), qué falló y por qué podría ser, y qué conviene mañana. Si algún ítem falló varias veces, ' +
+		'propón UNA mnemotecnia o contraste breve. Termina con offer_choices: «Una pregunta rápida», «Repasar un fallo», «Hasta mañana». ' +
+		'Si elige seguir, haz preguntas cortas como en conversación-quiz; si se despide, despídete en una línea.'
 };
 
-export function systemPrompt(db: DB, mode: ChatMode): string {
-	const p = buildProfile(db);
-	const counts = Object.entries(p.counts)
-		.map(([t, c]) => `${t}: ${c.learning} aprendiendo, ${c.review} en repaso, ${c.mastered} dominados`)
-		.join('; ');
-	const steps = nextSteps(db).slice(0, 3);
+/**
+ * Instrucción de sistema FIJA (solo depende del modo): forma el prefijo de cada petición junto con las herramientas.
+ * Lo que cambia (progreso, pendientes, notas…) va en `studentState`, como parte de usuario: si estuviera aquí, cualquier
+ * repaso entre dos mensajes cambiaría el prefijo y Gemini cobraría todo el historial sin caché. Ver docs/tutor-cache.md.
+ */
+export function systemPrompt(mode: ChatMode): string {
 	return [
 		'Eres «Sensei», tutor de japonés para un hispanohablante cuyo objetivo es LEER japonés (manga/anime, novelas, vida real, webs y videojuegos). No necesita hablarlo.',
 		'Eres el guía de TODA la app: conoces su progreso, su plan, su biblioteca y puedes actuar sobre sus datos con herramientas.',
@@ -71,10 +77,21 @@ export function systemPrompt(db: DB, mode: ChatMode): string {
 		'- Los mensajes con «[Contexto de pantalla: …]» indican lo que el alumno está mirando en la app ahora mismo: responde sobre eso.',
 		'- Para llevarle a otra parte de la app (lección, repaso, un texto…), usa show_links.',
 		'- No puedes reiniciar todo, importar, restaurar copias ni borrar sesiones: si lo pide, indícale la página Datos con show_links.',
+		'- Los mensajes «[Estado del alumno: …]» traen su progreso, plan, ítems débiles, notas y resúmenes; el último que veas es el vigente. Úsalo para adaptarte.',
+		'- Si el alumno te habla con un audio, empieza tu respuesta con una línea «[Oído: …]» con lo que entendiste, palabra por palabra (japonés en kana/kanji), y luego responde. Si su pronunciación de una palabra japonesa fue incorrecta, díselo con amabilidad.',
 		'',
-		MODE_PROMPTS[mode],
-		'',
-		'Estado actual del alumno:',
+		MODE_PROMPTS[mode]
+	].join('\n');
+}
+
+/** Estado del alumno que se envía al modelo (como parte de usuario) al empezar la sesión y cada vez que cambia. */
+export function studentState(db: DB): string {
+	const p = buildProfile(db);
+	const counts = Object.entries(p.counts)
+		.map(([t, c]) => `${t}: ${c.learning} aprendiendo, ${c.review} en repaso, ${c.mastered} dominados`)
+		.join('; ');
+	const steps = nextSteps(db).slice(0, 3);
+	return [
 		`- Progreso: ${counts || 'aún sin tarjetas'}`,
 		`- Repasos pendientes: ${p.due}; precisión 7 días: ${p.accuracy7d ?? '—'}%; racha: ${p.streakDays} días`,
 		steps.length ? `- Siguiente paso recomendado por Sensei: ${steps.map((x) => x.title).join(' · ')}` : '',
@@ -96,7 +113,7 @@ export function systemPrompt(db: DB, mode: ChatMode): string {
 /**
  * Crea una sesión. Solo se llama al enviar el PRIMER mensaje (no se guardan sesiones vacías).
  */
-export function createSession(db: DB, mode: ChatMode, origin: 'page' | 'panel' = 'page') {
+export function createSession(db: DB, mode: ChatMode, origin: 'page' | 'panel' | 'daily' = 'page') {
 	const now = Date.now();
 	return db
 		.insert(s.session)
@@ -232,11 +249,20 @@ export type TutorEvent =
 	/** Bloque de interfaz producido por una herramienta (acción, ficha, opciones, enlaces, texto). */
 	| { type: 'block'; block: UiBlock }
 	| { type: 'session'; id: number }
+	/** Lo que el tutor entendió del audio del alumno (línea «[Oído: …]» de su respuesta). */
+	| { type: 'heard'; transcript: string }
 	| { type: 'error'; message: string }
 	| { type: 'done' };
 
+/** Audio admitido: WAV mono (lo graba client/voice.ts para que funcione en todos los navegadores). */
+const AUDIO_TYPES = ['audio/wav', 'audio/x-wav', 'audio/mp3', 'audio/mpeg', 'audio/ogg', 'audio/flac', 'audio/aac'];
+/** ~90 s de WAV a 16 kHz en base64: de sobra para un mensaje (se graba como mucho 60 s). */
+const MAX_AUDIO_B64 = 4_000_000;
+
 export type UserInput = {
 	text?: string;
+	/** Mensaje de voz: el modelo lo oye (entiende español y japonés mezclados, y la pronunciación). */
+	audio?: { mimeType: string; data: string; seconds: number };
 	quizAnswers?: { quizId: string; answers: { id: string; answer: string }[] };
 	/** Lo que el alumno estaba mirando (panel lateral). */
 	context?: ScreenContext | null;
@@ -305,12 +331,26 @@ export async function* runTurn(db: DB, sessionId: number, input: UserInput): Asy
 		}
 		userParts.push({ functionResponse: { id: pending.callId, name: PRESENT_QUIZ, response } });
 	}
+	// Estado del alumno: al principio de la sesión y, después, solo si cambió (mantiene estable el prefijo cacheado).
+	// Va antes que todo lo demás del turno, salvo las respuestas a herramientas pendientes (deben ir primero).
+	const state = studentState(db);
+	const stateChanged = state !== sess.stateSnapshot;
+	if (stateChanged) userParts.push({ text: `[Estado del alumno${sess.stateSnapshot ? ' (actualizado)' : ''}:\n${state}]` });
+	const before = userParts.length;
 	// Lo que pasó con acciones propuestas/deshechas desde el último turno.
 	const reports = pendingReports(db, sessionId);
 	if (reports.length) userParts.push({ text: reports.join('\n') });
 	if (input.context) {
 		userParts.push({ text: contextText(input.context) });
 		userUi.push({ type: 'context', label: input.context.label });
+	}
+	if (input.audio) {
+		const a = input.audio;
+		if (!AUDIO_TYPES.includes(a.mimeType) || typeof a.data !== 'string' || !a.data || a.data.length > MAX_AUDIO_B64)
+			throw new Error('Audio no válido o demasiado largo');
+		userParts.push({ inlineData: { mimeType: a.mimeType, data: a.data } });
+		userUi.push({ type: 'audio', seconds: Math.max(0, Math.round(Number(a.seconds) || 0)) });
+		if (!sess.titleSource) db.update(s.session).set({ title: 'Conversación por voz', titleSource: 'auto' }).where(eq(s.session.id, sessionId)).run();
 	}
 	if (input.text?.trim()) {
 		userParts.push({ text: input.text.trim() });
@@ -320,21 +360,118 @@ export async function* runTurn(db: DB, sessionId: number, input: UserInput): Asy
 			db.update(s.session).set({ title: autoTitle(input.text), titleSource: 'auto' }).where(eq(s.session.id, sessionId)).run();
 		}
 	}
-	if (!userParts.length) {
+	// Solo el estado no es un turno: sin nada más (ni respuestas de quiz), no se llama al modelo.
+	if (userParts.length === before && !pending) {
 		yield { type: 'done' };
 		return;
 	}
+	if (stateChanged) db.update(s.session).set({ stateSnapshot: state }).where(eq(s.session.id, sessionId)).run();
 	saveMessage(db, sessionId, 'user', userParts, userUi);
 	yield* modelLoop(db, sessionId, mode);
 }
 
+// ---------- Mensajes de voz ----------
+
+/** Separa la línea «[Oído: …]» del principio de una respuesta. */
+export function splitHeard(text: string): { transcript: string; rest: string } | null {
+	const m = /^\s*\[Oído:\s*([\s\S]*?)\]\s*\n?/.exec(text);
+	if (!m) return null;
+	return { transcript: m[1].trim().replace(/^[«"“]|[»"”]$/g, ''), rest: text.slice(m[0].length) };
+}
+
+/** Guarda lo entendido en el último mensaje de voz del alumno que aún no lo tiene (para mostrarlo y para el historial). */
+function attachTranscript(db: DB, sessionId: number, transcript: string) {
+	const rows = db.select().from(s.message).where(and(eq(s.message.sessionId, sessionId), eq(s.message.role, 'user'))).orderBy(desc(s.message.id)).limit(4).all();
+	for (const r of rows) {
+		const ui = r.ui as UiBlock[];
+		const i = ui.findIndex((b) => b.type === 'audio' && !b.transcript);
+		if (i < 0) continue;
+		const next = ui.map((b, j) => (j === i && b.type === 'audio' ? { ...b, transcript } : b));
+		db.update(s.message).set({ ui: next }).where(eq(s.message.id, r.id)).run();
+		const sess = db.select({ src: s.session.titleSource, title: s.session.title }).from(s.session).where(eq(s.session.id, sessionId)).get();
+		if (sess?.src === 'auto' && sess.title === 'Conversación por voz')
+			db.update(s.session).set({ title: autoTitle(transcript) }).where(eq(s.session.id, sessionId)).run();
+		return;
+	}
+}
+
+// ---------- Historial que se envía (lo guardado no se toca) ----------
+
+/** Mensajes enviados como mucho; por encima se recorta por bloques para que el corte (y el prefijo cacheado) sea estable. */
+export const HISTORY_WINDOW = 60;
+export const HISTORY_BLOCK = 20;
+
+type Msg = { role: 'user' | 'model'; parts: Part[]; ui: UiBlock[] };
+
+const isTurnStart = (m: Msg) => m.role === 'user' && !m.parts.some((p) => p.functionResponse);
+const hasMedia = (m: Msg) => m.parts.some((p) => p.inlineData);
+
+/**
+ * Historial para el modelo, a partir de lo guardado:
+ * - Imágenes y audios de turnos anteriores se sustituyen por una nota: no se pagan una y otra vez (el modelo ya
+ *   los describió o transcribió en su respuesta). Solo viaja el medio del turno actual.
+ * - Sesiones largas: se omiten los mensajes más antiguos, cortando siempre al inicio de un turno del alumno (nunca entre
+ *   una llamada a herramienta y su respuesta) y por bloques de HISTORY_BLOCK, con el resumen de la sesión (si existe)
+ *   o un extracto de lo omitido como contexto.
+ */
+export function buildHistory(msgs: Msg[], summary: string | null): Content[] {
+	let cut = 0;
+	if (msgs.length > HISTORY_WINDOW) {
+		cut = Math.floor((msgs.length - HISTORY_WINDOW + HISTORY_BLOCK) / HISTORY_BLOCK) * HISTORY_BLOCK;
+		while (cut < msgs.length - 1 && !isTurnStart(msgs[cut])) cut++;
+	}
+	let current = msgs.length - 1;
+	while (current > 0 && !isTurnStart(msgs[current])) current--;
+	const out: Content[] = msgs.slice(cut).map((m, i) => {
+		const idx = i + cut;
+		// Un audio ya respondido viaja como lo que el tutor entendió (mucho más barato que reenviar el audio).
+		const heard = m.ui.find((b): b is Extract<UiBlock, { type: 'audio' }> => b.type === 'audio')?.transcript;
+		const parts =
+			idx < current && hasMedia(m)
+				? m.parts.map((p) =>
+						p.inlineData
+							? {
+									text: p.inlineData.mimeType?.startsWith('audio/')
+										? heard
+											? `[El alumno dijo por voz: «${heard}»]`
+											: '[Audio del alumno de un turno anterior]'
+										: '[Imagen de un turno anterior]'
+								}
+							: p
+					)
+				: m.parts;
+		return { role: m.role, parts };
+	});
+	if (cut > 0 && out.length) {
+		const omitted = msgs
+			.slice(0, cut)
+			.flatMap((m) => m.ui.filter((b) => b.type === 'text').map((b) => `${m.role === 'user' ? 'Alumno' : 'Tutor'}: ${(b as { text: string }).text}`))
+			.join('\n')
+			.slice(-1500);
+		const note = summary
+			? `[Se omitieron ${cut} mensajes anteriores de esta sesión. Resumen: ${summary}]`
+			: `[Se omitieron ${cut} mensajes anteriores de esta sesión. Final de lo omitido:\n${omitted}]`;
+		out[0] = { ...out[0], parts: [{ text: note }, ...(out[0].parts ?? [])] };
+	}
+	return out;
+}
+
+function historyForModel(db: DB, sessionId: number): Content[] {
+	const msgs = getSessionMessages(db, sessionId).map((m) => ({ role: m.role, parts: m.parts as Part[], ui: m.ui as UiBlock[] }));
+	const summary =
+		msgs.length > HISTORY_WINDOW
+			? (db.select({ s: s.sessionSummary.summary }).from(s.sessionSummary).where(eq(s.sessionSummary.sessionId, sessionId)).get()?.s ?? null)
+			: null;
+	return buildHistory(msgs, summary);
+}
+
 /** 2) Bucle modelo ↔ herramientas a partir del historial guardado. */
 async function* modelLoop(db: DB, sessionId: number, mode: ChatMode): AsyncGenerator<TutorEvent> {
-	const system = systemPrompt(db, mode);
+	const system = systemPrompt(mode);
 	const model = models(db).pro;
 
 	for (let step = 0; step < MAX_STEPS; step++) {
-		const history: Content[] = getSessionMessages(db, sessionId).map((m) => ({ role: m.role, parts: m.parts as Part[] }));
+		const history = historyForModel(db, sessionId);
 		const collected: Part[] = [];
 		const ui: UiBlock[] = [];
 		let text = '';
@@ -368,6 +505,13 @@ async function* modelLoop(db: DB, sessionId: number, mode: ChatMode): AsyncGener
 				if (collected.length || attempt >= RETRY_DELAYS.length || !isTransient(e)) throw e;
 				await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
 			}
+		}
+		// Respuesta a un audio: la primera línea «[Oído: …]» es lo que entendió; va al mensaje del alumno, no a la respuesta.
+		const heard = splitHeard(text);
+		if (heard) {
+			text = heard.rest;
+			attachTranscript(db, sessionId, heard.transcript);
+			yield { type: 'heard', transcript: heard.transcript };
 		}
 		if (text) ui.push({ type: 'text', text });
 

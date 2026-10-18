@@ -3,6 +3,8 @@
 // se hace por turnos (ver Pairing.svelte): el iniciador emite y luego calla escuchando; el otro responde en ese silencio.
 import type { GGWave, Instance } from 'ggwave';
 import { decodeChunk, encodeToBuffer, makeInstance, type ProtocolKey, type SoundProfile } from '../sound.ts';
+// Vite empaqueta el procesador (y su import de frames.ts) como módulo aparte con hash: lo precachea el service worker.
+import workletUrl from './capture.worklet.ts?worker&url';
 
 let ctx: AudioContext | null = null;
 export function audioContext() {
@@ -74,21 +76,60 @@ export async function createEmitter(text: string, profile: SoundProfile): Promis
 	};
 }
 
-export type Listener = { stop(): void };
+export type Capture = 'worklet' | 'script';
+export type Listener = { stop(): void; readonly capture: Capture; readonly sampleRate: number };
 
-/** Escucha el micrófono sin procesado (cancelación de eco y ganancia automática borran los tonos). Medidor: banda 15-20 kHz. */
+const workletReady = new WeakMap<BaseAudioContext, Promise<boolean>>();
+
+/** Carga el procesador de captura una vez por contexto; false si el navegador no tiene AudioWorklet. */
+function loadWorklet(c: AudioContext) {
+	let p = workletReady.get(c);
+	if (!p) {
+		p = (async () => {
+			if (!c.audioWorklet) return false;
+			try {
+				await c.audioWorklet.addModule(workletUrl);
+				return true;
+			} catch (e) {
+				console.warn('[sensei] AudioWorklet no disponible, se usa ScriptProcessor', e);
+				return false;
+			}
+		})();
+		workletReady.set(c, p);
+	}
+	return p;
+}
+
+/**
+ * Escucha el micrófono sin procesado (cancelación de eco y ganancia automática borran los tonos) y decodifica con ggwave.
+ * Captura con AudioWorklet (hilo de audio, sin pérdidas); respaldo: ScriptProcessor (obsoleto, hilo principal).
+ * Medidor: banda 15-20 kHz.
+ */
 export async function listen(onText: (t: string) => void, onLevel?: (db: number) => void): Promise<Listener> {
 	const c = audioContext();
 	const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
 	const { g, inst }: { g: GGWave; inst: Instance } = await makeInstance(c);
 	const src = c.createMediaStreamSource(stream);
-	const node = c.createScriptProcessor(1024, 1, 1);
-	node.onaudioprocess = (e) => {
-		const t = decodeChunk(g, inst, e.inputBuffer.getChannelData(0));
+	const decode = (frame: Float32Array) => {
+		const t = decodeChunk(g, inst, frame);
 		if (t) onText(t);
 	};
+	// Los dos procesadores solo corren conectados a la salida: pasan por una ganancia 0 (silencio).
 	const mute = c.createGain();
 	mute.gain.value = 0;
+	let node: AudioNode;
+	let capture: Capture;
+	if (await loadWorklet(c)) {
+		const w = new AudioWorkletNode(c, 'sensei-capture', { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 });
+		w.port.onmessage = (e: MessageEvent<Float32Array>) => decode(e.data);
+		node = w;
+		capture = 'worklet';
+	} else {
+		const sp = c.createScriptProcessor(1024, 1, 1);
+		sp.onaudioprocess = (e) => decode(e.inputBuffer.getChannelData(0));
+		node = sp;
+		capture = 'script';
+	}
 	src.connect(node).connect(mute).connect(c.destination);
 	let raf = 0;
 	if (onLevel) {
@@ -107,8 +148,11 @@ export async function listen(onText: (t: string) => void, onLevel?: (db: number)
 		raf = requestAnimationFrame(tick);
 	}
 	return {
+		capture,
+		sampleRate: c.sampleRate,
 		stop() {
 			cancelAnimationFrame(raf);
+			if (node instanceof AudioWorkletNode) node.port.onmessage = null;
 			node.disconnect();
 			src.disconnect();
 			stream.getTracks().forEach((t) => t.stop());

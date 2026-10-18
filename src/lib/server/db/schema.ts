@@ -26,7 +26,12 @@ export const kanji = sqliteTable(
 		jlpt: integer('jlpt'),
 		learnOrder: integer('learn_order'),
 		mnemonicMeaning: text('mnemonic_meaning'),
-		mnemonicReading: text('mnemonic_reading')
+		mnemonicReading: text('mnemonic_reading'),
+		/**
+		 * Origen de la mnemotecnia: `pregen` = publicada con el diccionario (data/pregen, no se exporta ni se borra al
+		 * reiniciar el contenido generado); `gemini` (o null, datos antiguos) = generada con la key del alumno.
+		 */
+		mnemonicSource: text('mnemonic_source').$type<'gemini' | 'pregen'>()
 	},
 	(t) => [index('kanji_learn_order').on(t.learnOrder)]
 );
@@ -36,8 +41,8 @@ export const component = sqliteTable(
 	{
 		symbol: text('symbol').primaryKey(),
 		nameEs: text('name_es'),
-		/** Origen del nombre: estático (radicals.ts), significado del kanji, o generado por Gemini. */
-		nameSource: text('name_source').$type<'static' | 'kanji' | 'gemini'>(),
+		/** Origen del nombre: estático (radicals.ts), significado del kanji, generado por Gemini o pregenerado (diccionario). */
+		nameSource: text('name_source').$type<'static' | 'kanji' | 'gemini' | 'pregen'>(),
 		strokes: integer('strokes'),
 		learnOrder: integer('learn_order')
 	},
@@ -64,8 +69,8 @@ export const vocab = sqliteTable('vocab', {
 	pos: json<string[]>('pos').notNull().default([]),
 	glossesEn: json<string[]>('glosses_en').notNull().default([]),
 	glossesEs: json<string[]>('glosses_es'),
-	/** Origen de las glosas en español: JMdict-spa, traducción de Gemini o escritas por el usuario. */
-	glossesEsSource: text('glosses_es_source').$type<'jmdict' | 'gemini' | 'user'>(),
+	/** Origen de las glosas en español: JMdict-spa, traducción de Gemini, escritas por el usuario o pregeneradas. */
+	glossesEsSource: text('glosses_es_source').$type<'jmdict' | 'gemini' | 'user' | 'pregen'>(),
 	source: text('source').notNull().default('jmdict')
 });
 
@@ -95,6 +100,8 @@ export const sentence = sqliteTable(
 		jp: text('jp').notNull(),
 		en: text('en'),
 		es: text('es'),
+		/** Origen de la traducción `es`: Gemini con la key del alumno o pregenerada (diccionario). */
+		esSource: text('es_source').$type<'gemini' | 'pregen'>(),
 		source: text('source').notNull().default('tatoeba')
 	},
 	(t) => [index('sentence_vocab').on(t.vocabId)]
@@ -103,7 +110,8 @@ export const sentence = sqliteTable(
 // ---------- SRS ----------
 
 export type ItemType = 'kana' | 'component' | 'kanji' | 'vocab' | 'grammar' | 'sentence';
-export type Facet = 'meaning' | 'reading';
+/** `writing`: trazar el kanji (opcional, ajuste `writingReviews`); no cuenta para el estado del ítem. */
+export type Facet = 'meaning' | 'reading' | 'writing';
 
 export const card = sqliteTable(
 	'card',
@@ -164,11 +172,17 @@ export const session = sqliteTable('session', {
 	title: text('title'),
 	/** auto = primer mensaje; summary = primera frase del resumen; user = renombrada a mano (no se pisa). */
 	titleSource: text('title_source').$type<'auto' | 'summary' | 'user'>(),
-	/** Dónde se abrió: página del tutor o panel lateral. */
-	origin: text('origin').$type<'page' | 'panel'>().notNull().default('page'),
+	/** Dónde se abrió: página del tutor, panel lateral o cierre de la sesión diaria (/hoy). */
+	origin: text('origin').$type<'page' | 'panel' | 'daily'>().notNull().default('page'),
 	startedAt: integer('started_at').notNull(),
 	lastAt: integer('last_at').notNull(),
-	summarized: integer('summarized', { mode: 'boolean' }).notNull().default(false)
+	summarized: integer('summarized', { mode: 'boolean' }).notNull().default(false),
+	/**
+	 * Último «estado del alumno» enviado al modelo en esta sesión. El estado va como parte de usuario (no en la
+	 * instrucción de sistema) y solo se reenvía si cambió: así el prefijo de la petición no cambia entre turnos y
+	 * Gemini sirve el historial desde su caché (1/10 del precio). Ver docs/tutor-cache.md.
+	 */
+	stateSnapshot: text('state_snapshot')
 });
 
 export const message = sqliteTable(
@@ -239,7 +253,8 @@ export const similarKanji = sqliteTable(
 		b: text('b').notNull(), // a < b
 		score: real('score').notNull(),
 		/** Cómo distinguirlos (generado por Gemini y cacheado). */
-		tip: text('tip')
+		tip: text('tip'),
+		tipSource: text('tip_source').$type<'gemini' | 'pregen'>()
 	},
 	(t) => [primaryKey({ columns: [t.a, t.b] }), index('similar_b').on(t.b)]
 );
@@ -266,7 +281,11 @@ export const libraryText = sqliteTable('library_text', {
 	content: text('content').notNull(),
 	origin: text('origin').notNull(), // 'paste' | 'txt' | 'epub' | 'srt' | 'image'
 	createdAt: integer('created_at').notNull(),
-	lastOpenedAt: integer('last_opened_at')
+	lastOpenedAt: integer('last_opened_at'),
+	/** Lector: índice de la frase donde se dejó la lectura (viaja con la exportación y la sincronización). */
+	position: integer('position'),
+	/** Lector: marcadores (frase + nota opcional). */
+	bookmarks: json<{ sentence: number; note: string; at: number }[]>('bookmarks')
 });
 
 export const readingLog = sqliteTable(

@@ -98,10 +98,12 @@ export function previewReset(db: DB, req: ResetRequest): ResetPreview {
 		reports: req.tutor ? count(db, s.weeklyReport) : 0,
 		library: req.library ? count(db, s.libraryText) : 0,
 		texts: req.generated ? count(db, s.generatedText) : 0,
-		mnemonics: req.generated ? count(db, s.kanji, sql`${s.kanji.mnemonicMeaning} is not null`) : 0,
+		mnemonics: req.generated
+			? count(db, s.kanji, sql`${s.kanji.mnemonicMeaning} is not null and coalesce(${s.kanji.mnemonicSource}, 'gemini') != 'pregen'`)
+			: 0,
 		translations: req.generated
 			? count(db, s.vocab, sql`${s.vocab.glossesEsSource} = 'gemini'`) +
-				count(db, s.sentence, sql`${s.sentence.es} is not null`) +
+				count(db, s.sentence, sql`${s.sentence.es} is not null and coalesce(${s.sentence.esSource}, 'gemini') != 'pregen'`) +
 				count(db, s.component, sql`${s.component.nameSource} = 'gemini'`)
 			: 0,
 		usage: req.usage ? count(db, s.geminiUsage) : 0
@@ -137,13 +139,16 @@ export function applyReset(db: DB, req: ResetRequest) {
 		if (req.usage) tx.delete(s.geminiUsage).run();
 		if (req.generated) {
 			tx.delete(s.generatedText).run();
-			tx.update(s.kanji).set({ mnemonicMeaning: null, mnemonicReading: null }).run();
+			// Lo pregenerado (viene con el diccionario) se conserva: no lo pagó el alumno ni se recupera reiniciando.
+			const notPregen = (col: typeof s.kanji.mnemonicSource | typeof s.sentence.esSource | typeof s.similarKanji.tipSource) =>
+				sql`coalesce(${col}, 'gemini') != 'pregen'`;
+			tx.update(s.kanji).set({ mnemonicMeaning: null, mnemonicReading: null, mnemonicSource: null }).where(notPregen(s.kanji.mnemonicSource)).run();
 			tx.update(s.vocab)
 				.set({ glossesEs: null, glossesEsSource: null })
 				.where(eq(s.vocab.glossesEsSource, 'gemini'))
 				.run();
-			tx.update(s.sentence).set({ es: null }).run();
-			tx.update(s.similarKanji).set({ tip: null }).run();
+			tx.update(s.sentence).set({ es: null, esSource: null }).where(notPregen(s.sentence.esSource)).run();
+			tx.update(s.similarKanji).set({ tip: null, tipSource: null }).where(notPregen(s.similarKanji.tipSource)).run();
 			// Componentes nombrados por Gemini: volver al nombre estático o al significado del kanji.
 			const named = tx.select({ symbol: s.component.symbol }).from(s.component).where(eq(s.component.nameSource, 'gemini')).all();
 			for (const { symbol } of named) {

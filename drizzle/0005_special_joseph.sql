@@ -1,0 +1,1 @@
+ALTER TABLE `session` ADD `state_snapshot` text;

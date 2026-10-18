@@ -5,20 +5,26 @@
 	import { get, errMsg } from '#lib/client/api.ts';
 	import type { ReviewItem } from '#lib/types.ts';
 	import ReviewSession from '#lib/components/ReviewSession.svelte';
+	import { page } from '$app/state';
+	import { completeDaily } from '#lib/client/daily.svelte.ts';
 
 	let items: ReviewItem[] | null = $state(null);
 	let total = $state(0);
 	let error = $state('');
 	let finished = $state(false);
+	// Desde la sesión de hoy: tope de tarjetas (el resto queda para otra vez).
+	const limit = $derived(Math.min(100, Math.max(1, Number(page.url.searchParams.get('limite')) || 100)));
+	const fromDaily = $derived(page.url.searchParams.has('hoy'));
 
 	async function load() {
 		error = '';
 		finished = false;
 		items = null;
 		try {
-			const r = await get<{ items: ReviewItem[]; total: number }>('/api/review?limit=100');
+			const r = await get<{ items: ReviewItem[]; total: number }>(`/api/review?limit=${limit}`);
 			items = r.items;
 			total = r.total;
+			if (!items.length) completeDaily('review');
 		} catch (e) {
 			error = errMsg(e);
 		}
@@ -31,7 +37,7 @@
 
 <div class="spread">
 	<h1>Repaso <HelpLink section="repaso" /></h1>
-	{#if total > 100}<span class="muted small">Mostrando 100 de {total}</span>{/if}
+	{#if total > limit}<span class="muted small">{fromDaily ? 'Sesión de hoy' : 'Mostrando'}: {limit} de {total}</span>{/if}
 </div>
 
 {#if error}
@@ -50,11 +56,12 @@
 			source="review"
 			onfinish={() => {
 				finished = true;
+				completeDaily('review');
 				refreshAll();
 			}}
 		/>
 	{/key}
-	{#if finished}
+	{#if finished && !fromDaily}
 		<div class="row" style="justify-content:center">
 			<button onclick={load}>Buscar más repasos</button>
 			<a class="btn" href="/leccion">Lección</a>

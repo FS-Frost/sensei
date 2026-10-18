@@ -1,4 +1,4 @@
-import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import type { DB } from './db/index.ts';
 import * as s from './db/schema.ts';
 import type { ComponentInfo, ItemStatus, ItemType, KanjiInfo, SimilarInfo, VocabInfo } from '../types.ts';
@@ -21,7 +21,8 @@ export function itemStatuses(db: DB, type: ItemType, keys: string[]): Map<string
 	const rows = db
 		.select({ key: s.card.itemKey, state: s.card.state, stability: s.card.stability })
 		.from(s.card)
-		.where(and(eq(s.card.itemType, type), inArray(s.card.itemKey, keys)))
+		// La escritura es opcional: no empeora el estado del ítem (aprendiendo/repaso/dominado).
+		.where(and(eq(s.card.itemType, type), inArray(s.card.itemKey, keys), ne(s.card.facet, 'writing')))
 		.all();
 	const grouped = new Map<string, { state: number; stability: number }[]>();
 	for (const r of rows) grouped.set(r.key, [...(grouped.get(r.key) ?? []), r]);

@@ -5,6 +5,18 @@
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { fmtUsd } from '#lib/cost.ts';
 	import InstallCard from '#lib/components/InstallCard.svelte';
+	import { onMount } from 'svelte';
+	import { daily, dailyDone } from '#lib/client/daily.svelte.ts';
+
+	// Aviso si hay progreso que perder y el navegador puede borrarlo (sin protección o con poco espacio).
+	let storageRisk = $state('');
+	onMount(async () => {
+		const cards = Object.values(data.profile.counts).reduce((a, c) => a + c.learning + c.review + c.mastered, 0);
+		if (cards < 100 || !navigator.storage) return;
+		const [persisted, est] = await Promise.all([navigator.storage.persisted?.(), navigator.storage.estimate?.()]);
+		if (est?.usage && est.quota && est.usage / est.quota > 0.8) storageRisk = 'Queda poco espacio para Sensei en este navegador.';
+		else if (persisted === false) storageRisk = 'El navegador puede borrar tus datos si necesita espacio.';
+	});
 
 	let { data }: PageProps = $props();
 	const p = $derived(data.profile);
@@ -35,6 +47,13 @@
 
 <InstallCard />
 
+{#if storageRisk}
+	<div class="card small row">
+		<span>⚠ {storageRisk} Protégelos o descarga una copia.</span>
+		<a class="btn small" href="/datos#almacenamiento">Almacenamiento</a>
+	</div>
+{/if}
+
 {#if data.budget.level === 'warn' || data.budget.level === 'over'}
 	{@const b = data.budget}
 	<div class="card small row budget" class:over={b.level === 'over'}>
@@ -45,6 +64,17 @@
 		</span>
 		<a class="btn small" href="/costos">Ver costos</a>
 	</div>
+{/if}
+
+{#if data.daily.steps && !(daily.active && dailyDone())}
+	<a class="card daily" href="/hoy">
+		<span class="jp big">今</span>
+		<span class="grow">
+			<strong>{daily.active ? 'Seguir con tu sesión de hoy' : 'Empezar mi sesión de hoy'}</strong>
+			<span class="small muted">Repasos, lección y lectura seguidos, en ~{data.daily.minutes} min (eliges 10, 20 o 40).</span>
+		</span>
+		<span class="btn primary">{daily.active ? 'Seguir' : 'Empezar'} →</span>
+	</a>
 {/if}
 
 {#if data.steps.length}
@@ -207,6 +237,27 @@
 </div>
 
 <style>
+	.daily {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		color: var(--text);
+		border-left: 3px solid var(--accent);
+	}
+	.daily:hover {
+		text-decoration: none;
+		background: var(--bg-3);
+	}
+	.daily .big {
+		font-size: 2rem;
+		color: var(--accent);
+	}
+	.daily .grow {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
 	.budget {
 		border-color: var(--warn);
 		justify-content: space-between;

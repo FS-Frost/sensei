@@ -8,6 +8,7 @@ import { listSessions } from '#lib/server/gemini/tutor.ts';
 import { journey, nextSteps } from '#lib/server/guide.ts';
 import { budgetStatus } from '#lib/server/gemini/usage.ts';
 import { redirect } from '#lib/server/router.ts';
+import { dailyPlan } from '#lib/server/daily.ts';
 
 export const load = () => {
 	const now = new Date();
@@ -38,6 +39,8 @@ export const load = () => {
 		steps: nextSteps(db, now),
 		journey: journey(db),
 		onboardingDone: st.onboardingDone,
-		budget: budgetStatus(db, now)
+		budget: budgetStatus(db, now),
+		// Sesión de hoy con el tiempo por defecto (20 min): para el botón de Inicio.
+		daily: (({ minutes, steps }) => ({ minutes, steps: steps.length }))(dailyPlan(db, 20, now))
 	};
 };

@@ -5,7 +5,6 @@
 	import {
 		CAL_LEVELS,
 		calMessage,
-		decodeChunk,
 		DEFAULT_PROFILE,
 		describeProfile,
 		encodeToBuffer,
@@ -331,49 +330,20 @@
 	let received: Got[] = $state([]);
 	let level = $state(-120); // dB en la banda 15-20 kHz
 	let rxStart = 0;
-	let rx: {
-		stream: MediaStream;
-		node: ScriptProcessorNode;
-		analyser: AnalyserNode;
-		raf: number;
-		g: GGWave;
-		inst: Instance;
-	} | null = null;
+	// El mismo receptor que el emparejamiento real (client/sync/audio.ts): AudioWorklet o, si falta, ScriptProcessor.
+	let rx: Listener | null = null;
 	let sampleRate = $state(0);
+	let capture = $state('');
 
 	async function startRx() {
 		error = '';
 		try {
-			const c = audio();
-			// Sin procesado: la cancelación de eco y el control de ganancia borran los tonos.
-			const stream = await navigator.mediaDevices.getUserMedia({
-				audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-			});
-			const { g, inst } = await makeInstance(c);
-			const src = c.createMediaStreamSource(stream);
-			const node = c.createScriptProcessor(1024, 1, 1);
-			const analyser = c.createAnalyser();
-			analyser.fftSize = 4096;
-			node.onaudioprocess = (e) => {
-				const text = decodeChunk(g, inst, e.inputBuffer.getChannelData(0));
-				if (text) received = [{ text, at: Date.now(), afterMs: Date.now() - rxStart }, ...received].slice(0, 20);
-			};
-			// ScriptProcessor solo procesa si está conectado a la salida: pasa por una ganancia 0 (silencio).
-			const mute = c.createGain();
-			mute.gain.value = 0;
-			src.connect(node).connect(mute).connect(c.destination);
-			src.connect(analyser);
-			const bins = new Float32Array(analyser.frequencyBinCount);
-			const hz = c.sampleRate / analyser.fftSize;
-			const meter = () => {
-				analyser.getFloatFrequencyData(bins);
-				let max = -140;
-				for (let i = Math.floor(15000 / hz); i < Math.min(bins.length, Math.ceil(20000 / hz)); i++) max = Math.max(max, bins[i]);
-				level = max;
-				rx!.raf = requestAnimationFrame(meter);
-			};
-			rx = { stream, node, analyser, raf: requestAnimationFrame(meter), g, inst };
-			sampleRate = c.sampleRate;
+			rx = await listen(
+				(text) => (received = [{ text, at: Date.now(), afterMs: Date.now() - rxStart }, ...received].slice(0, 20)),
+				(db) => (level = db)
+			);
+			sampleRate = rx.sampleRate;
+			capture = rx.capture === 'worklet' ? 'AudioWorklet' : 'ScriptProcessor (respaldo)';
 			rxStart = Date.now();
 			rxOn = true;
 		} catch (e) {
@@ -382,11 +352,7 @@
 	}
 
 	function stopRx() {
-		if (!rx) return;
-		cancelAnimationFrame(rx.raf);
-		rx.node.disconnect();
-		rx.stream.getTracks().forEach((t) => t.stop());
-		rx.g.free(rx.inst);
+		rx?.stop();
 		rx = null;
 		rxOn = false;
 	}
@@ -536,7 +502,7 @@
 					<div style="width:{pct(level)}%"></div>
 				</div>
 				<p class="small dim">
-					Muestreo {sampleRate / 1000} kHz. Si la barra no sube cuando el otro emite, este micrófono (o el altavoz del otro) filtra el
+					Muestreo {sampleRate / 1000} kHz · captura: {capture}. Si la barra no sube cuando el otro emite, este micrófono (o el altavoz del otro) filtra el
 					ultrasonido.
 				</p>
 			{/if}

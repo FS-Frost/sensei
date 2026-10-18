@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import Reader from '#lib/components/reader/Reader.svelte';
 	import { get, post, errMsg } from '#lib/client/api.ts';
 	import type { FuriganaMode, JpToken, TextStats } from '#lib/types.ts';
 	import { prefs } from '#lib/client/state.svelte.ts';
@@ -18,6 +18,10 @@
 		reads: Read[];
 		nextReread: number | null;
 		queued: number;
+		position: number;
+		bookmarks: { sentence: number; note: string; at: number }[];
+		prev: { id: number; title: string } | null;
+		next: { id: number; title: string } | null;
 	};
 
 	let data: Data | null = $state(null);
@@ -29,13 +33,26 @@
 	let mining = $state(false);
 	let furigana: FuriganaMode = $state(prefs.furigana);
 	const rereading = $derived(page.url.searchParams.has('releer'));
+	let reading = $state(false);
 
 	async function load() {
+		reading = false;
 		data = await get<Data>(`/api/library/${page.params.id}`);
 		selected = Object.fromEntries(data.stats.plan.words.map((w) => [w, true]));
 		// En relectura se propone leer con menos ayuda.
 		if (rereading && furigana === 'always') furigana = 'adaptive';
+		// «Siguiente capítulo» o la sesión de hoy abren directamente el lector.
+		if (page.url.searchParams.has('leer') || page.url.searchParams.has('hoy')) reading = true;
 	}
+
+	// Al cambiar de texto (siguiente capítulo) sin salir de la ruta.
+	let loadedId = '';
+	$effect(() => {
+		const id = page.params.id ?? '';
+		if (id === loadedId) return;
+		loadedId = id;
+		load().catch((e) => (error = errMsg(e)));
+	});
 
 	const pct = (x: number) => `${Math.round(x * 100)}%`;
 	const chosen = $derived(Object.entries(selected).filter(([, v]) => v).map(([k]) => k));
@@ -92,9 +109,12 @@
 		}
 	}
 
-	onMount(() => {
-		load().catch((e) => (error = errMsg(e)));
-	});
+	async function refreshReads() {
+		if (!data) return;
+		const d = await get<Data>(`/api/library/${data.text.id}`);
+		data.reads = d.reads;
+		data.nextReread = d.nextReread;
+	}
 </script>
 
 <svelte:head><title>{data?.text.title ?? 'Texto'} · Sensei</title></svelte:head>
@@ -151,6 +171,33 @@
 			{#if data.queued}<div class="small muted">Ya hay {data.queued} ítem(s) de este texto en cola.</div>{/if}
 			{#if planMsg}<div class="small">{planMsg}</div>{/if}
 		</div>
+	{/if}
+
+	<div class="card row readcta">
+		<button class="primary" onclick={() => (reading = true)}>
+			📖 {data.position > 0 ? `Seguir leyendo (${Math.round(((data.position + 1) / Math.max(1, sentences.length)) * 100)} %)` : 'Leer'}
+		</button>
+		<span class="small muted">Pantalla completa, páginas o scroll, 縦書き vertical, marcadores; mide tu velocidad solo.</span>
+		<span class="grow"></span>
+		{#if data.prev}<a class="small" href="/biblioteca/{data.prev.id}">← {data.prev.title}</a>{/if}
+		{#if data.next}<a class="small" href="/biblioteca/{data.next.id}">{data.next.title} →</a>{/if}
+	</div>
+
+	{#if reading}
+		<Reader
+			textId={data.text.id}
+			title={data.text.title}
+			{sentences}
+			start={data.position}
+			bind:bookmarks={data.bookmarks}
+			bind:furigana
+			next={data.next}
+			onlogged={() => void refreshReads()}
+			onclose={(pos) => {
+				if (data) data.position = pos;
+				reading = false;
+			}}
+		/>
 	{/if}
 
 	<div class="row toolbar">
@@ -222,6 +269,13 @@
 	}
 	.toolbar {
 		align-items: center;
+	}
+	.readcta {
+		align-items: center;
+		flex-wrap: wrap;
+	}
+	.readcta .grow {
+		flex: 1;
 	}
 	.toolbar label {
 		display: flex;
