@@ -212,7 +212,7 @@
 			{#if data.aiMode === 'ask' && !data.aiKey && !path.startsWith('/bienvenida')}
 				<!-- Sin decidir y sin key: preguntar una vez en vez de avisar. -->
 				<AiChoice />
-			{:else if data.aiMode === 'on' && !data.aiKey && !path.startsWith('/ajustes')}
+			{:else if data.aiMode === 'on' && !data.aiKey && !path.startsWith('/ajustes') && !path.startsWith('/bienvenida')}
 				<div class="warning">
 					Elegiste usar la IA, pero falta la API key de Gemini. <a href="/ajustes#gemini">Añádela en Ajustes</a> o
 					<a href="/ajustes#ia">pasa al modo sin IA</a>.

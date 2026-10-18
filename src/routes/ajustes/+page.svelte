@@ -332,8 +332,10 @@
 <div class="card stack" id="ia">
 	<h2>Inteligencia artificial</h2>
 	<p class="small muted">
-		La IA (Gemini) da el tutor, las lecturas graduadas, el explicador, el «¿Por qué?» de los repasos y las mnemotecnias de los kanji
-		que aún no traen. Sin IA, el SRS, las lecciones, el diccionario, la biblioteca, la velocidad y los informes siguen funcionando
+		<strong>La IA no viene incluida:</strong> funciona con tu propia API key de Google Gemini. Google ofrece un uso gratuito
+		limitado; por encima, lo cobra a tu cuenta (en <a href="/costos">Costos</a> ves el gasto estimado).
+		Da el tutor, las lecturas graduadas, el explicador, el «¿Por qué?» de los repasos y las mnemotecnias de los kanji que aún no
+		traen. Sin IA, el SRS, las lecciones, el diccionario, la biblioteca, la velocidad y los informes siguen funcionando
 		con el contenido ya preparado, y desaparecen de la interfaz las funciones de IA. El modo viaja en tus copias y al sincronizar.
 	</p>
 	<div class="row modes" role="radiogroup" aria-label="Modo de IA">

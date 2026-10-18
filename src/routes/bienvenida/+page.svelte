@@ -6,8 +6,9 @@
 	import { post, errMsg } from '#lib/client/api.ts';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import InstallCard from '#lib/components/InstallCard.svelte';
-	import AiChoice from '#lib/components/AiChoice.svelte';
-	import { aiKey, aiMode, aiUi } from '#lib/client/ai.svelte.ts';
+	import { aiKey, aiMode, setAiMode } from '#lib/client/ai.svelte.ts';
+	import { refreshAll } from '$app/navigation';
+	import { base } from '#lib/client/base.ts';
 	import type { FuriganaMode } from '#lib/types.ts';
 
 	let { data }: PageProps = $props();
@@ -24,8 +25,57 @@
 	let furigana: FuriganaMode = $state(untrack(() => data.settings.furigana));
 	let saving = $state(false);
 
-	const STEPS = ['Bienvenida', 'El camino', 'Tu punto de partida', 'El SRS', 'Tu ritmo', 'Leer sin muletas', 'La IA', '¡A empezar!'];
-	const last = STEPS.length - 1;
+	// «Configurar Gemini» solo existe si eliges usar la IA.
+	const STEPS = $derived([
+		'Bienvenida',
+		'El camino',
+		'Tu punto de partida',
+		'El SRS',
+		'Tu ritmo',
+		'Leer sin muletas',
+		'La IA',
+		...(aiMode() === 'on' ? ['Configurar Gemini'] : []),
+		'¡A empezar!'
+	]);
+	const last = $derived(STEPS.length - 1);
+	const at = (name: string) => STEPS[step] === name;
+
+	// ---------- IA ----------
+	/** En «La IA» hay que elegir (no hay opción por defecto) antes de seguir. */
+	const aiDecided = $derived(aiMode() !== 'ask' || aiKey());
+	let aiBusy = $state(false);
+	async function chooseAi(mode: 'on' | 'off') {
+		aiBusy = true;
+		try {
+			await setAiMode(mode);
+			step++; // con «on» lleva a Configurar Gemini; con «off», a ¡A empezar!
+		} catch (e) {
+			toast.error('No se pudo guardar', { detail: errMsg(e) });
+		} finally {
+			aiBusy = false;
+		}
+	}
+	const keyOrigin = typeof location !== 'undefined' ? `${location.origin}${base}/*` : '';
+	let apiKey = $state('');
+	let keyBusy = $state(false);
+	let keyError = $state('');
+	async function saveKey() {
+		keyBusy = true;
+		keyError = '';
+		try {
+			const r = await post<{ models: number }>('/api/gemini-key', { key: apiKey.trim() });
+			apiKey = '';
+			toast.success('API key guardada', { detail: `Gemini responde: ${r.models} modelos disponibles.` });
+			await refreshAll();
+		} catch (e) {
+			const m = errMsg(e);
+			keyError = /api key not valid|invalid/i.test(m)
+				? 'Google no acepta esa key. Comprueba que la copiaste entera (empieza por AIza…) y que es de Google AI Studio.'
+				: m;
+		} finally {
+			keyBusy = false;
+		}
+	}
 
 	// ---------- Punto de partida ----------
 	type KanaSelf = 'none' | 'some' | 'slow' | 'fluent';
@@ -175,28 +225,84 @@
 				<li>El botón 🔊 lee en voz alta (si tu sistema tiene voz japonesa).</li>
 			</ul>
 			<div class="row small">Tema: <ThemeToggle /></div>
-		{:else if step === 6}
-			<h2>La IA: un tutor, si lo quieres</h2>
-			<p>Con IA (Gemini) tienes un tutor que conoce tu progreso, tus fallos y tus confusiones, y recuerda las sesiones anteriores.</p>
-			<ul>
-				<li><strong>Conversación-quiz</strong>: te pregunta por turnos y se adapta.</li>
-				<li><strong>Quiz a medida</strong>: pide «10 preguntas con 氵» o «vocabulario de comida».</li>
-				<li><strong>Explicador</strong>: pega una frase o una foto de manga y la desglosa.</li>
-				<li><strong>Lecturas graduadas</strong> a tu nivel y <strong>«¿Por qué?»</strong> al fallar un repaso.</li>
-			</ul>
-			{#if aiMode() === 'ask' && !aiKey()}
-				<!-- Con `ondone` no navega: el asistente sigue en este paso y muestra lo elegido. -->
-				<AiChoice compact ondone={() => {}} />
-			{:else if aiUi()}
-				<p class="small">
-					✓ IA activada{aiKey() ? '' : ': pega tu API key en Ajustes cuando termines (es gratis crearla en Google AI Studio)'}. Si
-					prefieres no usarla, cámbialo en <a href="/ajustes#ia">Ajustes</a>.
-				</p>
+		{:else if at('La IA')}
+			<h2>¿Quieres usar IA?</h2>
+			<p>
+				<strong>Sensei funciona entero sin IA</strong> y no la incluye. Opcionalmente puedes conectarle <strong>Gemini</strong>, la IA de
+				Google, con <strong>tu propia API key</strong> (una clave personal que creas tú en tu cuenta de Google).
+			</p>
+			<div class="ai-cols">
+				<div class="ai-col">
+					<h3>Qué añade</h3>
+					<ul class="small">
+						<li>Un <strong>tutor</strong> que conoce tu progreso, tus fallos y confusiones, y recuerda las sesiones.</li>
+						<li><strong>Lecturas graduadas</strong> a tu nivel y un <strong>explicador</strong> de frases o fotos de manga.</li>
+						<li><strong>«¿Por qué?»</strong> al fallar un repaso y mnemotecnias para los kanji que aún no traen.</li>
+					</ul>
+				</div>
+				<div class="ai-col">
+					<h3>Qué necesitas</h3>
+					<ul class="small">
+						<li>Una <strong>cuenta de Google</strong> y unos 2 minutos para crear la key (te guío en el paso siguiente).</li>
+						<li><strong>Costo:</strong> Google ofrece un uso gratuito limitado; por encima, lo cobra a tu cuenta según su plan. Sensei te muestra el gasto estimado y puedes ponerle un presupuesto.</li>
+						<li>La key se guarda <strong>solo en este navegador</strong>.</li>
+					</ul>
+				</div>
+			</div>
+			<p class="small muted">Sin IA: SRS, kana, lecciones, diccionario, biblioteca, velocidad e informes funcionan igual, con el contenido ya preparado.</p>
+			<!-- Sin opción por defecto: hay que elegir para seguir. -->
+			<div class="choice-row" role="radiogroup" aria-label="Usar IA">
+				<button class="opt" class:sel={aiMode() === 'on' || (aiMode() === 'ask' && aiKey())} role="radio" aria-checked={aiMode() === 'on'} onclick={() => chooseAi('on')} disabled={aiBusy}>
+					<strong>Sí, usar Gemini</strong>
+					<span class="small dim">Configuro mi API key ahora o luego</span>
+				</button>
+				<button class="opt" class:sel={aiMode() === 'off'} role="radio" aria-checked={aiMode() === 'off'} onclick={() => chooseAi('off')} disabled={aiBusy}>
+					<strong>No, sin IA</strong>
+					<span class="small dim">Puedes activarla cuando quieras en Ajustes</span>
+				</button>
+			</div>
+		{:else if at('Configurar Gemini')}
+			<h2>Configurar Gemini</h2>
+			{#if aiKey()}
+				<p>✓ <strong>Tu API key está guardada y funciona.</strong> Ya puedes usar el tutor y el resto de funciones de IA.</p>
+				<p class="small muted">Puedes cambiarla o quitarla cuando quieras en Ajustes → API key de Gemini.</p>
 			{:else}
-				<p class="small">
-					✓ <strong>Modo sin IA</strong>: el SRS, las lecciones, el diccionario y la biblioteca
-					funcionan igual, con mnemotecnias ya preparadas para los primeros 500 kanji. Puedes activarla cuando quieras en Ajustes.
-				</p>
+				<ol class="howto">
+					<li>
+						Abre <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio → API keys</a> e inicia
+						sesión con tu cuenta de Google. La primera vez te pide aceptar sus condiciones.
+					</li>
+					<li>Pulsa <strong>«Create API key»</strong> (Crear clave de API). Si te pregunta por un proyecto, elige el que ofrece o crea uno nuevo.</li>
+					<li>Copia la clave: es un texto largo que empieza por <code>AIza…</code>.</li>
+					<li>Pégala aquí y pulsa <strong>Probar y guardar</strong>: Sensei comprueba que funciona antes de guardarla.</li>
+				</ol>
+				<div class="row">
+					<input
+						class="grow"
+						type="password"
+						bind:value={apiKey}
+						placeholder="Pega tu API key (AIza…)"
+						autocomplete="off"
+						aria-invalid={!!keyError}
+						oninput={() => (keyError = '')}
+					/>
+					<button class="primary" onclick={saveKey} disabled={keyBusy || !apiKey.trim()}>
+						{#if keyBusy}<span class="spinner"></span>{/if} Probar y guardar
+					</button>
+				</div>
+				{#if keyError}<p class="small warning">{keyError}</p>{/if}
+				<details class="small">
+					<summary>Recomendado: protege tu key</summary>
+					<ul>
+						<li>Se guarda solo en este navegador, pero cualquiera con acceso a él podría usarla.</li>
+						<li>
+							En <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer">Google Cloud → Credenciales</a>,
+							restríngela a esta dirección (<code>{keyOrigin}</code>) y a la «Generative Language API».
+						</li>
+						<li>Después, en Sensei → Costos, ponle un presupuesto mensual.</li>
+					</ul>
+				</details>
+				<p class="small muted">¿Ahora no? Pulsa «Siguiente»: la pegarás luego en Ajustes. Hasta entonces, las funciones de IA no funcionarán.</p>
 			{/if}
 		{:else}
 			<h2>¡A empezar!</h2>
@@ -235,7 +341,12 @@
 		<button onclick={() => (step = Math.max(0, step - 1))} disabled={step === 0}>← Atrás</button>
 		<button class="ghost small" onclick={() => finish('/')} disabled={saving} title="Guarda tu ritmo y furigana actuales">Saltar guía</button>
 		{#if step < last}
-			<button class="primary" onclick={() => step++}>Siguiente →</button>
+			<button
+				class="primary"
+				onclick={() => step++}
+				disabled={at('La IA') && !aiDecided}
+				title={at('La IA') && !aiDecided ? 'Elige una opción para seguir' : undefined}>Siguiente →</button
+			>
 		{:else}
 			<span></span>
 		{/if}
@@ -286,6 +397,44 @@
 	}
 	.c-kana {
 		color: var(--kana);
+	}
+	.ai-cols {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: 0.4rem 1.2rem;
+	}
+	.ai-col h3 {
+		margin: 0 0 0.2rem;
+		font-size: 1rem;
+	}
+	.ai-col ul {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: grid;
+		gap: 0.25rem;
+	}
+	.choice-row {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 0.6rem;
+	}
+	.opt {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.2rem;
+		padding: 0.8rem 0.9rem;
+		text-align: left;
+	}
+	.opt.sel {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+	.howto {
+		margin: 0;
+		padding-left: 1.3rem;
+		display: grid;
+		gap: 0.45rem;
 	}
 	.q {
 		border: none;

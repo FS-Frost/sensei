@@ -29,13 +29,20 @@
 	<div class="stack">
 		<strong>¿Usarás la IA (Gemini)?</strong>
 		<p class="small muted">
-			Con IA: tutor, lecturas graduadas a tu nivel, explicador de textos y fotos, «¿Por qué?» en los repasos y mnemotecnias para
-			los kanji que aún no traen (necesita tu API key gratuita de Google). Sin IA: SRS, lecciones, diccionario, biblioteca,
-			velocidad e informes funcionan igual, con el contenido ya preparado. Puedes cambiarlo luego en Ajustes.
+			<strong>Sensei no incluye IA.</strong> Para usarla necesitas tu propia API key de Google Gemini (se crea en Google AI
+			Studio). Google ofrece un uso gratuito limitado; por encima, lo cobra a tu cuenta según su plan, y Sensei te muestra el
+			gasto estimado. Con ella: tutor, lecturas
+			graduadas a tu nivel, explicador de textos y fotos, «¿Por qué?» en los repasos y mnemotecnias para los kanji que aún no
+			traen.
+		</p>
+		<p class="small muted">
+			Sin IA: SRS, kana, lecciones, diccionario, biblioteca, velocidad e informes funcionan igual, con el contenido ya preparado.
+			Puedes cambiarlo cuando quieras en Ajustes.
 		</p>
 	</div>
+	<!-- Ninguna opción por defecto: es decisión del alumno. -->
 	<div class="row">
-		<button class="primary" onclick={() => choose('on')} disabled={busy}>Sí, usar IA</button>
+		<button onclick={() => choose('on')} disabled={busy}>Sí, tengo o crearé una API key</button>
 		<button onclick={() => choose('off')} disabled={busy}>No, seguir sin IA</button>
 	</div>
 </div>
@@ -48,5 +55,9 @@
 	}
 	.ai-choice p {
 		margin: 0.2rem 0 0;
+	}
+	.ai-choice button {
+		flex: 1;
+		min-width: 200px;
 	}
 </style>
