@@ -14,5 +14,38 @@
 		{ "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
 		{ "src": "icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" },
 		{ "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	],
+	"shortcuts": [
+		{ "name": "Repaso", "short_name": "Repaso", "description": "Repasos pendientes", "url": "repaso", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Lección", "short_name": "Lección", "description": "Kanji y vocabulario nuevos", "url": "leccion", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Explicador", "short_name": "Explicar", "description": "Explicar un texto o una foto", "url": "explicar", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Sincronizar", "short_name": "Sincronizar", "description": "Pasar el progreso a otro dispositivo", "url": "sincronizar", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+	],
+	"share_target": {
+		"action": "compartir",
+		"method": "POST",
+		"enctype": "multipart/form-data",
+		"params": {
+			"title": "title",
+			"text": "text",
+			"url": "url",
+			"files": [
+				{
+					"name": "files",
+					"accept": ["image/*", "text/plain", ".txt", ".srt", "application/x-subrip", ".epub", "application/epub+zip", ".html", "text/html", ".zip", "application/zip"]
+				}
+			]
+		}
+	},
+	"file_handlers": [
+		{
+			"action": "compartir",
+			"accept": {
+				"text/plain": [".txt"],
+				"application/x-subrip": [".srt"],
+				"application/epub+zip": [".epub"],
+				"application/zip": [".zip"]
+			}
+		}
 	]
 }
