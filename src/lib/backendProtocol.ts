@@ -12,7 +12,13 @@ export type BackendState =
 	/** No hay base: hay que descargar el diccionario. */
 	| { state: 'needs-dict'; manifest: DictManifest | null; error?: string }
 	| { state: 'installing'; phase: 'download' | 'install' | 'restore'; loaded: number; total: number; variant: DictVariant }
-	| { state: 'ready'; dict: { version: string | null; variant: DictVariant }; update: DictManifest | null }
+	| {
+			state: 'ready';
+			dict: { version: string | null; variant: DictVariant };
+			update: DictManifest | null;
+			/** La última actualización del diccionario falló (se siguió con la base anterior). */
+			updateError?: string;
+	  }
 	/** Otra pestaña ya tiene la base abierta. */
 	| { state: 'locked' }
 	/** El navegador no soporta OPFS con acceso síncrono. */

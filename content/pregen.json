@@ -1,6 +1,6 @@
 {
 	"format": 1,
-	"updatedAt": "2026-10-18T15:17:31.553Z",
+	"updatedAt": "2026-10-18T16:14:30.969Z",
 	"kanji": [
 		"日",
 		"一",
@@ -3061,6 +3061,1644 @@
 		{
 			"symbol": "韋",
 			"name": "cuero curtido"
+		}
+	],
+	"componentExplanations": [
+		{
+			"symbol": "⺌",
+			"explanation": {
+				"depicts": "Es una variante aplastada del kanji de pequeño (小), o la reducción de luces y adornos que apuntan hacia arriba.",
+				"why": "Se llama «chispas» porque parecen tres gotitas de fuego o luz saltando hacia el cielo.",
+				"role": "Va casi siempre en la cima del kanji. Rara vez significa «pequeño»; suele aportar forma visual de algo que brilla, se eleva o adorna un edificio.",
+				"examples": [
+					{
+						"char": "常",
+						"note": "Significa «habitual»; aquí corona un edificio alto como un adorno."
+					},
+					{
+						"char": "党",
+						"note": "Significa «partido», usando las chispas arriba para dar imagen de un salón iluminado o elevado."
+					},
+					{
+						"char": "消",
+						"note": "Significa «extinguirse»; aquí va arriba a la derecha como parte del sonido y la idea de achicarse."
+					}
+				],
+				"hook": "Tres chispitas brillantes que saltan hacia arriba desde la cabeza del kanji."
+			}
+		},
+		{
+			"symbol": "⻏",
+			"explanation": {
+				"depicts": "Es la forma comprimida del kanji de pueblo (邑), que dibujaba un recinto amurallado y una persona arrodillada.",
+				"why": "Se llama «ciudad (derecha)» porque siempre va en el lado derecho y representa zonas pobladas.",
+				"role": "Se coloca exclusivamente a la derecha (a la izquierda es otro componente distinto). Aporta significados de ciudades, territorios, edificios o divisiones políticas.",
+				"examples": [
+					{
+						"char": "都",
+						"note": "Significa «metrópoli», el ejemplo perfecto de una gran ciudad."
+					},
+					{
+						"char": "邦",
+						"note": "Significa «país natal», refiriéndose a un territorio o nación delimitada."
+					},
+					{
+						"char": "部",
+						"note": "Significa «sección», que originalmente era una división territorial de una ciudad."
+					}
+				],
+				"hook": "Una letra B o una oreja gigante pegada a la derecha del kanji."
+			}
+		},
+		{
+			"symbol": "ノ",
+			"explanation": {
+				"depicts": "No tiene un origen pictográfico único; es un trazo básico curvado hacia la izquierda que representa movimiento o corte.",
+				"why": "Se llama «barrido» porque el pincel se desliza hacia un lado como si barriera el papel.",
+				"role": "Es puramente un elemento de forma para construir otros componentes. Puede aparecer en cualquier parte del kanji, a menudo arriba o a la izquierda.",
+				"examples": [
+					{
+						"char": "不",
+						"note": "Aquí solo aporta forma como uno de los trazos que dibujan un pájaro o una raíz."
+					},
+					{
+						"char": "七",
+						"note": "En el número «siete», solo aporta forma cruzando el trazo principal."
+					},
+					{
+						"char": "年",
+						"note": "Forma parte de la espiga de grano superior; por sí solo únicamente aporta forma."
+					}
+				],
+				"hook": "El golpe rápido de una escoba o una katana hacia la izquierda."
+			}
+		},
+		{
+			"symbol": "ハ",
+			"explanation": {
+				"depicts": "Dibuja dos líneas que se separan en direcciones opuestas, representando el acto de dividir o partir algo en dos.",
+				"why": "Se llama «ocho (ハ)» porque es la forma básica del kanji del número ocho y es idéntico a la letra ハ del silabario.",
+				"role": "Aporta significado de dividir o separar cuando va arriba, o sirve como soporte o patas (solo forma) cuando aparece abajo.",
+				"examples": [
+					{
+						"char": "八",
+						"note": "Es el propio kanji de «ocho», nacido de la idea de un número fácil de dividir en partes iguales."
+					},
+					{
+						"char": "分",
+						"note": "En «parte» muestra algo que se separa en dos arriba mientras un cuchillo lo corta abajo."
+					},
+					{
+						"char": "貝",
+						"note": "En «concha» va abajo y solo aporta forma, simulando las patitas o el soporte del molusco."
+					}
+				],
+				"hook": "Un bigote abierto o dos toboganes que caen hacia lados opuestos."
+			}
+		},
+		{
+			"symbol": "マ",
+			"explanation": {
+				"depicts": "No tiene un origen pictográfico único; es una simplificación visual de las partes superiores de varios objetos antiguos, como una lanzadera de telar o la punta de un arma. Se describe puramente por su forma geométrica de dos trazos.",
+				"why": "Se llama «forma マ» porque sus dos trazos son idénticos al carácter silábico japonés マ.",
+				"role": "Solo aporta forma para ayudar a recordar cómo se escribe el carácter y suele colocarse en la parte superior.",
+				"examples": [
+					{
+						"char": "予",
+						"note": "Aquí solo aporta forma en la parte superior para dibujar el perfil de una lanzadera de tejer antigua."
+					},
+					{
+						"char": "矛",
+						"note": "En este caso solo aporta forma arriba, representando visualmente la punta afilada de una «alabarda»."
+					},
+					{
+						"char": "通",
+						"note": "Aparece arriba a la derecha aportando solo forma dentro del bloque que da el sonido a «atravesar»."
+					}
+				],
+				"hook": "Un trampolín doblado o el cuello de un cisne mirando a la izquierda."
+			}
+		},
+		{
+			"symbol": "ユ",
+			"explanation": {
+				"depicts": "No tiene un origen pictográfico único; es una forma gráfica reducida de antiguos dibujos (como una mano sujetando algo) que hoy coincide con la letra katakana.",
+				"why": "Se llama «gancho ユ» porque es idéntico al carácter katakana ユ y su trazo doblado parece un garfio.",
+				"role": "Aporta únicamente forma visual para facilitar el recuerdo del kanji. Puede aparecer en el centro o a la derecha.",
+				"examples": [
+					{
+						"char": "決",
+						"note": "En «decidir», aporta forma a la derecha (originalmente era una mano abriendo paso al agua)."
+					},
+					{
+						"char": "快",
+						"note": "En «agradable», forma parte del elemento derecho que da el sonido al carácter."
+					},
+					{
+						"char": "候",
+						"note": "En «clima», es solo un trazo visual en el centro del kanji para distinguir su forma."
+					}
+				],
+				"hook": "El símbolo katakana ユ convertido en un gancho metálico de carnicero."
+			}
+		},
+		{
+			"symbol": "ヨ",
+			"explanation": {
+				"depicts": "En su origen es el dibujo simplificado de una mano derecha vista de perfil con tres dedos extendidos. A veces también proviene de la parte superior de una escoba ritual.",
+				"why": "Se llama «escoba ヨ» porque parece el cabezal con cerdas de una escoba y es idéntico al símbolo del silabario japonés ヨ.",
+				"role": "Suele dar una pista de significado relacionada con agarrar con la mano o barrer (o solo aporta forma), y aparece en el centro o en la parte inferior.",
+				"examples": [
+					{
+						"char": "婦",
+						"note": "En «señora» representa la mano que sostiene una escoba, aludiendo tradicionalmente a las tareas del hogar."
+					},
+					{
+						"char": "争",
+						"note": "En «pelear» dibuja una de las dos manos que tiran de un mismo objeto disputándoselo."
+					},
+					{
+						"char": "事",
+						"note": "En «cosa» o tarea representa la mano que sujeta un pincel o estandarte para trabajar."
+					}
+				],
+				"hook": "El cepillo de una escoba barriendo o una mano con tres dedos."
+			}
+		},
+		{
+			"symbol": "丶",
+			"explanation": {
+				"depicts": "Originalmente era una marca para señalar un punto importante, o el dibujo de la pequeña llama de una lámpara.",
+				"why": "Se llama «gota» porque hoy parece exactamente una pequeña gota de líquido cayendo.",
+				"role": "Suele aportar solo forma para distinguir un carácter de otro parecido, aunque a veces señala un detalle clave. Puede aparecer arriba, en el centro o a un lado.",
+				"examples": [
+					{
+						"char": "主",
+						"note": "Aquí la «gota» arriba representa la llama sobre un candelabro, simbolizando al «señor» que ilumina la casa."
+					},
+					{
+						"char": "国",
+						"note": "Dentro de las fronteras del «país», añade un detalle visual al tesoro real para completarlo."
+					},
+					{
+						"char": "不",
+						"note": "Aquí solo aporta forma como uno de los trazos que componen el carácter."
+					}
+				],
+				"hook": "Una pequeña gota de lluvia o una chispa de fuego."
+			}
+		},
+		{
+			"symbol": "丷",
+			"explanation": {
+				"depicts": "Originalmente dibujaba la cornamenta de un animal o, en otros casos, dos trazos superiores que indican separación.",
+				"why": "Se llama «cuernos» porque son dos trazos cortos en la cima del carácter que apuntan hacia arriba como los cuernos de un carnero.",
+				"role": "Aporta significado de cabeza, animal o división (o a veces solo forma visual) y se coloca siempre en la parte superior.",
+				"examples": [
+					{
+						"char": "羊",
+						"note": "En «oveja» corona el dibujo de la cara del animal mostrando claramente sus «cuernos»."
+					},
+					{
+						"char": "首",
+						"note": "En «cuello» (que antes significaba cabeza) representa los «cuernos» o mechones de pelo en lo alto del cráneo."
+					},
+					{
+						"char": "前",
+						"note": "En «antes» encabeza el carácter aportando hoy solo forma en la parte superior."
+					}
+				],
+				"hook": "Dos cuernitos de diablo o de cabra saliendo de tu cabeza."
+			}
+		},
+		{
+			"symbol": "亅",
+			"explanation": {
+				"depicts": "Es un trazo básico que originalmente representaba un objeto con punta curva o una púa. Hoy se usa principalmente como elemento estructural sin un origen pictográfico único.",
+				"why": "Se llama «gancho» porque es una línea vertical que termina doblándose hacia arriba en la punta, igual que un anzuelo o garfio.",
+				"role": "Aporta solo forma para construir otros componentes y suele aparecer en el centro o a la derecha, cerrando el kanji por abajo.",
+				"examples": [
+					{
+						"char": "事",
+						"note": "Aquí atraviesa todo el centro como el eje vertical que sostiene la «cosa» o asunto, aportando forma."
+					},
+					{
+						"char": "予",
+						"note": "En «de antemano» aporta solo la forma inferior que da equilibrio al carácter."
+					},
+					{
+						"char": "打",
+						"note": "Forma la parte derecha de «golpear» (como un clavo), donde el conjunto derecho aporta sonido y forma."
+					}
+				],
+				"hook": "Un anzuelo afilado o el garfio de un pirata colgando hacia abajo."
+			}
+		},
+		{
+			"symbol": "亠",
+			"explanation": {
+				"depicts": "Su origen es una marca gráfica abstracta o la parte superior simplificada de antiguos dibujos de edificios o prendas. No es un pictograma único, sino una forma visual común.",
+				"why": "Se llama «tapa» porque su línea horizontal con un punto encima parece la tapadera de una olla.",
+				"role": "Casi siempre aporta solo forma visual, aunque a veces sugiere la parte superior de una estructura o ropa. Se coloca siempre arriba.",
+				"examples": [
+					{
+						"char": "高",
+						"note": "En «alto», representa el tejado puntiagudo en la cima de una torre elevada."
+					},
+					{
+						"char": "京",
+						"note": "En «capital», dibuja la parte superior de un gran edificio situado en una colina."
+					},
+					{
+						"char": "六",
+						"note": "En «seis», solo aporta su forma gráfica para construir el número."
+					}
+				],
+				"hook": "La tapadera metálica de una olla con su pequeño pomo arriba."
+			}
+		},
+		{
+			"symbol": "亻",
+			"explanation": {
+				"depicts": "Es la forma estrecha y estilizada del pictograma de una persona (人) vista de perfil.",
+				"why": "Se llama «persona (lateral)» porque representa a un ser humano de pie y siempre se coloca en el lado izquierdo del kanji.",
+				"role": "Es una pista de significado excelente: indica que el kanji trata sobre personas, acciones humanas o cualidades. Siempre va a la izquierda.",
+				"examples": [
+					{
+						"char": "体",
+						"note": "En «cuerpo», señala la raíz o estructura física de una persona."
+					},
+					{
+						"char": "作",
+						"note": "En «hacer», muestra a una persona realizando un trabajo manual o construyendo algo."
+					},
+					{
+						"char": "信",
+						"note": "En «confianza», une a una persona con la palabra, mostrando a alguien sincero al hablar."
+					}
+				],
+				"hook": "Una persona de perfil esperando pacientemente en una fila."
+			}
+		},
+		{
+			"symbol": "儿",
+			"explanation": {
+				"depicts": "Es el pictograma de las extremidades inferiores de una persona vista de perfil, como una variante de 人 (persona) usada en la base.",
+				"why": "Se llama «piernas» porque sus dos trazos parecen dos piernas humanas caminando o sosteniendo un cuerpo.",
+				"role": "Suele aportar significado de persona en postura erguida (aunque en algunos casos es solo forma reducida), y va siempre en la parte inferior.",
+				"examples": [
+					{
+						"char": "見",
+						"note": "En «vista» son las «piernas» de una persona con un gran ojo encima que mira alrededor."
+					},
+					{
+						"char": "元",
+						"note": "En «comienzo» dibuja el cuerpo con «piernas» destacando la cabeza arriba como el origen de la persona."
+					},
+					{
+						"char": "四",
+						"note": "En «cuatro» está dentro del recuadro y aquí solo aporta forma por evolución histórica del trazo."
+					}
+				],
+				"hook": "Un par de piernas humanas caminando solas como en un dibujo animado."
+			}
+		},
+		{
+			"symbol": "冂",
+			"explanation": {
+				"depicts": "Originalmente dibujaba los límites lejanos de un territorio o una estructura abierta por abajo, como una tienda.",
+				"why": "Se llama «marco abierto» porque rodea el carácter por arriba y por los lados, dejando el fondo libre.",
+				"role": "Va por fuera envolviendo el kanji desde arriba. Suele aportar la idea de cubrir, enmarcar o delimitar un espacio interior.",
+				"examples": [
+					{
+						"char": "内",
+						"note": "El «marco abierto» dibuja una habitación o tienda en cuyo «interior» entra una persona."
+					},
+					{
+						"char": "巾",
+						"note": "Aquí dibuja los bordes de un «paño» de tela que cuelga hacia abajo."
+					},
+					{
+						"char": "同",
+						"note": "Enmarca a varios elementos bajo una misma cubierta para indicar que son lo «mismo»."
+					}
+				],
+				"hook": "El marco de una puerta o una tienda de campaña abierta por abajo."
+			}
+		},
+		{
+			"symbol": "冖",
+			"explanation": {
+				"depicts": "Es el pictograma de un paño o tela que se usa para tapar algo por encima.",
+				"why": "Se llama «cubierta» porque su forma horizontal con bordes caídos tapa lo que tiene debajo.",
+				"role": "Siempre va en la parte superior o media-alta del kanji. Aporta la idea de tapar, proteger o rodear, aunque a menudo es una reducción visual de otros techos.",
+				"examples": [
+					{
+						"char": "軍",
+						"note": "Significa «ejército», mostrando carros de guerra rodeados y cubiertos en un campamento."
+					},
+					{
+						"char": "学",
+						"note": "Significa «estudio», donde la cubierta representa el techo de una escuela sobre un niño."
+					},
+					{
+						"char": "受",
+						"note": "Significa «recipiente» o recibir; aquí solo aporta forma entre dos manos."
+					}
+				],
+				"hook": "Un mantel o gorro plano sin pompón que tapa lo de abajo."
+			}
+		},
+		{
+			"symbol": "冫",
+			"explanation": {
+				"depicts": "Es un pictograma que representa grietas en el agua congelada o cristales de hielo. Con el tiempo se redujo a dos simples trazos inclinados.",
+				"why": "El nombre «hielo» tiene sentido porque las dos marquitas parecen dos carámbanos o gotas congeladas.",
+				"role": "Suele ir a la izquierda y aporta significado de frío o congelación, aunque en muchos kanji modernos aparece solo como parte de la forma visual.",
+				"examples": [
+					{
+						"char": "冷",
+						"note": "Aquí aporta directamente la idea de temperatura baja para formar el significado de «frío»."
+					},
+					{
+						"char": "次",
+						"note": "En «siguiente» solo aporta forma a la izquierda (originalmente representaba saliva o un bostezo, no hielo)."
+					},
+					{
+						"char": "楽",
+						"note": "En «música» aparece a ambos lados en la parte superior, pero hoy solo funciona como elemento de forma."
+					}
+				],
+				"hook": "Dos cubitos de hielo resbaladizos o dos carámbanos colgando."
+			}
+		},
+		{
+			"symbol": "几",
+			"explanation": {
+				"depicts": "Es el pictograma de una mesita baja tradicional, de las que se usaban en la antigüedad para apoyarse o comer sentado en el suelo.",
+				"why": "Se llama «mesa» porque sus dos trazos dibujan claramente la superficie plana y las dos patas curvas del mueble.",
+				"role": "Aporta la idea de superficie, apoyo o espacio delimitado, aunque a menudo es parte de otros componentes mayores. Puede ir a la izquierda, abajo o envolviendo.",
+				"examples": [
+					{
+						"char": "処",
+						"note": "Alguien detiene sus pies cansados junto a una «mesa» para descansar en un lugar."
+					},
+					{
+						"char": "風",
+						"note": "Aquí solo aporta su forma envolvente para representar una vela hinchada que atrapa el viento."
+					},
+					{
+						"char": "投",
+						"note": "Forma la parte superior del arma que una mano sujeta para lanzar algo lejos."
+					}
+				],
+				"hook": "Una mesita de té baja con patas curvas."
+			}
+		},
+		{
+			"symbol": "凵",
+			"explanation": {
+				"depicts": "Es el pictograma de un hoyo en la tierra o una cavidad abierta por la parte superior.",
+				"why": "Se llama «recipiente abierto» porque tiene paredes a los lados y un fondo, pero no tiene tapa arriba.",
+				"role": "Suele ir en la parte inferior envolviendo otro elemento. Aporta la idea visual de contener, encajar o un hueco del que algo sale.",
+				"examples": [
+					{
+						"char": "出",
+						"note": "Representa la cavidad o cueva de la cual un pie o brote logra «salir» hacia arriba."
+					},
+					{
+						"char": "画",
+						"note": "Enmarca el campo central como los bordes que delimitan un «dibujo» o plano."
+					},
+					{
+						"char": "歯",
+						"note": "Dibuja la forma abierta de la boca y la mandíbula que contiene cada «diente»."
+					}
+				],
+				"hook": "Una caja sin tapa o un agujero cuadrado en el suelo."
+			}
+		},
+		{
+			"symbol": "刂",
+			"explanation": {
+				"depicts": "Es la versión estrecha y vertical del kanji de espada (刀). Dibuja una hoja afilada puesta de pie.",
+				"why": "Se llama «espada (lateral)» porque representa un arma cortante y siempre se coloca a un lado.",
+				"role": "Suele ir a la derecha del kanji. Aporta la idea de cortar, dividir, tallar o usar la fuerza.",
+				"examples": [
+					{
+						"char": "別",
+						"note": "Significa «separar», que es lo que haces al cortar algo con una espada."
+					},
+					{
+						"char": "割",
+						"note": "Significa «dividir», mostrando la acción de partir algo en trozos con un filo."
+					},
+					{
+						"char": "判",
+						"note": "Significa «diferenciar», como quien corta por la mitad para distinguir dos partes."
+					}
+				],
+				"hook": "Dos cortes verticales hechos con un cuchillo o katana afilada."
+			}
+		},
+		{
+			"symbol": "勹",
+			"explanation": {
+				"depicts": "Es el pictograma de una persona inclinada hacia adelante con los brazos extendidos para rodear algo. A veces aparece en otros kanji como mera coincidencia de trazos.",
+				"why": "Se llama «envolver» porque sus trazos curvos abrazan y encierran el espacio inferior.",
+				"role": "Aporta la idea de rodear, atar o agrupar, aunque a menudo solo aporta forma; suele ir arriba a la derecha envolviendo otro elemento.",
+				"examples": [
+					{
+						"char": "約",
+						"note": "Junto al hilo, da la idea de atar y «envolver» un compromiso para cerrar una «promesa»."
+					},
+					{
+						"char": "物",
+						"note": "Aquí forma parte del bloque derecho y solo aporta forma e indicación de sonido para «cosa»."
+					},
+					{
+						"char": "欠",
+						"note": "En la parte superior de «falta» solo aporta forma, pues originalmente dibujaba a una persona abriendo la boca."
+					}
+				],
+				"hook": "Un brazo curvado que abraza y protege lo que tiene debajo."
+			}
+		},
+		{
+			"symbol": "勿",
+			"explanation": {
+				"depicts": "Originalmente dibujaba una bandera con tres cintas ondeando al viento usada para hacer señales, o bien un cuchillo cortando algo.",
+				"why": "Se llama «no hacer» porque esa bandera se usaba antiguamente para hacer señales de prohibición o advertencia.",
+				"role": "Casi siempre actúa como pista de sonido o como parte de un dibujo mayor (como los rayos del sol en 昜). Suele ir a la derecha o abajo.",
+				"examples": [
+					{
+						"char": "物",
+						"note": "En «cosa», acompaña al buey para aportar el sonido y la idea de seleccionar distintos objetos."
+					},
+					{
+						"char": "易",
+						"note": "En «fácil», aporta forma en la parte inferior (originalmente el brillo del sol o un camaleón cambiando)."
+					},
+					{
+						"char": "湯",
+						"note": "En «agua caliente», forma la base del componente derecho que representa el calor del sol hirviendo el agua."
+					}
+				],
+				"hook": "Una bandera de tres puntas agitándose fuerte para prohibir el paso."
+			}
+		},
+		{
+			"symbol": "匕",
+			"explanation": {
+				"depicts": "Es el pictograma de una cuchara antigua, pero en muchos kanji en realidad dibuja a una persona de perfil o dada la vuelta.",
+				"why": "Se llama «cuchara» porque como carácter independiente ese era su significado original.",
+				"role": "Suele ir a la derecha o abajo. Casi siempre aporta el significado de una persona (sentada, girada o caída) para comparar o transformar, y a veces solo da forma.",
+				"examples": [
+					{
+						"char": "化",
+						"note": "Significa «cambiar», mostrando a una persona de pie y otra al revés (la cuchara)."
+					},
+					{
+						"char": "北",
+						"note": "Significa «Norte», dibujando a dos personas dándose la espalda por el frío."
+					},
+					{
+						"char": "死",
+						"note": "Significa «muerte», con una persona (la cuchara) inclinada ante unos huesos."
+					}
+				],
+				"hook": "Una cucharita de sopa o una persona sentada en el suelo."
+			}
+		},
+		{
+			"symbol": "匚",
+			"explanation": {
+				"depicts": "Es el pictograma de un recipiente cuadrado o cofre visto de lado, abierto hacia la derecha para meter objetos.",
+				"why": "Se llama «caja» porque sus tres trazos en ángulo recto forman las paredes de un contenedor abierto por un lado.",
+				"role": "Aporta la idea de guardar, encerrar o delimitar un espacio, y siempre envuelve al resto del kanji por la izquierda, arriba y abajo.",
+				"examples": [
+					{
+						"char": "区",
+						"note": "Las paredes de la «caja» delimitan y dividen un territorio cerrado como un «barrio»."
+					},
+					{
+						"char": "医",
+						"note": "Representa el estuche o «caja» donde se guardaban las flechas y utensilios para curar, dando origen a «doctor»."
+					},
+					{
+						"char": "巨",
+						"note": "Aquí solo aporta forma para dibujar una gran escuadra de carpintero que da la idea de «gigantesco»."
+					}
+				],
+				"hook": "Una caja tumbada de lado con la tapa abierta hacia la derecha."
+			}
+		},
+		{
+			"symbol": "卜",
+			"explanation": {
+				"depicts": "Es el pictograma de las grietas que salían al quemar caparazones de tortuga en rituales antiguos.",
+				"why": "Se llama «Adivinación» porque los adivinos leían el futuro interpretando la forma de esas grietas.",
+				"role": "Puede ir arriba, a la derecha o al centro. A veces da significado de predecir o marcar, pero en muchos kanji comunes solo aporta una forma simple.",
+				"examples": [
+					{
+						"char": "外",
+						"note": "Significa «fuera», porque las adivinaciones nocturnas eran fuera de lo normal."
+					},
+					{
+						"char": "上",
+						"note": "Significa «arriba»; aquí solo aporta la forma de una marca sobre una base."
+					},
+					{
+						"char": "点",
+						"note": "Significa «punto», como la marca exacta donde se aplica fuego para adivinar."
+					}
+				],
+				"hook": "Una varita mágica o antena con una ramita saliendo de lado."
+			}
+		},
+		{
+			"symbol": "卩",
+			"explanation": {
+				"depicts": "Originalmente es el pictograma de una persona arrodillada en señal de sumisión. Con el tiempo, su forma se asoció con los objetos usados para marcar documentos oficiales.",
+				"why": "Se llama «sello» porque su silueta rígida parece un cuño de madera visto de perfil listo para estampar.",
+				"role": "Aporta la idea de autoridad, orden o una persona agachada. Suele ir a la derecha del kanji.",
+				"examples": [
+					{
+						"char": "印",
+						"note": "Una mano presiona un «sello» hacia abajo para dejar una estampa oficial."
+					},
+					{
+						"char": "命",
+						"note": "Una boca dicta un mandato ante alguien arrodillado bajo el peso de un «sello» para dar una orden."
+					},
+					{
+						"char": "危",
+						"note": "Una persona en lo alto de un precipicio se encoge como un «sello» ante una situación peligrosa."
+					}
+				],
+				"hook": "Un pesado sello oficial de madera listo para estampar una orden."
+			}
+		},
+		{
+			"symbol": "厂",
+			"explanation": {
+				"depicts": "Es el pictograma directo de un peñasco rocoso que sobresale en lo alto de una montaña formando una cueva o abrigo natural.",
+				"why": "Se llama «acantilado» porque su trazo superior plano y su caída vertical dibujan exactamente el borde de un precipicio.",
+				"role": "Aporta el significado de roca, pendiente, lugar escarpado o edificio grande que cobija algo. Envuelve al kanji desde arriba y la izquierda.",
+				"examples": [
+					{
+						"char": "原",
+						"note": "El manantial de agua pura que brota bajo un «acantilado» es el origen del río."
+					},
+					{
+						"char": "産",
+						"note": "Como algo que nace y sale a la luz desde el borde de un «acantilado», representa un producto."
+					},
+					{
+						"char": "反",
+						"note": "Una mano que intenta trepar en dirección opuesta a la caída del «acantilado» expresa la idea de anti-."
+					}
+				],
+				"hook": "Un enorme saliente de roca al borde de un abismo."
+			}
+		},
+		{
+			"symbol": "厶",
+			"explanation": {
+				"depicts": "Originalmente dibujaba un brazo doblado protegiendo algo para uno mismo, o bien un capullo de seda cerrado.",
+				"why": "Se llama «privado» porque el trazo doblado sugiere guardarse algo bajo el brazo para uso propio.",
+				"role": "A veces aporta el significado de algo personal o cerrado, pero muy a menudo funciona solo como un bloque de forma. Aparece arriba, abajo o a la derecha.",
+				"examples": [
+					{
+						"char": "公",
+						"note": "Al dividir (八) lo que es «privado» (厶), se reparte entre todos y se vuelve «público»."
+					},
+					{
+						"char": "会",
+						"note": "Aquí va abajo y solo aporta forma (originalmente dibujaba nubes o el interior de un recipiente)."
+					},
+					{
+						"char": "法",
+						"note": "Forma parte del bloque derecho y aquí solo aporta forma y pista de sonido, no significado."
+					}
+				],
+				"hook": "Un codo doblado escondiendo un secreto egoístamente."
+			}
+		},
+		{
+			"symbol": "囗",
+			"explanation": {
+				"depicts": "Es el pictograma de un área amurallada o un terreno cercado visto desde arriba.",
+				"why": "Se llama «recinto» porque sus cuatro lados encierran por completo lo que hay en su interior.",
+				"role": "Aporta una clara pista de significado relacionada con rodear, encerrar o delimitar. Siempre va por fuera, envolviendo todo el kanji.",
+				"examples": [
+					{
+						"char": "国",
+						"note": "El «recinto» dibuja las fronteras que protegen y delimitan el territorio de un «país»."
+					},
+					{
+						"char": "団",
+						"note": "Rodea el elemento interior para mostrar varias cosas reunidas formando un «grupo» cerrado."
+					},
+					{
+						"char": "園",
+						"note": "Representa los muros o vallas que rodean un jardín o «parque»."
+					}
+				],
+				"hook": "Una muralla cuadrada que encierra y protege todo lo que está dentro."
+			}
+		},
+		{
+			"symbol": "夂",
+			"explanation": {
+				"depicts": "Es el pictograma de un pie humano apuntando hacia abajo, visto como alguien que camina con pasos lentos o arrastrando los pies.",
+				"why": "Se llama «pies que avanzan» porque sus trazos cruzados imitan el movimiento de los pies al caminar.",
+				"role": "Aporta significado relacionado con caminar, llegar a un sitio o seguir a alguien, colocándose en la parte inferior o a veces arriba.",
+				"examples": [
+					{
+						"char": "後",
+						"note": "En «después» muestra unos «pies que avanzan» con lentitud, llegando más tarde que los demás."
+					},
+					{
+						"char": "各",
+						"note": "En «cada uno» dibuja unos «pies que avanzan» llegando por separado a una entrada o destino."
+					},
+					{
+						"char": "終",
+						"note": "En «fin» está en la parte derecha (que aporta sonido y la idea del invierno, el final del año donde los pasos se detienen)."
+					}
+				],
+				"hook": "Dos pies cruzados caminando en cámara lenta por el barro."
+			}
+		},
+		{
+			"symbol": "宀",
+			"explanation": {
+				"depicts": "Es el pictograma directo de una casa o edificio visto de frente, mostrando el tejado y las paredes laterales.",
+				"why": "Se llama «techo» porque su forma arqueada cubre todo lo que se dibuja debajo, igual que el tejado de un hogar.",
+				"role": "Aporta una pista de significado muy clara: casas, edificios, interiores o seguridad bajo cobijo. Siempre va en la parte superior.",
+				"examples": [
+					{
+						"char": "家",
+						"note": "En «casa», es literalmente el techo que cobija el interior del hogar."
+					},
+					{
+						"char": "安",
+						"note": "En «barato» (originalmente «tranquilo»), muestra a una mujer segura y en paz bajo un techo."
+					},
+					{
+						"char": "院",
+						"note": "En «institución», indica un gran edificio o recinto rodeado de muros y bajo techo."
+					}
+				],
+				"hook": "El tejado de una cabaña con una pequeña chimenea en el centro."
+			}
+		},
+		{
+			"symbol": "尸",
+			"explanation": {
+				"depicts": "Es el pictograma de un cuerpo humano tendido o sentado de perfil.",
+				"why": "Se llama «cadáver» porque antiguamente representaba a una persona inmóvil en rituales funerarios.",
+				"role": "Va arriba y a la izquierda, envolviendo al resto del kanji. Da pistas sobre el cuerpo, posturas o edificios (como un techo), aunque a veces solo aporta forma.",
+				"examples": [
+					{
+						"char": "展",
+						"note": "Significa «desplegar», originalmente estirar el cuerpo para relajarse."
+					},
+					{
+						"char": "局",
+						"note": "Significa «oficina», un espacio cerrado donde el cuerpo está encorvado trabajando."
+					},
+					{
+						"char": "戸",
+						"note": "Significa «puerta»; aquí el componente solo aporta forma por parecerse al marco."
+					}
+				],
+				"hook": "Una bandera rígida o una sábana cubriendo un cuerpo tumbado."
+			}
+		},
+		{
+			"symbol": "幺",
+			"explanation": {
+				"depicts": "Es el pictograma de una pequeña madeja de seda retorcida, siendo la versión reducida de 糸 (hilo).",
+				"why": "Se llama «hilo corto» porque dibuja solo los nudos superiores de la hebra de seda, sin los flecos de abajo.",
+				"role": "Da una pista de significado sobre hilos, cuerdas, pequeñez o conexión continua, y suele ir arriba o repetido en el kanji.",
+				"examples": [
+					{
+						"char": "糸",
+						"note": "Es la base misma del kanji de «hilo», donde el «hilo corto» arriba tiene unos flecos colgando abajo."
+					},
+					{
+						"char": "後",
+						"note": "En «después» el «hilo corto» sugiere estar atado o retenido, lo que hace caminar lento y quedar atrás."
+					},
+					{
+						"char": "機",
+						"note": "En «mecanismo» (originalmente un telar) aparecen dos «hilo corto» arriba representando los hilos que se tejen en la máquina."
+					}
+				],
+				"hook": "Un capullo de gusano de seda o un ovillo pequeño de hilo."
+			}
+		},
+		{
+			"symbol": "广",
+			"explanation": {
+				"depicts": "Es el pictograma de un edificio amplio visto de perfil, con un tejado inclinado y una sola pared lateral.",
+				"why": "Se llama «edificio» porque sus trazos dibujan una chimenea arriba, un techo largo y un muro a la izquierda.",
+				"role": "Aporta significado relacionado con construcciones, locales o espacios bajo techo, y siempre va arriba y a la izquierda cubriendo al resto.",
+				"examples": [
+					{
+						"char": "店",
+						"note": "El techo de «edificio» cobija el puesto donde se instala una «tienda»."
+					},
+					{
+						"char": "広",
+						"note": "Representa el espacio interior de un gran «edificio» sin paredes divisorias, dando la idea de «amplio»."
+					},
+					{
+						"char": "席",
+						"note": "Indica un lugar bajo el techo de un «edificio» donde se colocan esteras para tomar «asiento»."
+					}
+				],
+				"hook": "Un cobertizo amplio con techo, chimenea arriba y una sola pared a la izquierda."
+			}
+		},
+		{
+			"symbol": "廴",
+			"explanation": {
+				"depicts": "Es un pictograma que representa una calle larga o el acto de caminar dando un paso prolongado y firme.",
+				"why": "El nombre «paso largo» se refleja en su último trazo, que se estira hacia la derecha como una pierna dando una gran zancada.",
+				"role": "Siempre va en la parte inferior izquierda, envolviendo y sosteniendo al resto del kanji. Aporta significado de extender, prolongar o avanzar de forma estable.",
+				"examples": [
+					{
+						"char": "延",
+						"note": "En «prolongar», su trazo estirado refuerza directamente la idea de alargar el tiempo o el espacio."
+					},
+					{
+						"char": "建",
+						"note": "En «construir», da la sensación de una base firme y extendida sobre la que se levanta algo."
+					},
+					{
+						"char": "庭",
+						"note": "En «patio», forma parte del conjunto que indica un espacio amplio y despejado frente a un edificio."
+					}
+				],
+				"hook": "Una alfombra larga o un tobogán que estira el kanji hacia adelante."
+			}
+		},
+		{
+			"symbol": "廾",
+			"explanation": {
+				"depicts": "En origen era el pictograma de dos manos abiertas hacia arriba ofreciendo o sujetando un objeto juntas. También coincidió en forma con la unión de dos dieces (十).",
+				"why": "Se llama «veinte» porque visualmente parece dos números diez (十) unidos por una línea horizontal en la base.",
+				"role": "Suele aportar el significado oculto de usar ambas manos para hacer algo, o bien solo aporta forma geométrica. Va casi siempre en la parte inferior.",
+				"examples": [
+					{
+						"char": "開",
+						"note": "En «abrir», son dos manos que quitan la tranca de una puerta."
+					},
+					{
+						"char": "算",
+						"note": "En «cálculo», son dos manos abajo manipulando una tabla de bambú para contar."
+					},
+					{
+						"char": "研",
+						"note": "En «estudio» (originalmente «pulir»), solo aporta forma gráfica a la derecha junto a la piedra."
+					}
+				],
+				"hook": "Dos manos juntas levantando algo, o dos cruces formando el número veinte."
+			}
+		},
+		{
+			"symbol": "弋",
+			"explanation": {
+				"depicts": "Es el pictograma de un poste de madera clavado en el suelo o una flecha atada a una cuerda para cazar.",
+				"why": "Se llama «estaca» porque su trazo largo e inclinado parece un palo afilado clavado en la tierra con un travesaño.",
+				"role": "A veces aporta significado de herramientas, armas o sujeción, y en muchos otros casos sirve como pista de sonido. Siempre va a la derecha envolviendo el carácter.",
+				"examples": [
+					{
+						"char": "代",
+						"note": "En «generación» (o «sustituir»), una persona toma el lugar de una estaca; aquí también da pista de sonido."
+					},
+					{
+						"char": "武",
+						"note": "En «guerrero», forma parte del dibujo de una alabarda (arma con estaca) para representar el poder militar."
+					},
+					{
+						"char": "式",
+						"note": "En «ceremonia», representa una herramienta de carpintero sujeta a una estaca, simbolizando un modelo o regla."
+					}
+				],
+				"hook": "Una estaca de madera afilada clavada diagonalmente en el suelo."
+			}
+		},
+		{
+			"symbol": "彡",
+			"explanation": {
+				"depicts": "Es un pictograma que dibuja tres mechones de pelo largo, plumas o trazos de pincel decorativos.",
+				"why": "El nombre «pelos» es literal: son tres líneas paralelas e inclinadas que parecen tres cabellos sueltos.",
+				"role": "Casi siempre va a la derecha o abajo. Aporta significado relacionado con la apariencia, la decoración, los patrones visuales, el cabello o las sombras.",
+				"examples": [
+					{
+						"char": "形",
+						"note": "En «forma», los tres trazos representan el contorno visual o el dibujo de una figura."
+					},
+					{
+						"char": "影",
+						"note": "En «sombra», los trazos añaden la idea de una silueta oscura proyectada por la luz."
+					},
+					{
+						"char": "顔",
+						"note": "En «cara», acompaña al componente de cabeza para indicar las facciones o el aspecto del rostro."
+					}
+				],
+				"hook": "Tres mechones de pelo peinados hacia un lado o tres pinceladas."
+			}
+		},
+		{
+			"symbol": "彳",
+			"explanation": {
+				"depicts": "Es la mitad izquierda del pictograma de una encrucijada o cruce de caminos (行).",
+				"why": "Se llama «paso» porque representa el acto de caminar por la calle dando un paso tras otro.",
+				"role": "Aporta una clara pista de significado relacionada con caminar, ir, caminos o acciones continuas, y siempre se coloca a la izquierda.",
+				"examples": [
+					{
+						"char": "行",
+						"note": "Es la mitad izquierda del cruce de caminos y aporta directamente la idea de «ir» o marchar."
+					},
+					{
+						"char": "後",
+						"note": "En «después» indica caminar despacio por el camino, quedándose atrás respecto a otros."
+					},
+					{
+						"char": "待",
+						"note": "En «esperar» sugiere detener el «paso» en el camino junto a un lugar."
+					}
+				],
+				"hook": "Dos huellas en la acera o un peatón cruzando la calle."
+			}
+		},
+		{
+			"symbol": "忄",
+			"explanation": {
+				"depicts": "Es la forma comprimida y vertical del kanji 心, que originalmente dibujaba el órgano del corazón con sus cavidades.",
+				"why": "Se llama «corazón (lateral)» porque representa este órgano pero estilizado para caber en el costado del carácter.",
+				"role": "Aporta una clara pista de significado sobre emociones, mente o carácter humano, y siempre va a la izquierda.",
+				"examples": [
+					{
+						"char": "情",
+						"note": "Indica que el kanji trata sobre lo que brota del corazón: los «sentimientos»."
+					},
+					{
+						"char": "悩",
+						"note": "Muestra que la «preocupación» es una angustia que se siente en el corazón y la mente."
+					},
+					{
+						"char": "快",
+						"note": "Señala un estado emocional positivo donde el corazón se siente «agradable» y ligero."
+					}
+				],
+				"hook": "Un corazón latiendo tan fuerte a la izquierda que salpica dos gotas."
+			}
+		},
+		{
+			"symbol": "戈",
+			"explanation": {
+				"depicts": "Es el pictograma de un arma antigua china parecida a una lanza larga con una cuchilla transversal en la punta.",
+				"why": "Se llama «alabarda» porque dibuja el asta larga cruzada por la hoja cortante de esta arma de guerra.",
+				"role": "Da una clara pista de significado sobre guerra, armas, cortar o defender, y suele ocupar el lado derecho envolviendo parte del kanji.",
+				"examples": [
+					{
+						"char": "戦",
+						"note": "En «guerra» la «alabarda» a la derecha aporta directamente el sentido de combate armado."
+					},
+					{
+						"char": "裁",
+						"note": "En «cortar (tela» la cuchilla de la «alabarda» sugiere la acción de tajar y dar forma a la ropa."
+					},
+					{
+						"char": "成",
+						"note": "En «convertirse en» (originalmente conquistar o pacificar con armas) la «alabarda» muestra la fuerza que logra el resultado."
+					}
+				],
+				"hook": "Una lanza medieval con hacha en la punta lista para atacar."
+			}
+		},
+		{
+			"symbol": "扌",
+			"explanation": {
+				"depicts": "Es la versión estrecha y reducida del kanji 手, que era el pictograma de una mano abierta con sus dedos.",
+				"why": "Se llama «mano (lateral)» porque dibuja una mano de perfil con tres dedos lista para colocarse a un lado.",
+				"role": "Da una pista de significado muy fiable sobre acciones físicas que se hacen con las manos, y siempre va a la izquierda.",
+				"examples": [
+					{
+						"char": "投",
+						"note": "Indica la acción física de usar la mano y el brazo para «lanzar» algo."
+					},
+					{
+						"char": "打",
+						"note": "Muestra que la acción de «golpear» o clavar se realiza directamente con la mano."
+					},
+					{
+						"char": "指",
+						"note": "Señala una parte de la propia mano: el «dedo» que apunta."
+					}
+				],
+				"hook": "Una mano de tres dedos estirada a la izquierda para agarrar algo."
+			}
+		},
+		{
+			"symbol": "攵",
+			"explanation": {
+				"depicts": "Es la forma reducida de 攴, un pictograma que mostraba una mano sosteniendo una vara o bastón.",
+				"why": "Se llama «golpear» porque representa una mano dando un toque o golpe con un palo para dirigir o corregir algo.",
+				"role": "Aparece casi siempre a la derecha del kanji. Aporta una fuerte pista de significado: acción activa, obligar, corregir o poner en marcha.",
+				"examples": [
+					{
+						"char": "改",
+						"note": "Muestra la acción de «golpear» los errores propios para corregirlos y hacer una «reforma»."
+					},
+					{
+						"char": "教",
+						"note": "Representa la mano del maestro con una vara guiando al niño en su «educación»."
+					},
+					{
+						"char": "政",
+						"note": "Añade la idea de usar la autoridad (la vara) para mantener las cosas rectas en la «política»."
+					}
+				],
+				"hook": "Una mano con una batuta o vara dando órdenes."
+			}
+		},
+		{
+			"symbol": "歹",
+			"explanation": {
+				"depicts": "Es el pictograma de huesos rotos o restos humanos que quedan tras la descomposición de un cuerpo.",
+				"why": "Se llama «hueso» porque su forma angulosa recuerda a un esqueleto o un hueso partido por la mitad.",
+				"role": "Se coloca casi siempre a la izquierda. Es una pista muy clara de significado: indica muerte, daño, destrucción o cosas que quedan como restos.",
+				"examples": [
+					{
+						"char": "死",
+						"note": "En «muerte», aporta directamente la idea de restos mortales junto a una persona caída."
+					},
+					{
+						"char": "残",
+						"note": "En «resto», evoca los huesos que quedan abandonados tras una batalla o destrucción."
+					},
+					{
+						"char": "裂",
+						"note": "En «hendidura», contribuye a la idea de romper, partir o desgarrar algo en pedazos."
+					}
+				],
+				"hook": "Un hueso viejo y agrietado enterrado en la tierra."
+			}
+		},
+		{
+			"symbol": "殳",
+			"explanation": {
+				"depicts": "Dibuja una mano en la parte inferior sujetando un mazo o bastón en la parte superior, en actitud de golpear.",
+				"why": "Se llama «arma de asta» porque combina un mango largo con una mano firme lista para el combate cuerpo a cuerpo.",
+				"role": "Aporta significados de golpear, acción física, violencia o trabajo manual. Casi siempre se coloca a la derecha del kanji.",
+				"examples": [
+					{
+						"char": "殺",
+						"note": "Un «arma de asta» golpea sin piedad una marca en un árbol con la intención de matar."
+					},
+					{
+						"char": "撃",
+						"note": "Un carro de guerra y una mano con un «arma de asta» atacan juntos en una batida."
+					},
+					{
+						"char": "設",
+						"note": "Con palabras de mando y un «arma de asta» como herramienta de trabajo se logra equipar una obra."
+					}
+				],
+				"hook": "Un guerrero blandiendo una pesada alabarda con ambas manos."
+			}
+		},
+		{
+			"symbol": "毋",
+			"explanation": {
+				"depicts": "Originalmente representaba a una persona arrodillada con las manos cruzadas (indicando prohibición), pero visualmente se fusionó con el pictograma de una mujer amamantando (母) y con el de objetos ensartados.",
+				"why": "Se llama «Madre con punto» porque como componente suele escribirse igual que el kanji de «madre» (母), el cual lleva dos puntos en su interior.",
+				"role": "Suele ir en la parte inferior o derecha. Aporta significado de maternidad y constancia, o la idea visual de atravesar algo, además de servir como pista de sonido en varios compuestos.",
+				"examples": [
+					{
+						"char": "母",
+						"note": "Es la base directa del kanji de «madre», representando los pechos que alimentan."
+					},
+					{
+						"char": "毎",
+						"note": "En «siempre» o cada vez, usa la figura materna como símbolo de fertilidad constante y repetitiva."
+					},
+					{
+						"char": "貫",
+						"note": "En «perforar», esta forma representa en realidad monedas antiguas atravesadas por una cuerda."
+					}
+				],
+				"hook": "Una madre protectora o un escudo atravesado por una línea."
+			}
+		},
+		{
+			"symbol": "气",
+			"explanation": {
+				"depicts": "Es el pictograma de nubes de vapor o vaho que suben y se arremolinan en el aire.",
+				"why": "Se llama «vapor» porque sus líneas horizontales y curvas imitan las capas de humo o gas flotando.",
+				"role": "Aporta significado de gas, aire, aliento o energía invisible, y se coloca arriba y a la derecha envolviendo la base.",
+				"examples": [
+					{
+						"char": "気",
+						"note": "Representa el aliento vital e invisible que forma el «espíritu» y la energía."
+					},
+					{
+						"char": "汽",
+						"note": "Combinado con las gotas de agua, indica directamente el «vapor» de agua."
+					}
+				],
+				"hook": "Tres capas de humo caliente subiendo y curvándose en el cielo."
+			}
+		},
+		{
+			"symbol": "氵",
+			"explanation": {
+				"depicts": "Es la forma reducida de tres gotas que viene del pictograma de una corriente de agua (水).",
+				"why": "Se llama «agua (gotas)» porque son literalmente tres pequeñas salpicaduras de líquido.",
+				"role": "Es una pista de significado muy fiable: casi siempre indica agua, líquidos, fluidez o acciones relacionadas con lavar. Siempre va a la izquierda.",
+				"examples": [
+					{
+						"char": "海",
+						"note": "En «mar», indica la inmensa masa de agua que rodea la tierra."
+					},
+					{
+						"char": "決",
+						"note": "En «decidir», viene de la idea de abrir un dique para que el agua fluya con fuerza hacia un lado."
+					}
+				],
+				"hook": "Tres gotas de agua fresca salpicando hacia un lado."
+			}
+		},
+		{
+			"symbol": "灬",
+			"explanation": {
+				"depicts": "Normalmente es la reducción de un fuego con brasas y chispas, aunque en kanjis de animales dibuja sus patas o su cola.",
+				"why": "Se llama «fuego (abajo)» porque sus cuatro trazos parecen llamas o chispas encendidas en la base del kanji.",
+				"role": "Aporta el significado de calor, cocción o fuego cuando viene del elemento fuego, o solo dibuja extremidades en animales. Siempre va abajo del todo.",
+				"examples": [
+					{
+						"char": "点",
+						"note": "Al calentar un hueso adivinatorio sobre el «fuego (abajo)» aparece una pequeña grieta como un punto."
+					},
+					{
+						"char": "然",
+						"note": "La carne de perro asándose sobre el «fuego (abajo)» se cocina exactamente de esa forma."
+					},
+					{
+						"char": "馬",
+						"note": "Aquí solo aporta forma: los cuatro trazos de «fuego (abajo)» dibujan las cuatro patas galopando de un caballo."
+					}
+				],
+				"hook": "Cuatro brasas rojas chisporroteando en el suelo de una hoguera."
+			}
+		},
+		{
+			"symbol": "爿",
+			"explanation": {
+				"depicts": "Nace del pictograma de un tronco de árbol cortado verticalmente por la mitad, puesto de pie; también representaba una cama de madera.",
+				"why": "Se llama «tablón partido» porque su línea vertical parece el corte recto del tronco y los trazos izquierdos las ramas o patas.",
+				"role": "Suele aportar una pista de sonido o la idea de una cama o soporte de madera. Va siempre a la izquierda.",
+				"examples": [
+					{
+						"char": "寝",
+						"note": "Bajo el techo de casa, un «tablón partido» sirve de cama para acostarse a dormir."
+					},
+					{
+						"char": "状",
+						"note": "Aquí el «tablón partido» aporta el sonido y la idea de una tablilla donde se anota el estado de algo."
+					},
+					{
+						"char": "装",
+						"note": "El «tablón partido» da la pista de sonido sobre la ropa que se prepara como decoración."
+					}
+				],
+				"hook": "Un banco rústico de madera hecho con medio tronco puesto de lado."
+			}
+		},
+		{
+			"symbol": "犭",
+			"explanation": {
+				"depicts": "Es la forma comprimida y vertical de 犬, el pictograma de un perro visto de perfil con la cola levantada.",
+				"why": "Se llama «perro (lateral)» porque es el kanji de perro adaptado para encajar en el lado izquierdo, pareciendo un animal encorvado con lomo y patas.",
+				"role": "Siempre va a la izquierda. Es una pista de significado excelente: indica animales, caza, instintos salvajes, ferocidad o comportamientos solitarios y extremos.",
+				"examples": [
+					{
+						"char": "猛",
+						"note": "En «fuerte» o feroz, usa la figura del perro salvaje para transmitir fuerza bruta y agresividad."
+					},
+					{
+						"char": "狙",
+						"note": "En «apuntar a», evoca a un perro o depredador acechando fijamente a su presa antes de saltar."
+					},
+					{
+						"char": "狂",
+						"note": "En «locura», viene de la imagen de un perro rabioso o fuera de control."
+					}
+				],
+				"hook": "Un perro salvaje o lobo de perfil mostrando las garras a la izquierda."
+			}
+		},
+		{
+			"symbol": "疋",
+			"explanation": {
+				"depicts": "Originalmente era el pictograma de un pie y una pierna en movimiento. Con el tiempo, su forma se usó también para contar rollos de tela.",
+				"why": "Se llama «rollo de tela» porque su trazo superior parece una tela doblada que se va desenrollando hacia abajo.",
+				"role": "Cuando está completo o deformado abajo, suele dar significado de caminar, avanzar o fijar los pies. Suele ir en la parte inferior o a la izquierda.",
+				"examples": [
+					{
+						"char": "定",
+						"note": "En «determinar», representa unos pies que se detienen firmes bajo un techo para establecerse."
+					},
+					{
+						"char": "従",
+						"note": "En «seguir», sus trazos inferiores representan los pies que caminan detrás de otra persona."
+					},
+					{
+						"char": "是",
+						"note": "En «correcto», muestra unos pies que avanzan rectos bajo la luz del sol."
+					}
+				],
+				"hook": "Un rollo de tela fina que se desenrolla por el suelo al caminar."
+			}
+		},
+		{
+			"symbol": "疒",
+			"explanation": {
+				"depicts": "Es el pictograma de una persona enferma recostada sobre una cama vista de lado. Los dos trazos de la izquierda representan el sudor o la cama en sí.",
+				"why": "Se llama «enfermedad» porque muestra a alguien postrado en cama por un malestar.",
+				"role": "Aporta una pista clara de significado relacionada con dolencias, medicina o estados físicos negativos. Siempre rodea al resto del kanji desde arriba y la izquierda.",
+				"examples": [
+					{
+						"char": "病",
+						"note": "El componente envuelve al carácter para representar directamente el concepto de una «enfermedad»."
+					},
+					{
+						"char": "痛",
+						"note": "Aquí enmarca el kanji para indicar el «dolor» físico que te obliga a guardar cama."
+					},
+					{
+						"char": "療",
+						"note": "Aporta el contexto médico necesario para el significado de «curar» una dolencia."
+					}
+				],
+				"hook": "Una camilla de hospital con un paciente sudando por la fiebre."
+			}
+		},
+		{
+			"symbol": "癶",
+			"explanation": {
+				"depicts": "Es el pictograma de dos pies apuntando en direcciones opuestas, listos para dar un paso o impulsarse.",
+				"why": "Se llama «pies separados» porque sus trazos se abren hacia la izquierda y la derecha como dos piernas.",
+				"role": "Siempre se coloca en la parte superior como una tienda de campaña. Aporta la idea de subir, partir o abrirse paso.",
+				"examples": [
+					{
+						"char": "登",
+						"note": "Significa «ascensión», mostrando dos pies subiendo a un lugar alto."
+					},
+					{
+						"char": "発",
+						"note": "Significa «abrir» o partir, como cuando los pies toman impulso para salir."
+					}
+				],
+				"hook": "Dos pies abiertos haciendo la postura de un ninja sobre el tejado."
+			}
+		},
+		{
+			"symbol": "礻",
+			"explanation": {
+				"depicts": "Es la forma comprimida del kanji 示 «mostrar», que originalmente dibujaba una mesa de piedra para ofrendas o sacrificios.",
+				"why": "Se llama «altar (lateral)» porque dibuja esa mesa sagrada comprimida para encajar en el lado del carácter.",
+				"role": "Da una fuerte pista de significado ligada a la religión, los dioses, rituales o la buena suerte, y siempre va a la izquierda.",
+				"examples": [
+					{
+						"char": "神",
+						"note": "En «dios» el «altar (lateral)» indica directamente el ámbito espiritual y divino."
+					},
+					{
+						"char": "福",
+						"note": "En «fortuna» sugiere las bendiciones y abundancia que se piden ante el «altar (lateral)»."
+					},
+					{
+						"char": "祝",
+						"note": "En «celebración» muestra a alguien rezando frente al «altar (lateral)» durante un festejo."
+					}
+				],
+				"hook": "Una mesita de iglesia con una vela encendida para rezar."
+			}
+		},
+		{
+			"symbol": "禾",
+			"explanation": {
+				"depicts": "Es el pictograma de una planta de cereal, como arroz o trigo, cuyo tallo tiene una espiga pesada que se inclina hacia abajo en la punta.",
+				"why": "Se llama «grano» porque es un árbol (木) coronado por un trazo superior que representa la espiga de cereal colgando.",
+				"role": "Aporta significado relacionado con cosechas, agricultura, alimento o riqueza, y suele ir a la izquierda (a veces arriba).",
+				"examples": [
+					{
+						"char": "種",
+						"note": "Usa la planta de «grano» para representar el origen de toda cosecha: la «semilla»."
+					},
+					{
+						"char": "税",
+						"note": "Recuerda que antiguamente el «impuesto» se pagaba entregando una parte de la cosecha de «grano»."
+					},
+					{
+						"char": "利",
+						"note": "Muestra una hoz cortando el «grano» maduro, lo que produce una buena «ganancia»."
+					}
+				],
+				"hook": "Un tallo de trigo cuya cabeza pesada de grano se dobla arriba."
+			}
+		},
+		{
+			"symbol": "罒",
+			"explanation": {
+				"depicts": "Es una variante reducida y aplastada de 网, el pictograma de una red de caza o pesca tejida con cuerdas.",
+				"why": "El nombre «red» encaja perfecto porque el rectángulo dividido por líneas verticales parece una malla o jaula vista de frente.",
+				"role": "Va casi siempre en la parte superior del kanji. Aporta el significado de atrapar, cubrir, limitar con normas o agrupar en un puesto.",
+				"examples": [
+					{
+						"char": "置",
+						"note": "En «poner», da la idea de colocar una red de forma firme y recta sobre un lugar."
+					},
+					{
+						"char": "罪",
+						"note": "En «culpabilidad», simboliza la red de la ley que atrapa a quien comete una falta."
+					},
+					{
+						"char": "買",
+						"note": "En «comprar», representa una red o bolsa que recoge conchas (dinero antiguo) en el mercado."
+					}
+				],
+				"hook": "Una red de pescar extendida arriba para atrapar lo que hay debajo."
+			}
+		},
+		{
+			"symbol": "耂",
+			"explanation": {
+				"depicts": "Es la parte superior del kanji de envejecer (老). Dibuja a una persona de pelo largo encorvada sobre un bastón.",
+				"why": "Se llama «anciano (arriba)» porque resume la figura de un viejo y se coloca encima de otros trazos.",
+				"role": "Va en la parte superior, cruzando con su trazo diagonal hacia la izquierda. Da pistas sobre vejez, experiencia, personas o sabiduría, o actúa como pista de sonido.",
+				"examples": [
+					{
+						"char": "老",
+						"note": "Significa «envejecer», siendo el kanji original de un anciano con bastón."
+					},
+					{
+						"char": "考",
+						"note": "Significa «idea», relacionando el pensar con la sabiduría de un anciano."
+					},
+					{
+						"char": "教",
+						"note": "Significa «educación», donde un mayor experimentado guía e instruye."
+					}
+				],
+				"hook": "Una cruz de tierra atravesada por el bastón largo de un abuelo."
+			}
+		},
+		{
+			"symbol": "耒",
+			"explanation": {
+				"depicts": "Es el pictograma de un antiguo instrumento agrícola de madera con varias púas para labrar la tierra. Combina trazos que representan un árbol o madera con las muescas de la herramienta.",
+				"why": "Se llama «Arado» porque dibuja directamente esta herramienta tradicional para remover el suelo.",
+				"role": "Aporta una clara pista de significado relacionada con la agricultura, labrar o el trabajo duro. Suele colocarse a la izquierda.",
+				"examples": [
+					{
+						"char": "耕",
+						"note": "En «cultivar», indica la acción de usar el arado junto a un pozo o campo."
+					},
+					{
+						"char": "籍",
+						"note": "En «inscripción», antiguamente se refería a los registros de tierras aradas; hoy aporta forma y sonido."
+					},
+					{
+						"char": "耗",
+						"note": "En «disminuir», sugiere el desgaste físico o de la tierra tras pasar el arado."
+					}
+				],
+				"hook": "Un rastrillo o arado de madera lleno de barro listo para labrar."
+			}
+		},
+		{
+			"symbol": "聿",
+			"explanation": {
+				"depicts": "Es el pictograma de una mano sujetando verticalmente un utensilio de escritura antiguo con pelos en la punta.",
+				"why": "Se llama «pincel» porque el trazo vertical central es el mango de madera y las líneas horizontales son los dedos que lo agarran.",
+				"role": "Aporta significados ligados a escribir, trazar líneas, normas escritas o destreza manual. Puede ir arriba, a la derecha o en el centro.",
+				"examples": [
+					{
+						"char": "書",
+						"note": "Un «pincel» que registra lo que se dice permite crear la escritura."
+					},
+					{
+						"char": "筆",
+						"note": "Un mango de bambú arriba unido al componente «pincel» abajo forman el objeto del pincel."
+					},
+					{
+						"char": "律",
+						"note": "Un «pincel» traza el camino recto que todos deben seguir al cumplir la ley."
+					}
+				],
+				"hook": "Una mano firme sosteniendo un pincel de caligrafía lleno de tinta."
+			}
+		},
+		{
+			"symbol": "艮",
+			"explanation": {
+				"depicts": "Originalmente dibujaba un ojo grande mirando hacia atrás sobre una persona que se gira, indicando resistencia o detenerse. En el aprendizaje moderno, se analiza visualmente por su gran parecido con el kanji de «bueno» (良).",
+				"why": "Se llama «buen perro» porque parece el kanji de «bueno» (良) al que le falta el trazo superior, como un perro fiel sentado sobre sus patas traseras.",
+				"role": "Suele ir a la derecha aportando sonido o la idea original de detenerse, pero para leerlo hoy funciona principalmente como un bloque visual para construir otros kanji.",
+				"examples": [
+					{
+						"char": "良",
+						"note": "Con una simple gota arriba, el «buen perro» forma directamente el kanji de «bueno»."
+					},
+					{
+						"char": "銀",
+						"note": "A la derecha del metal, aporta forma y sonido para crear la «plata»."
+					},
+					{
+						"char": "限",
+						"note": "Conserva su matiz antiguo de detenerse para indicar la acción de «limitar»."
+					}
+				],
+				"hook": "Un perro muy obediente sentado y mirando atento a su dueño."
+			}
+		},
+		{
+			"symbol": "艹",
+			"explanation": {
+				"depicts": "Es la forma reducida de 艸, el pictograma de dos brotes de plantas que crecen juntos desde el suelo.",
+				"why": "Se llama «hierba» porque la línea horizontal con dos trazos verticales parece césped brotando de la tierra.",
+				"role": "Va siempre en la parte superior como una corona. Es una pista de significado muy fiable: indica plantas, flores, hojas o cosas hechas con vegetales.",
+				"examples": [
+					{
+						"char": "葉",
+						"note": "En «hoja», indica claramente que hablamos de la parte verde de una planta o árbol."
+					},
+					{
+						"char": "落",
+						"note": "En «caer», evoca las hojas y plantas que se marchitan y caen al suelo en otoño."
+					}
+				],
+				"hook": "Dos tallos de hierba fresca brotando en la cima del kanji."
+			}
+		},
+		{
+			"symbol": "衤",
+			"explanation": {
+				"depicts": "Es la versión reducida del pictograma de un kimono o túnica tradicional con el cuello cruzado y las mangas abiertas.",
+				"why": "Se llama «ropa (lateral)» porque conserva los pliegues del cuello y las mangas de una prenda, comprimidos para caber a un lado.",
+				"role": "Da una pista clara de significado relacionada con telas, vestimenta o acciones que se hacen con la ropa. Siempre va a la izquierda.",
+				"examples": [
+					{
+						"char": "袖",
+						"note": "Es la parte de la «ropa (lateral)» por donde sale y se mueve el brazo: la manga (ropa)."
+					},
+					{
+						"char": "初",
+						"note": "Cortar la tela de la «ropa (lateral)» con un cuchillo es el comienzo para confeccionar un vestido."
+					},
+					{
+						"char": "裸",
+						"note": "Quitarse la «ropa (lateral)» hasta quedar tan descubierto como una fruta pelada es estar desnudo."
+					}
+				],
+				"hook": "Un abrigo colgado en un perchero mostrando el cuello y una manga."
+			}
+		},
+		{
+			"symbol": "豕",
+			"explanation": {
+				"depicts": "Es el pictograma de un cerdo o jabalí visto de lado, con su cabeza arriba, barriga abultada, cuatro patas y cola corta.",
+				"why": "Se llama «cerdo» porque las curvas inferiores dibujan claramente el cuerpo rechoncho y las patas de este animal.",
+				"role": "Aporta significado de animales grandes, crianza doméstica o fuerza salvaje, y suele ir debajo o a la derecha.",
+				"examples": [
+					{
+						"char": "家",
+						"note": "Muestra un «cerdo» bajo un techo, pues criar animales dentro aseguraba el sustento de una «casa»."
+					},
+					{
+						"char": "稼",
+						"note": "Combina el grano y la casa con su «cerdo» para representar el trabajo duro del campo que da «ganancias»."
+					}
+				],
+				"hook": "Un cerdito gordo de perfil con cuatro patas y rabo corto."
+			}
+		},
+		{
+			"symbol": "辶",
+			"explanation": {
+				"depicts": "Es la forma reducida de 辵, que combinaba el dibujo de un cruce de calles y un pie. Representa la acción de ir caminando.",
+				"why": "Se llama «camino» porque su trazo largo inferior parece una carretera por la que avanzan los demás elementos.",
+				"role": "Siempre va a la izquierda y abajo, acunando al resto del kanji. Aporta un significado muy claro de movimiento, distancia o desplazamiento.",
+				"examples": [
+					{
+						"char": "道",
+						"note": "Significa «camino», usando directamente la idea de desplazarse."
+					},
+					{
+						"char": "進",
+						"note": "Significa «avanzar», que es caminar hacia adelante sin retroceder."
+					},
+					{
+						"char": "近",
+						"note": "Significa «cerca», indicando una distancia corta al caminar."
+					}
+				],
+				"hook": "Un tobogán o carretera en zigzag por donde se desliza el kanji."
+			}
+		},
+		{
+			"symbol": "釆",
+			"explanation": {
+				"depicts": "Es el pictograma de la huella de una pata de animal en el suelo, usada por los cazadores para distinguir y rastrear presas.",
+				"why": "Para recordarlo fácil se le llama «dados», porque las marquitas de arriba sobre la cruz parecen los puntos de un dado al lanzarlo (no confundir con «arroz» 米, cuyo primer trazo es distinto).",
+				"role": "Aparece arriba o a la izquierda. Aporta el significado de distinguir con claridad, separar, turnarse o esparcir cosas.",
+				"examples": [
+					{
+						"char": "番",
+						"note": "En «turno», viene de contar y distinguir las huellas una por una en un campo."
+					},
+					{
+						"char": "審",
+						"note": "En «claro» o examinar a fondo, aporta la idea de analizar cada detalle bajo un techo."
+					},
+					{
+						"char": "釈",
+						"note": "En «explicación», va a la izquierda e indica separar y distinguir las partes de un asunto para aclararlo."
+					}
+				],
+				"hook": "Unos dados lanzados sobre la mesa o la huella de una garra."
+			}
+		},
+		{
+			"symbol": "阝",
+			"explanation": {
+				"depicts": "Es la forma comprimida del antiguo pictograma de una ladera escalonada o varios montículos de tierra apilados.",
+				"why": "Se llama «colina (izquierda)» porque parece el perfil de dos montículos de tierra y siempre se sitúa en el lado izquierdo.",
+				"role": "Aporta significados ligados al terreno, desniveles, alturas, escalones o barreras geográficas. Siempre va a la izquierda.",
+				"examples": [
+					{
+						"char": "阪",
+						"note": "El terreno inclinado de una «colina (izquierda)» forma una empinada cuesta."
+					},
+					{
+						"char": "階",
+						"note": "Los escalones tallados en la «colina (izquierda)» permiten subir todos juntos de un piso a otro."
+					},
+					{
+						"char": "防",
+						"note": "Un muro de tierra levantado en la «colina (izquierda)» sirve para defender el territorio."
+					}
+				],
+				"hook": "Una empinada ladera con dos terrazas de tierra en el borde izquierdo."
+			}
+		},
+		{
+			"symbol": "隹",
+			"explanation": {
+				"depicts": "Es el pictograma detallado de un ave pequeña y rechoncha, vista de perfil con sus plumas y cola corta.",
+				"why": "Se llama «pájaro viejo» para distinguirlo de otro componente de ave, imaginando sus trazos horizontales como plumas arrugadas.",
+				"role": "Aporta significados relacionados con aves, volar o agruparse, y a veces funciona como pista de sonido. Suele aparecer a la derecha o arriba.",
+				"examples": [
+					{
+						"char": "集",
+						"note": "Varios ejemplares de «pájaro viejo» se posan juntos sobre un árbol para reunir a la bandada."
+					},
+					{
+						"char": "進",
+						"note": "Como un «pájaro viejo» que solo vuela hacia adelante por el camino, representa la idea de avanzar."
+					},
+					{
+						"char": "観",
+						"note": "Un «pájaro viejo» de ojos grandes observa todo con atención para formar su propio punto de vista."
+					}
+				],
+				"hook": "Un búho sabio y rechoncho con muchas plumas en el pecho."
+			}
+		},
+		{
+			"symbol": "韋",
+			"explanation": {
+				"depicts": "Originalmente dibujaba unos pies caminando alrededor de un recinto amurallado. Con el tiempo también se usó para representar piel de animal suavizada y flexible.",
+				"why": "Se llama «cuero curtido» porque ese es el significado tradicional del kanji por sí solo, recordando tiras de cuero estiradas en un bastidor.",
+				"role": "Suele ir a la derecha o en el centro. Aporta sobre todo una pista de sonido, pero también da ideas de rodear, proteger o ir en direcciones opuestas.",
+				"examples": [
+					{
+						"char": "違",
+						"note": "En «diferencia», conserva la idea original de dos pies que caminan en direcciones opuestas y se desencuentran."
+					},
+					{
+						"char": "衛",
+						"note": "En «defensa», aporta el sentido antiguo de patrullar rodeando un lugar para protegerlo."
+					},
+					{
+						"char": "偉",
+						"note": "En «admirable», acompaña al componente de persona para indicar a alguien extraordinario, actuando también como pista de sonido."
+					}
+				],
+				"hook": "Un escudo redondo de cuero curtido bien resistente."
+			}
+		},
+		{
+			"symbol": "頁",
+			"explanation": {
+				"depicts": "Es el pictograma de una figura humana de perfil donde se destaca una cabeza enorme sobre dos piernas.",
+				"why": "Se llama «cabeza (página)» porque dibuja una testa sobre un cuerpo y en el idioma moderno también se usa para contar hojas de papel.",
+				"role": "Aporta una fuerte pista de significado relacionada con la cabeza, el rostro o la mente, y casi siempre se coloca a la derecha.",
+				"examples": [
+					{
+						"char": "頭",
+						"note": "Aporta el significado directo de «cabeza» como parte anatómica principal."
+					},
+					{
+						"char": "顔",
+						"note": "Indica que el carácter se refiere a la parte frontal de la cabeza, es decir, la «cara»."
+					},
+					{
+						"char": "額",
+						"note": "Señala una zona específica de la cabeza, en este caso la «frente»."
+					}
+				],
+				"hook": "Una cabeza cuadrada gigante caminando sobre dos patitas pequeñas."
+			}
+		},
+		{
+			"symbol": "｜",
+			"explanation": {
+				"depicts": "Es un trazo básico vertical que dibuja una línea recta que conecta lo de arriba con lo de abajo, o un poste clavado.",
+				"why": "Se llama «palo» porque es una línea recta, rígida y vertical como un bastón.",
+				"role": "Casi siempre aporta solo forma o sirve como eje central para atravesar o sostener otros elementos. Suele ir justo en el medio del kanji.",
+				"examples": [
+					{
+						"char": "中",
+						"note": "El «palo» atraviesa la figura justo por la mitad para señalar el «centro»."
+					},
+					{
+						"char": "巾",
+						"note": "Funciona como el bastón central del que cuelga un «paño» o tela."
+					},
+					{
+						"char": "出",
+						"note": "Sirve de tallo central de una planta que crece hasta «salir» de su recipiente."
+					}
+				],
+				"hook": "Un poste largo y recto que atraviesa las cosas por la mitad."
+			}
+		},
+		{
+			"symbol": "𠂉",
+			"explanation": {
+				"depicts": "No tiene un solo origen: es la reducción visual de varios dibujos antiguos, como una persona de perfil, una mano o la punta de una planta.",
+				"why": "Se llama «tapa inclinada» porque empieza con un trazo en diagonal seguido de uno horizontal que cubre lo que va debajo.",
+				"role": "Suele ir arriba o arriba a la izquierda. Hoy funciona sobre todo como pista de forma para agrupar trazos superiores.",
+				"examples": [
+					{
+						"char": "年",
+						"note": "Arriba dibuja la parte superior de una espiga de cereal, cuya cosecha marcaba el «año»."
+					},
+					{
+						"char": "気",
+						"note": "Forma la parte superior del dibujo de vapor o nubes que suben, representando el «espíritu»."
+					},
+					{
+						"char": "矢",
+						"note": "Aquí arriba dibuja la punta afilada de una «flecha»."
+					}
+				],
+				"hook": "Una gorra con visera puesta de lado sobre el kanji."
+			}
+		},
+		{
+			"symbol": "𠆢",
+			"explanation": {
+				"depicts": "Es una variante aplastada del pictograma de «persona» (人), aunque en algunos caracteres antiguos dibujaba la tapa de un recipiente.",
+				"why": "Se llama «techo de persona» porque tiene los dos trazos de «persona» abiertos en la parte superior para cubrir el resto del kanji.",
+				"role": "Va siempre arriba cubriendo el carácter. Suele aportar la idea de juntar, cubrir o relacionarse con personas.",
+				"examples": [
+					{
+						"char": "会",
+						"note": "Cubre el carácter como un techo bajo el cual se junta la gente en una «asociación»."
+					},
+					{
+						"char": "合",
+						"note": "Funciona como una tapa que encaja de modo «adecuado» sobre una abertura."
+					},
+					{
+						"char": "全",
+						"note": "Cubre por completo la pieza de jade inferior para indicar que algo está «completo» e intacto."
+					}
+				],
+				"hook": "Un techo a dos aguas hecho con las piernas abiertas de una persona."
+			}
 		}
 	],
 	"glosses": [

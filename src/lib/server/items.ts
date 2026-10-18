@@ -4,6 +4,7 @@ import * as s from './db/schema.ts';
 import type { ComponentInfo, ItemStatus, ItemType, KanjiInfo, SimilarInfo, VocabInfo } from '../types.ts';
 import { State } from './srs/fsrs.ts';
 import { deinflect, posMatches, T } from '../deinflect.ts';
+import { COMPONENT_FULL_FORM } from './import/radicals.ts';
 
 const MASTERED_DAYS = 21;
 
@@ -123,7 +124,43 @@ export function getComponentInfo(db: DB, symbol: string): ComponentInfo | null {
 		.limit(24)
 		.all()
 		.map((r) => r.c);
-	return { symbol: c.symbol, nameEs: c.nameEs, strokes: c.strokes, usedIn };
+	const full = COMPONENT_FULL_FORM[symbol];
+	const chars = full ? [...usedIn, full] : usedIn;
+	const meanings = new Map(
+		chars.length
+			? db
+					.select({ c: s.kanji.char, es: s.kanji.meaningsEs, en: s.kanji.meaningsEn })
+					.from(s.kanji)
+					.where(inArray(s.kanji.char, chars))
+					.all()
+					.map((r) => [r.c, (r.es.length ? r.es : r.en)[0] ?? ''])
+			: []
+	);
+	// Ejemplos: primero lo que ya estudias (se ve el componente en algo conocido), luego lo próximo de la ruta.
+	const status = itemStatuses(db, 'kanji', usedIn);
+	const examples = usedIn
+		.map((ch, i) => ({ char: ch, meaning: meanings.get(ch) ?? '', status: status.get(ch) ?? 'none', i }))
+		.sort((a, b) => Number(a.status === 'none') - Number(b.status === 'none') || a.i - b.i)
+		.slice(0, 8)
+		.map(({ i: _, ...x }) => x);
+	// Para «¿en cuál aparece?»: kanji cercanos en la ruta que NO lo llevan.
+	const near = db.all<{ c: string }>(sql`
+		select k.char as c from kanji k
+		where k.learn_order is not null
+			and not exists (select 1 from kanji_component kc where kc.kanji = k.char and kc.symbol = ${symbol})
+		order by abs(k.learn_order - coalesce((select min(k2.learn_order) from kanji k2
+			join kanji_component kc2 on kc2.kanji = k2.char where kc2.symbol = ${symbol}), 0)), k.char
+		limit 6`);
+	return {
+		symbol: c.symbol,
+		nameEs: c.nameEs,
+		strokes: c.strokes,
+		usedIn,
+		fullForm: full ? { char: full, meaning: meanings.get(full) ?? null } : null,
+		explanation: c.explanation ?? null,
+		examples,
+		distractors: near.map((r) => r.c)
+	};
 }
 
 export function getVocabInfo(db: DB, id: string, withSentences = false): VocabInfo | null {

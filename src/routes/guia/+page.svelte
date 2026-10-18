@@ -1,8 +1,12 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
+	import { aiMode, aiUi } from '#lib/client/ai.svelte.ts';
 
 	let { data }: PageProps = $props();
 	const j = $derived(data.journey);
+	// Sin IA no se documentan las pantallas que no existen (tutor, lectura graduada, explicador, costos).
+	const ai = $derived(aiUi());
+	const AI_SECTIONS = new Set(['tutor', 'lectura', 'explicar', 'costos']);
 
 	const TOC = [
 		['metodo', 'El método'],
@@ -41,8 +45,11 @@
 <p class="muted">Cómo funciona Sensei y por qué cada cosa está donde está. ¿Prefieres el recorrido paso a paso? <a href="/bienvenida">Abre la bienvenida</a>.</p>
 
 <nav class="card toc" aria-label="Índice">
-	{#each TOC as [id, label] (id)}<a href="#{id}">{label}</a>{/each}
+	{#each TOC.filter(([id]) => ai || !AI_SECTIONS.has(id)) as [id, label] (id)}<a href="#{id}">{label}</a>{/each}
 </nav>
+{#if !ai}
+	<p class="small muted"><strong>{aiMode() === 'off' ? 'Modo sin IA' : 'IA sin activar'}</strong>: esta guía omite el tutor, la lectura graduada, el explicador y los costos. <a href="/ajustes#ia">Cambiar en Ajustes</a>.</p>
+{/if}
 
 <article class="guide">
 	<section id="metodo" class="card">
@@ -115,6 +122,12 @@
 			<li><strong>Cupo diario</strong>: kanji y palabras nuevas por día (Ajustes). Lo aprendido hoy cuenta desde la hora de inicio del día.</li>
 			<li><strong>Freno automático</strong>: con {data.brake.half}+ repasos pendientes el cupo baja a la mitad; con {data.brake.stop}+ se pausa.</li>
 			<li><strong>Mnemotecnias</strong>: las crea el tutor la primera vez a partir de los nombres de los componentes y se guardan.</li>
+			<li>
+				<strong>Componentes</strong>: no son palabras, sino piezas que se repiten dentro de los kanji. Cada uno trae qué dibuja, por qué
+				tiene ese nombre, qué aporta (pista de significado, de sonido o solo de forma) y su forma completa si es una variante (氵 es 水).
+				Ves ejemplos con la pieza <em>resaltada en color</em> dentro de cada kanji, en cuáles de esta lección la vas a usar y una
+				pregunta rápida: «¿en cuál aparece?».
+			</li>
 		</ul>
 	</section>
 
@@ -211,6 +224,7 @@
 		</p>
 	</section>
 
+	{#if ai}
 	<section id="tutor" class="card">
 		<h2>Tutor</h2>
 		<p>Conoce tu perfil, tus fallos y tus confusiones, y consulta el diccionario antes de afirmar algo. Modos:</p>
@@ -273,6 +287,7 @@
 			gramática. Añade al SRS lo que quieras aprender: si la palabra no está en el diccionario, se crea como palabra propia.
 		</p>
 	</section>
+	{/if}
 
 	<section id="kanji" class="card">
 		<h2>Mapa de kanji</h2>
@@ -320,7 +335,12 @@
 			es frente al actual. El tema (☀/☾/◐) y la voz se guardan por dispositivo.
 		</p>
 		<ul>
-			<li><strong>API key de Gemini</strong>: se pega en Ajustes y se guarda solo en este navegador (no viaja en exportaciones ni copias). Restríngela en Google Cloud a la dirección del sitio y ponle presupuesto en Costos.</li>
+			<li>
+				<strong>Inteligencia artificial</strong>: «IA activada» o «Sin IA». Sin IA desaparecen el tutor, las lecturas graduadas, el
+				explicador, los costos, «¿Por qué?» y los botones de generar; el resto funciona con el contenido ya preparado (mnemotecnias de
+				los primeros 500 kanji). El modo actual se ve en Inicio y al pie del menú.
+			</li>
+			<li><strong>API key de Gemini</strong>: se pega en Ajustes y se guarda solo en este navegador (no viaja en copias automáticas ni al sincronizar; al exportar se puede incluir cifrada). Restríngela en Google Cloud a la dirección del sitio y ponle presupuesto en Costos.</li>
 			<li><strong>Diccionario</strong>: «palabras comunes» (ligero) o «JMdict completo» (mejores búsquedas). Cambiar de uno a otro, o actualizar cuando se publica uno nuevo, conserva tu progreso.</li>
 			<li>
 				<strong>App</strong>: botón «Instalar Sensei», <strong>recordatorio de repasos</strong> (como mucho un aviso al día entre las 8 y
@@ -332,6 +352,7 @@
 		</ul>
 	</section>
 
+	{#if ai}
 	<section id="costos" class="card">
 		<h2>Costos de Gemini</h2>
 		<p>
@@ -347,6 +368,7 @@
 			<li>Es una estimación: la factura real está en Google AI Studio. Las sesiones largas cuestan más por turno porque cada respuesta reenvía el historial.</li>
 		</ul>
 	</section>
+	{/if}
 
 	<section id="sincronizar" class="card">
 		<h2>Sincronizar dispositivos</h2>
@@ -382,8 +404,15 @@
 		<ul>
 			<li><strong>Todo vive en este navegador</strong>: cada navegador o dispositivo tiene sus propios datos. Para pasar tu progreso al móvil u otro PC, exporta aquí e importa allí.</li>
 			<li><strong>Como app y sin conexión</strong>: instálala desde el navegador («Instalar app» o «Añadir a pantalla de inicio»). Tras la primera visita abre sin red; solo lo que usa Gemini necesita conexión.</li>
-			<li><strong>Exportar</strong>: un .zip con progreso, historial, tutor, lecturas, ajustes y contenido generado. Sin diccionarios ni API key.</li>
-			<li><strong>Importar</strong>: reemplaza tu estado por el del .zip; antes guarda una copia.</li>
+			<li>
+				<strong>Exportar</strong>: un .zip con las secciones que elijas (progreso, tutor, biblioteca, costos, ajustes, contenido
+				generado), las preferencias de este dispositivo (tema, voz, lector…) y, si quieres, la API key de Gemini cifrada con una
+				contraseña. Nunca lleva los diccionarios.
+			</li>
+			<li>
+				<strong>Importar</strong>: al elegir el .zip ves qué trae cada sección frente a lo que tienes y eliges qué cargar. Cada sección
+				elegida reemplaza la tuya; las demás no cambian; el contenido generado se suma. Antes guarda una copia.
+			</li>
 			<li><strong>Copias</strong>: una automática al día (si hubo cambios) y una antes de cada importación, restauración o reinicio. Se borran solas a los {data.retentionDays} días, salvo la más reciente.</li>
 			<li><strong>Reiniciar</strong>: todo, por tipo (reiniciar kanji arrastra el vocabulario), por ítem (desde su ficha o el diccionario), memoria del tutor, contenido generado o registro de costos. Siempre con copia previa.</li>
 		</ul>

@@ -7,6 +7,7 @@
 	import PromptText from './PromptText.svelte';
 	import { FONT_LABELS, pickFont } from '../client/state.svelte.ts';
 	import { askTutor, setScreenContext, tutor } from '../client/tutorContext.svelte.ts';
+	import { aiUi } from '../client/ai.svelte.ts';
 	import type { PromptFont } from '../types.ts';
 	import { onMount } from 'svelte';
 	import { keepAwake } from '../client/wakeLock.ts';
@@ -270,7 +271,7 @@
 				</p>
 				<div class="row">
 					{#if leech.itemType === 'kanji'}
-						<button class="small" onclick={() => treatLeech('mnemonic')} disabled={leechBusy}>Nueva mnemotecnia personalizada</button>
+						{#if aiUi()}<button class="small" onclick={() => treatLeech('mnemonic')} disabled={leechBusy}>Nueva mnemotecnia personalizada</button>{/if}
 						<button class="small" onclick={() => treatLeech('similar')} disabled={leechBusy}>¿Con qué lo confundo?</button>
 					{/if}
 					<button class="small" onclick={() => treatLeech('pause')} disabled={leechBusy}>Apartarla 7 días</button>
@@ -401,15 +402,17 @@
 					{:else}
 						<button class="primary" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
 						<button onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
-						{#if current.itemType !== 'kana' && current.answerMode !== 'trace'}
+						{#if aiUi() && current.itemType !== 'kana' && current.answerMode !== 'trace'}
 							<button onclick={explain} disabled={whyLoading}>
 								{#if whyLoading}<span class="spinner"></span>{/if} ¿Por qué?
 							</button>
 						{/if}
 					{/if}
-					<button class="ghost small" onclick={() => askTutor(tutor.context)} title="Abre el tutor con esta tarjeta como contexto">
-						Preguntar al tutor
-					</button>
+					{#if aiUi()}
+						<button class="ghost small" onclick={() => askTutor(tutor.context)} title="Abre el tutor con esta tarjeta como contexto">
+							Preguntar al tutor
+						</button>
+					{/if}
 				</div>
 			</div>
 		{/if}

@@ -7,6 +7,9 @@
 	import InstallCard from '#lib/components/InstallCard.svelte';
 	import { onMount } from 'svelte';
 	import { daily, dailyDone } from '#lib/client/daily.svelte.ts';
+	import { aiMode, aiUi } from '#lib/client/ai.svelte.ts';
+
+	const ai = $derived(aiUi());
 
 	// Aviso si hay progreso que perder y el navegador puede borrarlo (sin protección o con poco espacio).
 	let storageRisk = $state('');
@@ -35,7 +38,13 @@
 
 <div class="spread">
 	<h1>おかえり <span class="muted small">— bienvenido de vuelta</span> <HelpLink section="inicio" /></h1>
-	{#if p.streakDays}<span class="badge">🔥 {p.streakDays} días de racha</span>{/if}
+	<div class="row">
+		{#if p.streakDays}<span class="badge">🔥 {p.streakDays} días de racha</span>{/if}
+		<!-- Modo actual de la IA (se cambia en Ajustes). -->
+		<a class="badge mode" class:off={!ai} href="/ajustes#ia" title="Cambiar en Ajustes">
+			{ai ? '智 IA activada' : aiMode() === 'off' ? '無 Modo sin IA' : '無 IA sin activar'}
+		</a>
+	</div>
 </div>
 
 {#if !data.onboardingDone}
@@ -54,7 +63,7 @@
 	</div>
 {/if}
 
-{#if data.budget.level === 'warn' || data.budget.level === 'over'}
+{#if ai && (data.budget.level === 'warn' || data.budget.level === 'over')}
 	{@const b = data.budget}
 	<div class="card small row budget" class:over={b.level === 'over'}>
 		<span>
@@ -190,6 +199,7 @@
 </div>
 
 <div class="two">
+	{#if ai}
 	<div class="card stack">
 		<div class="spread">
 			<h2>Tutor</h2>
@@ -207,6 +217,7 @@
 			</a>
 		{/each}
 	</div>
+	{/if}
 	<div class="card stack">
 		<h2>Puntos débiles</h2>
 		{#if p.weakItems.length}
@@ -225,18 +236,31 @@
 					<span class="badge">{c.a} / {c.b} ×{c.count}</span>
 				{/each}
 			</div>
-			<a class="btn small" href="/tutor?nuevo=confusiones">Practicar con el tutor</a>
+			{#if ai}<a class="btn small" href="/tutor?nuevo=confusiones">Practicar con el tutor</a>{/if}
 		{/if}
 	</div>
 </div>
 
 <div class="row">
-	<a class="btn" href="/lectura">📖 Lectura graduada</a>
-	<a class="btn" href="/explicar">🔍 Explicar texto o foto</a>
+	{#if ai}
+		<a class="btn" href="/lectura">📖 Lectura graduada</a>
+		<a class="btn" href="/explicar">🔍 Explicar texto o foto</a>
+	{/if}
+	<a class="btn" href="/biblioteca">書 Biblioteca</a>
 	<a class="btn" href="/kanji">字 Mapa de kanji</a>
 </div>
 
 <style>
+	.mode {
+		color: var(--accent-2);
+	}
+	.mode.off {
+		color: var(--text-2);
+	}
+	.mode:hover {
+		text-decoration: none;
+		border-color: var(--text-3);
+	}
 	.daily {
 		display: flex;
 		align-items: center;

@@ -8,6 +8,7 @@
 		confirmLabel = 'Confirmar',
 		danger = true,
 		busy = false,
+		disabled = false,
 		children,
 		onconfirm
 	}: {
@@ -18,13 +19,15 @@
 		confirmLabel?: string;
 		danger?: boolean;
 		busy?: boolean;
+		/** Deshabilita confirmar (p. ej. no hay nada elegido). */
+		disabled?: boolean;
 		children: Snippet;
 		onconfirm: () => void;
 	} = $props();
 
 	let dialog: HTMLDialogElement | undefined = $state();
 	let typed = $state('');
-	const ok = $derived(!word || typed.trim().toUpperCase() === word);
+	const ok = $derived(!disabled && (!word || typed.trim().toUpperCase() === word));
 
 	$effect(() => {
 		if (!dialog) return;
@@ -53,7 +56,9 @@
 
 <style>
 	dialog {
-		width: min(520px, calc(100vw - 2rem));
+		width: min(560px, calc(100vw - 2rem));
+		max-height: calc(100dvh - 2rem);
+		overflow-y: auto;
 		color: var(--text);
 		padding: 1.2rem 1.3rem;
 	}

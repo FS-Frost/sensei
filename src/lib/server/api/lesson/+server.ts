@@ -3,13 +3,16 @@ import { db } from '#lib/server/db/index.ts';
 import { handle } from '#lib/server/http.ts';
 import { nextLesson, type LessonKind } from '#lib/server/srs/lessons.ts';
 import {
+	ensureComponentExplanations,
 	ensureComponentNames,
 	ensureGlossesEs,
 	ensureMnemonics,
 	ensureSentencesEs,
 	ensureSimilarTips
 } from '#lib/server/gemini/enrich.ts';
-import { errorMessage } from '#lib/server/gemini/client.ts';
+import { errorMessage, hasGemini } from '#lib/server/gemini/client.ts';
+import { missingContent } from '#lib/server/gemini/pregen.ts';
+import { config } from '#lib/server/config.ts';
 import { buildReviewItem } from '#lib/server/srs/service.ts';
 import { facetsFor } from '#lib/server/srs/service.ts';
 
@@ -25,6 +28,8 @@ export const GET: RequestHandler = ({ url }) =>
 				...new Set(items.flatMap((i) => (i.type === 'component' ? [i.key] : i.type === 'kanji' ? i.kanji.components.map((c) => c.symbol) : [])))
 			];
 			await ensureComponentNames(db, comps);
+			// Explicación solo de los componentes que se enseñan ahora (necesita su nombre ya puesto).
+			await ensureComponentExplanations(db, items.filter((i) => i.type === 'component').map((i) => i.key));
 			await ensureMnemonics(db, items.filter((i) => i.type === 'kanji').map((i) => i.key));
 			const vocabIds = items.filter((i) => i.type === 'vocab').map((i) => i.key);
 			const kanjiVocab = items.flatMap((i) => (i.type === 'kanji' ? i.kanji.vocab.map((v) => v.id) : []));
@@ -39,8 +44,12 @@ export const GET: RequestHandler = ({ url }) =>
 			warning = `Gemini no disponible: ${errorMessage(e)}`;
 		}
 
+		// Sin key no se genera nada: decir qué falta (lo pregenerado sí está) para que no parezca un fallo.
+		// En modo sin IA el alumno ya lo eligió: no se avisa.
+		const missing = hasGemini() || config.aiOff ? null : missingContent(db, items);
+
 		const quiz = items.flatMap((i) =>
 			facetsFor(i.type).map((facet) => buildReviewItem(db, { id: null, itemType: i.type, itemKey: i.key, facet }))
 		);
-		return Response.json({ items, quiz, quota, warning });
+		return Response.json({ items, quiz, quota, warning, missing });
 	});

@@ -19,6 +19,7 @@ export const FEATURES = {
 	mnemonic: 'Mnemotecnias',
 	leech_mnemonic: 'Mnemotecnia nueva (tarjeta difícil)',
 	component_names: 'Nombres de componentes',
+	component_explain: 'Explicación de componentes',
 	similar_tips: 'Kanji parecidos',
 	glosses: 'Traducción de palabras',
 	sentences: 'Traducción de frases'
@@ -37,6 +38,7 @@ export const FEATURE_ROLE: Record<Feature, 'pro' | 'flash'> = {
 	report: 'flash',
 	why: 'flash',
 	component_names: 'flash',
+	component_explain: 'pro',
 	similar_tips: 'flash',
 	glosses: 'flash',
 	sentences: 'flash'

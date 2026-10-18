@@ -5,14 +5,23 @@
 	import { get, errMsg } from '#lib/client/api.ts';
 	import type { LessonItem, ReviewItem } from '#lib/types.ts';
 	import KanjiDetail from '#lib/components/KanjiDetail.svelte';
+	import ComponentCard from '#lib/components/ComponentCard.svelte';
 	import ReviewSession from '#lib/components/ReviewSession.svelte';
 	import SpeakButton from '#lib/components/SpeakButton.svelte';
 	import PromptText from '#lib/components/PromptText.svelte';
 	import { setScreenContext } from '#lib/client/tutorContext.svelte.ts';
 	import { completeDaily } from '#lib/client/daily.svelte.ts';
+	import { aiUi } from '#lib/client/ai.svelte.ts';
 
 	type Quota = { kanjiLeft: number; vocabLeft: number; grammarLeft: number; brake: string; due: number; queued: number };
-	type Lesson = { items: LessonItem[]; quiz: ReviewItem[]; quota: Quota; warning: string | null };
+	type Lesson = {
+		items: LessonItem[];
+		quiz: ReviewItem[];
+		quota: Quota;
+		warning: string | null;
+		/** Sin API key: cuántos ítems quedaron sin el contenido que generaría Gemini. */
+		missing: { kanji: number; components: number; words: number } | null;
+	};
 
 	let lesson = $state<Lesson | null>(null);
 	let loading = $state(false);
@@ -47,7 +56,7 @@
 			item.type === 'kanji'
 				? { kanji: item.key, meanings: item.kanji.meaningsEs, on: item.kanji.onReadings, kun: item.kanji.kunReadings, components: item.kanji.components.map((c) => `${c.symbol}(${c.nameEs ?? '?'})`), mnemonic: item.kanji.mnemonicMeaning }
 				: item.type === 'component'
-					? { component: item.key, name: item.component.nameEs }
+					? { component: item.key, name: item.component.nameEs, full_form: item.component.fullForm?.char, explanation: item.component.explanation, used_in: item.component.usedIn.slice(0, 8) }
 					: item.type === 'vocab'
 						? { word: item.vocab.mainForm, readings: item.vocab.kanaForms, meanings: item.vocab.glossesEs ?? item.vocab.glossesEn }
 						: { grammar: item.grammar.pattern, meaning: item.grammar.meaning, explanation: item.grammar.explanation };
@@ -84,6 +93,21 @@
 	<div class="error">{error}</div>
 {:else if lesson}
 	{#if lesson.warning}<div class="warning small">{lesson.warning}</div>{/if}
+	{#if lesson.missing}
+		{@const m = lesson.missing}
+		<div class="warning small">
+			Sin API key de Gemini, esta lección va sin
+			{[
+				m.kanji ? `mnemotecnia en ${m.kanji} kanji` : '',
+				m.components ? `explicación en ${m.components} componente(s)` : '',
+				m.words ? `traducción al español en ${m.words} palabra(s)` : ''
+			]
+				.filter(Boolean)
+				.join(', ')}: aquí ya no llega el contenido preparado de antemano. Puedes estudiarla igual,
+			<a href="/ajustes#gemini">añadir la key en Ajustes</a> para que se genere al abrirla (queda guardado) o
+			<a href="/ajustes#ia">pasar al modo sin IA</a> para no volver a verlo.
+		</div>
+	{/if}
 
 	{#if !lesson.items.length}
 		<div class="card stack">
@@ -141,18 +165,11 @@
 						</p>
 					</div>
 				{:else if item.type === 'component'}
-					<div class="comp">
-						<div class="sym jp">{item.component.symbol}</div>
-						<div class="stack">
-							<div class="name">{item.component.nameEs ?? '—'}</div>
-							<p class="muted small">
-								Los componentes no son palabras: son piezas visuales con un nombre para construir mnemotecnias.
-							</p>
-							{#if item.component.usedIn.length}
-								<div class="small">Aparece en: <span class="jp used">{item.component.usedIn.slice(0, 12).join(' ')}</span></div>
-							{/if}
-						</div>
-					</div>
+					{@const sym = item.key}
+					<ComponentCard
+						c={item.component}
+						inLesson={lesson.items.flatMap((i) => (i.type === 'kanji' && i.kanji.components.some((x) => x.symbol === sym) ? [i.key] : []))}
+					/>
 				{:else}
 					{@const v = item.vocab}
 					<div class="stack">
@@ -205,7 +222,7 @@
 			<div class="row">
 				<button class="primary" onclick={load}>Otra lección</button>
 				<a class="btn" href="/repaso">Repaso</a>
-				<a class="btn" href="/tutor?nuevo=conversacion">Practicar con el tutor</a>
+				{#if aiUi()}<a class="btn" href="/tutor?nuevo=conversacion">Practicar con el tutor</a>{/if}
 			</div>
 		</div>
 	{/if}
@@ -235,27 +252,6 @@
 	}
 	.body {
 		margin-top: 0.8rem;
-	}
-	.comp {
-		display: flex;
-		gap: 1.2rem;
-		align-items: center;
-		flex-wrap: wrap;
-	}
-	.comp .sym {
-		font-size: 6rem;
-		line-height: 1;
-		background: var(--component);
-		color: #fff;
-		border-radius: var(--radius);
-		padding: 0.6rem 0.9rem;
-	}
-	.name {
-		font-size: 1.5rem;
-		font-weight: 600;
-	}
-	.used {
-		font-size: 1.2rem;
 	}
 	.vocab {
 		font-size: 3.5rem;

@@ -7,6 +7,7 @@
 	import StatusBadge from './StatusBadge.svelte';
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import { askTutor } from '../client/tutorContext.svelte.ts';
+	import { aiUi } from '../client/ai.svelte.ts';
 
 	type Result = { words: VocabInfo[]; kanji: KanjiInfo | null; component: ComponentInfo | null; similar?: SimilarInfo[] };
 
@@ -180,7 +181,7 @@
 						<span class="jp muted">【{w.kanaForms.slice(0, 2).join('・')}】</span>
 						<SpeakButton text={w.mainReading} />
 						{#if w.common}<span class="badge">común</span>{/if}
-						<button class="ghost small ask" onclick={() => ask(w)} title="Preguntar al tutor sobre esta palabra">話</button>
+						{#if aiUi()}<button class="ghost small ask" onclick={() => ask(w)} title="Preguntar al tutor sobre esta palabra">話</button>{/if}
 					</div>
 					{#if w.inflection}
 					<div class="small infl">

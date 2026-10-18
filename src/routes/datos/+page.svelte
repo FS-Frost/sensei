@@ -7,12 +7,14 @@
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { downloadFrom } from '#lib/client/backend.svelte.ts';
+	import { applyDevicePrefs, DEVICE_PREFS, readDevicePrefs } from '#lib/client/devicePrefs.ts';
+	import { aiKey, aiUi } from '#lib/client/ai.svelte.ts';
 	import { takePending } from '#lib/client/inbox.ts';
 	import StoragePanel from '#lib/components/StoragePanel.svelte';
 	import PregenPanel from '#lib/components/PregenPanel.svelte';
 	import { page } from '$app/state';
 
-	// La key de Gemini la conoce el layout (data.gemini en todas las páginas).
+	// Si se puede llamar a Gemini ahora (key + modo IA) lo da el layout; exportar la key solo pide que exista.
 	const gemini = $derived(!!(page.data as { gemini?: boolean }).gemini);
 
 	// Llegó un .zip compartido o abierto con Sensei (/compartir): mostrar qué contiene y pedir confirmación.
@@ -23,7 +25,29 @@
 
 	type Counts = Record<string, number>;
 	type Backup = { name: string; kind: string; label: string; createdAt: number; size: number };
-	type Preview = { createdAt: string; kind: string; incoming: Counts; current: Counts };
+	type Section = 'progress' | 'tutor' | 'library' | 'usage' | 'settings' | 'content';
+	type Preview = {
+		createdAt: string;
+		kind: string;
+		incoming: Counts;
+		current: Counts;
+		sections: { id: Section; incoming: Counts; current: Counts }[];
+		device: Record<string, string> | null;
+		hasKey: boolean;
+		currentKey: boolean;
+		dict: { variant: string; version: string | null } | null;
+	};
+
+	/** Secciones de exportar/importar (mismo orden e ids que SECTIONS en server/data/snapshot.ts). */
+	const SECTION_INFO: Record<Section, { label: string; hint: string }> = {
+		progress: { label: 'Progreso', hint: 'tarjetas del SRS, historial, confusiones, frases guardadas, cola de estudio y palabras propias' },
+		tutor: { label: 'Memoria del tutor', hint: 'sesiones, resúmenes, notas e informes semanales' },
+		library: { label: 'Biblioteca y lecturas', hint: 'textos importados, lecturas graduadas y explicaciones guardadas' },
+		usage: { label: 'Registro de costos', hint: 'historial de llamadas a Gemini y su gasto' },
+		settings: { label: 'Ajustes', hint: 'ritmo, modelos, presupuesto, objetivo…' },
+		content: { label: 'Contenido generado', hint: 'mnemotecnias, traducciones y explicaciones creadas por Gemini (se suman, no reemplazan)' }
+	};
+	const SECTION_IDS = Object.keys(SECTION_INFO) as Section[];
 	type ResetPreview = Record<string, number>;
 
 	let current: Counts = $state({});
@@ -47,7 +71,8 @@
 		readings: 'lecturas cronometradas',
 		reports: 'informes semanales',
 		library: 'textos de la biblioteca',
-		usage: 'llamadas a Gemini en el registro de costos'
+		usage: 'llamadas a Gemini en el registro de costos',
+		queue: 'ítems en la cola de estudio'
 	};
 
 	async function load() {
@@ -76,19 +101,73 @@
 	const fmtDate = (t: number | string) => new Date(t).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' });
 	const nonZero = (c: Counts) => Object.entries(c).filter(([, n]) => n > 0);
 
+	// ---------- Exportar ----------
+	let exSections: Record<Section, boolean> = $state(Object.fromEntries(SECTION_IDS.map((x) => [x, true])) as Record<Section, boolean>);
+	let exDevice = $state(true);
+	let exKey = $state(false);
+	let exPass = $state('');
+	let exPass2 = $state('');
+	const exChosen = $derived(SECTION_IDS.filter((x) => exSections[x]));
+	const exPassError = $derived(
+		!exKey ? '' : exPass.length < 8 ? 'Mínimo 8 caracteres' : exPass !== exPass2 ? 'Las contraseñas no coinciden' : ''
+	);
+	const exNothing = $derived(!exChosen.length && !exDevice && !exKey);
+
+	async function exportZip() {
+		busy = true;
+		try {
+			await downloadFrom('/api/data/export', 'sensei.zip', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					sections: exChosen,
+					device: exDevice ? readDevicePrefs() : undefined,
+					keyPassword: exKey ? exPass : undefined
+				})
+			});
+			if (exKey) {
+				exPass = exPass2 = '';
+				toast.success('Exportado con la API key cifrada', { detail: 'Guarda la contraseña: sin ella no se puede recuperar.' });
+			}
+		} catch (e) {
+			fail(e);
+		} finally {
+			busy = false;
+		}
+	}
+
 	// ---------- Importar ----------
 	let fileInput: HTMLInputElement | undefined = $state();
 	let pendingFile: File | null = $state(null);
-	let importPreview: Preview | null = $state(null);
+	let importPreview = $state<Preview | null>(null);
 	let importOpen = $state(false);
+	let imSections: Partial<Record<Section, boolean>> = $state({});
+	let imDevice = $state(true);
+	let imKey = $state(false);
+	let imPass = $state('');
+	const imChosen = $derived(SECTION_IDS.filter((x) => imSections[x]));
+	const imNothing = $derived(!imChosen.length && !(imDevice && importPreview?.device) && !imKey);
+	/** Al menos una sección elegida reemplaza algo que ya tienes: entonces se pide escribir REEMPLAZAR. */
+	const imReplaces = $derived(
+		!!importPreview &&
+			importPreview.sections.some((x) => imSections[x.id] && x.id !== 'content' && Object.values(x.current).some((n) => n > 0))
+	);
+	const sum = (c: Counts) => Object.values(c).reduce((a, b) => a + b, 0);
+	const describe = (c: Counts) =>
+		Object.entries(c)
+			.filter(([, n]) => n > 0)
+			.map(([k, n]) => `${n} ${LABEL[k] ?? k}`)
+			.join(', ') || 'nada';
 
-	async function upload(file: File, dry: boolean) {
+	async function upload(file: File, dry: boolean, extra: { sections?: Section[]; keyPassword?: string } = {}) {
 		const fd = new FormData();
 		fd.append('file', file);
+		if (extra.sections) fd.append('sections', JSON.stringify(extra.sections));
+		if (extra.keyPassword !== undefined) fd.append('keyPassword', extra.keyPassword);
 		const res = await fetch(`/api/data/import${dry ? '?dry=1' : ''}`, { method: 'POST', body: fd });
 		const data = await res.json().catch(() => ({}));
 		if (!res.ok) throw new ApiError(res.status, data.error ?? `Error ${res.status}`);
-		return data as Preview & { backup?: string };
+		return data as Preview & { backup?: string; applied?: Section[]; keyApplied?: boolean };
 	}
 
 	async function pickFile(e: Event) {
@@ -100,8 +179,14 @@
 	/** Vista previa (sin cambiar nada) y diálogo de confirmación: también para un .zip compartido o abierto con Sensei. */
 	async function previewImport(f: File) {
 		try {
-			importPreview = await upload(f, true);
+			const p = await upload(f, true);
+			importPreview = p;
 			pendingFile = f;
+			// Por defecto todo lo que trae; las vacías desmarcadas (no hay nada que importar ahí).
+			imSections = Object.fromEntries(p.sections.map((x) => [x.id, sum(x.incoming) > 0]));
+			imDevice = !!p.device && Object.keys(p.device).length > 0;
+			imKey = false;
+			imPass = '';
 			importOpen = true;
 		} catch (err) {
 			fail(err);
@@ -109,15 +194,29 @@
 	}
 
 	async function confirmImport() {
-		if (!pendingFile) return;
+		if (!pendingFile || !importPreview) return;
 		busy = true;
 		try {
-			const r = await upload(pendingFile, false);
+			const sections = imChosen;
+			const keyPassword = imKey ? imPass : undefined;
+			const device = imDevice ? importPreview.device : null;
+			let r: Awaited<ReturnType<typeof upload>> | null = null;
+			if (sections.length || keyPassword !== undefined) r = await upload(pendingFile, false, { sections, keyPassword });
+			const prefs = device ? applyDevicePrefs(device) : [];
 			importOpen = false;
-			done(`Importado. Tu estado anterior quedó guardado en la copia «${r.backup}».`);
+			const parts = [
+				sections.length ? sections.map((x) => SECTION_INFO[x].label.toLowerCase()).join(', ') : '',
+				r?.keyApplied ? 'API key de Gemini' : '',
+				prefs.length ? `preferencias (${prefs.join(', ')})` : ''
+			].filter(Boolean);
+			toast.success(`Importado: ${parts.join(' · ') || 'sin cambios'}`, {
+				detail: r?.backup ? `Tu estado anterior quedó en la copia «${r.backup}».` : undefined,
+				duration: 8000
+			});
 			await Promise.all([load(), refreshAll()]);
 		} catch (err) {
-			fail(err);
+			// Contraseña incorrecta: el diálogo sigue abierto para corregirla.
+			toast.error('No se pudo importar', { detail: errMsg(err), key: 'import' });
 		} finally {
 			busy = false;
 		}
@@ -281,7 +380,8 @@
 	<p class="small muted">
 		Tu progreso del SRS e historial de respuestas, confusiones, sesiones y notas del tutor, lecturas guardadas, ajustes, todo lo que
 		generó Gemini (mnemotecnias, traducciones) y el registro de costos. <strong>No</strong> se guardan los diccionarios (se descargan
-		del sitio), ni la API key de Gemini, ni el tema y la voz de cada dispositivo.
+		del sitio). Al exportar puedes elegir qué secciones llevar, añadir las preferencias de este dispositivo (tema, voz, lector…) y,
+		cifrada con una contraseña, la API key de Gemini. Las copias automáticas y la sincronización nunca llevan la key.
 	</p>
 	<p class="small muted">
 		<strong>Todo vive en este navegador.</strong> Otro navegador u otro dispositivo (el móvil) tiene sus propios datos: para pasar tu
@@ -301,14 +401,50 @@
 <div class="two">
 	<div class="card stack">
 		<h2>Exportar</h2>
-		<p class="small muted">Descarga un .zip con todos tus datos. Sirve para pasar a otro navegador o dispositivo, o guardar una copia fuera.</p>
-		<div><button class="primary" onclick={() => download('/api/data/export', 'sensei.zip')} disabled={busy}>⬇ Descargar .zip</button></div>
+		<p class="small muted">Descarga un .zip para pasar a otro navegador o dispositivo, o guardar una copia fuera. Elige qué lleva:</p>
+		<div class="opts">
+			{#each SECTION_IDS as id (id)}
+				<label class="check">
+					<input type="checkbox" bind:checked={exSections[id]} />
+					<span><strong>{SECTION_INFO[id].label}</strong> <span class="dim">— {SECTION_INFO[id].hint}</span></span>
+				</label>
+			{/each}
+			<label class="check">
+				<input type="checkbox" bind:checked={exDevice} />
+				<span><strong>Preferencias de este dispositivo</strong> <span class="dim">— {Object.values(DEVICE_PREFS).join(', ')}</span></span>
+			</label>
+			<label class="check" class:off={!aiKey()}>
+				<input type="checkbox" bind:checked={exKey} disabled={!aiKey()} />
+				<span>
+					<strong>API key de Gemini, cifrada</strong>
+					<span class="dim">— {aiKey() ? 'con una contraseña que eliges ahora' : 'no hay una guardada aquí'}</span>
+				</span>
+			</label>
+			{#if exKey}
+				<div class="keybox stack">
+					<p class="small warn-text">
+						Quien tenga el .zip <strong>y</strong> la contraseña puede gastar en tu cuenta de Gemini. Sin la contraseña no hay forma de
+						recuperarla: no se guarda en ningún sitio.
+					</p>
+					<input type="password" placeholder="Contraseña (mín. 8 caracteres)" bind:value={exPass} autocomplete="new-password" />
+					<input type="password" placeholder="Repite la contraseña" bind:value={exPass2} autocomplete="new-password" />
+					{#if exPassError && (exPass || exPass2)}<span class="small warn-text">{exPassError}</span>{/if}
+				</div>
+			{/if}
+		</div>
+		{#if exChosen.length < SECTION_IDS.length && exChosen.length}
+			<p class="small dim">Exportación parcial: al importarla solo se reemplaza lo que lleva.</p>
+		{/if}
+		<div>
+			<button class="primary" onclick={exportZip} disabled={busy || exNothing || !!exPassError}>⬇ Descargar .zip</button>
+		</div>
 	</div>
 	<div class="card stack">
 		<h2>Importar</h2>
 		<p class="small muted">
-			Carga un .zip exportado o una copia. <strong>Reemplaza</strong> tu estado actual; antes se guarda una copia automática por si
-			acaso. Las mnemotecnias y traducciones se suman a las existentes.
+			Carga un .zip exportado o una copia. Al elegirlo verás qué trae y podrás escoger qué secciones cargar: cada una
+			<strong>reemplaza</strong> la tuya y las demás quedan intactas. Antes se guarda una copia automática. Las mnemotecnias y
+			traducciones se suman a las existentes.
 		</p>
 		<input type="file" accept=".zip,application/zip" bind:this={fileInput} onchange={pickFile} hidden />
 		<button onclick={() => fileInput?.click()}>⬆ Elegir .zip…</button>
@@ -356,7 +492,7 @@
 
 <StoragePanel onchange={() => void load()} />
 
-<PregenPanel gemini={gemini} />
+{#if aiUi()}<PregenPanel gemini={gemini} />{/if}
 
 <div class="card stack">
 	<h2>Reiniciar progreso</h2>
@@ -405,15 +541,64 @@
 </div>
 
 <!-- Diálogos -->
-<ConfirmDialog bind:open={importOpen} title="Importar y reemplazar" word="REEMPLAZAR" confirmLabel="Importar" {busy} onconfirm={confirmImport}>
+<ConfirmDialog
+	bind:open={importOpen}
+	title="Importar"
+	word={imReplaces ? 'REEMPLAZAR' : undefined}
+	confirmLabel="Importar lo elegido"
+	{busy}
+	disabled={imNothing || (imKey && imPass.length === 0)}
+	onconfirm={confirmImport}
+>
 	{#if importPreview}
-		<p>Archivo del {fmtDate(importPreview.createdAt)}. Contiene:</p>
-		<ul>
-			{#each nonZero(importPreview.incoming) as [k, n] (k)}<li>{n} {LABEL[k] ?? k}</li>{/each}
-		</ul>
-		{#if nonZero(importPreview.current).length}
-			<p>Se reemplazará tu estado actual ({nonZero(importPreview.current).map(([k, n]) => `${n} ${LABEL[k] ?? k}`).join(', ')}). Antes se guardará una copia.</p>
-		{/if}
+		{@const p = importPreview}
+		<p class="small">
+			Archivo del {fmtDate(p.createdAt)}{p.sections.length < SECTION_IDS.length ? ' (exportación parcial)' : ''}{p.dict
+				? ` · diccionario ${p.dict.variant === 'full' ? 'completo' : 'común'}`
+				: ''}. Elige qué cargar:
+		</p>
+		<div class="opts">
+			{#each p.sections as x (x.id)}
+				{@const empty = sum(x.incoming) === 0}
+				<label class="check" class:off={empty}>
+					<input type="checkbox" bind:checked={imSections[x.id]} disabled={empty} />
+					<span>
+						<strong>{SECTION_INFO[x.id].label}</strong>
+						<span class="small block">Trae: {describe(x.incoming)}</span>
+						{#if imSections[x.id]}
+							<span class="small block dim">
+								{#if x.id === 'content'}Se suma a lo tuyo ({describe(x.current)}).
+								{:else if sum(x.current) > 0}Reemplaza lo tuyo: {describe(x.current)}.
+								{:else}Ahora no tienes nada aquí.{/if}
+							</span>
+						{/if}
+					</span>
+				</label>
+			{/each}
+			{#if p.device && Object.keys(p.device).length}
+				<label class="check">
+					<input type="checkbox" bind:checked={imDevice} />
+					<span>
+						<strong>Preferencias del dispositivo</strong>
+						<span class="small block">{Object.keys(p.device).map((k) => DEVICE_PREFS[k] ?? k).join(', ')}</span>
+						<span class="small block dim">Desmárcalo si pasas a un dispositivo distinto (p. ej. del PC al móvil).</span>
+					</span>
+				</label>
+			{/if}
+			{#if p.hasKey}
+				<label class="check">
+					<input type="checkbox" bind:checked={imKey} />
+					<span>
+						<strong>API key de Gemini (cifrada)</strong>
+						<span class="small block dim">{p.currentKey ? 'Sustituirá la que tienes guardada aquí.' : 'Aquí aún no hay ninguna.'}</span>
+					</span>
+				</label>
+				{#if imKey}
+					<input type="password" placeholder="Contraseña con la que se exportó" bind:value={imPass} autocomplete="current-password" />
+				{/if}
+			{/if}
+		</div>
+		{#if imChosen.length}<p class="small">Antes se guardará una copia de tu estado actual.</p>{/if}
 	{/if}
 </ConfirmDialog>
 
@@ -495,6 +680,17 @@
 	}
 	.check.off {
 		opacity: 0.5;
+	}
+	.block {
+		display: block;
+	}
+	.keybox {
+		margin-left: 1.6rem;
+		gap: 0.4rem;
+	}
+	.warn-text {
+		color: var(--warn);
+		margin: 0;
 	}
 	@media (max-width: 600px) {
 		th:nth-child(3),

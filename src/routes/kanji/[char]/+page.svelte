@@ -3,7 +3,10 @@
 	import type { PageProps } from './$types';
 	import { post, errMsg } from '#lib/client/api.ts';
 	import { toast } from '#lib/client/toast.svelte.ts';
+	import { goto } from '#lib/client/nav.ts';
+	import { aiUi } from '#lib/client/ai.svelte.ts';
 	import KanjiDetail from '#lib/components/KanjiDetail.svelte';
+	import ComponentCard from '#lib/components/ComponentCard.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { askTutor, setScreenContext, tutor } from '#lib/client/tutorContext.svelte.ts';
 
@@ -31,11 +34,22 @@
 			setScreenContext({
 				kind: 'component',
 				label: `componente ${data.component.symbol}`,
-				data: { symbol: data.component.symbol, name: data.component.nameEs, usedIn: data.component.usedIn.slice(0, 10) }
+				data: {
+					symbol: data.component.symbol,
+					name: data.component.nameEs,
+					full_form: data.component.fullForm?.char,
+					explanation: data.component.explanation,
+					usedIn: data.component.usedIn.slice(0, 10)
+				}
 			});
 	});
 	let busy = $state(false);
 	let added = $state(false);
+	// Falta algo que su lección generaría: mnemotecnia, consejos de parecidos o glosas en español.
+	const missing = $derived(
+		!!data.kanji &&
+			(!data.kanji.mnemonicMeaning || data.similar.some((x) => !x.tip) || data.kanji.vocab.slice(0, 4).some((v) => !v.glossesEs))
+	);
 
 	async function enrich() {
 		if (!data.kanji) return;
@@ -43,10 +57,27 @@
 		try {
 			await post(`/api/kanji/${encodeURIComponent(data.kanji.char)}/enrich`);
 			await refreshAll();
+			toast.success('Contenido generado', { detail: 'Queda guardado: no se vuelve a pagar.' });
 		} catch (e) {
-			toast.error(errMsg(e));
+			toast.error('No se pudo generar', {
+				detail: errMsg(e),
+				actions: [{ label: 'Ir a Ajustes', run: () => void goto('/ajustes') }]
+			});
 		} finally {
 			busy = false;
+		}
+	}
+
+	async function explainComponent() {
+		if (!data.component) return;
+		try {
+			await post(`/api/kanji/${encodeURIComponent(data.component.symbol)}/enrich`);
+			await refreshAll();
+		} catch (e) {
+			toast.error('No se pudo explicar el componente', {
+				detail: errMsg(e),
+				actions: [{ label: 'Ir a Ajustes', run: () => void goto('/ajustes') }]
+			});
 		}
 	}
 
@@ -113,35 +144,32 @@
 		</div>
 	{/if}
 	<div class="row">
-		{#if !data.kanji.mnemonicMeaning}
-			<button onclick={enrich} disabled={busy}>
-				{#if busy}<span class="spinner"></span>{/if} Generar mnemotecnia
+		{#if missing && aiUi()}
+			<button onclick={enrich} disabled={busy} title="Lo mismo que prepara su lección; solo se genera lo que falta">
+				{#if busy}<span class="spinner"></span>{/if}
+				{data.kanji.mnemonicMeaning ? 'Completar con el tutor' : 'Generar mnemotecnia y traducciones'}
 			</button>
 		{/if}
 		{#if data.kanji.status === 'none'}
 			<button onclick={add} disabled={added}>{added ? 'Añadido ✓' : 'Añadir al SRS ahora'}</button>
 		{/if}
-		<button onclick={() => askTutor(tutor.context, `¿Cómo puedo recordar ${data.kanji?.char} y no confundirlo?`)}>Preguntar al tutor</button>
+		{#if aiUi()}
+			<button onclick={() => askTutor(tutor.context, `¿Cómo puedo recordar ${data.kanji?.char} y no confundirlo?`)}>Preguntar al tutor</button>
+		{/if}
 		{#if data.kanji.status !== 'none'}
 			<button class="ghost" onclick={askReset} title="Vuelve a «sin estudiar»: reaparecerá en las lecciones">Reiniciar este kanji…</button>
 		{/if}
 	</div>
 {:else if data.component}
 	<div class="card stack">
+		<span class="badge component">Componente</span>
+		<ComponentCard c={data.component} ongenerate={aiUi() ? explainComponent : undefined} />
 		<div class="row">
-			<span class="jp sym">{data.component.symbol}</span>
-			<div>
-				<div class="name">Componente: {data.component.nameEs ?? '—'}</div>
-				{#if data.component.strokes}<div class="dim small">{data.component.strokes} trazos</div>{/if}
-			</div>
+			{#if aiUi()}
+				<button onclick={() => askTutor(tutor.context, `¿Qué representa el componente ${data.component?.symbol} y cómo me ayuda a leer kanji?`)}>Preguntar al tutor</button>
+			{/if}
+			<button class="ghost small" onclick={askReset}>Reiniciar este componente…</button>
 		</div>
-		<div>
-			<h3>Aparece en</h3>
-			<div class="row jp used">
-				{#each data.component.usedIn as u (u)}<a href="/kanji/{u}">{u}</a>{/each}
-			</div>
-		</div>
-		<div><button class="ghost small" onclick={askReset}>Reiniciar este componente…</button></div>
 	</div>
 {/if}
 
@@ -156,22 +184,8 @@
 </ConfirmDialog>
 
 <style>
-	.sym {
-		font-size: 5rem;
-		line-height: 1;
-		background: var(--component);
-		color: #fff;
-		border-radius: var(--radius);
-		padding: 0.5rem 0.8rem;
-	}
-	.name {
-		font-size: 1.4rem;
-	}
 	.simk {
 		font-size: 1.8rem;
 		color: var(--kanji);
-	}
-	.used {
-		font-size: 1.4rem;
 	}
 </style>

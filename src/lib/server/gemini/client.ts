@@ -6,18 +6,19 @@ import { assertBudget, recordUsage, type Feature } from './usage.ts';
 
 export class GeminiUnavailableError extends Error {
 	constructor() {
-		super('Falta la API key de Gemini: añádela en Ajustes.');
+		super(config.aiOff ? 'La IA está desactivada: actívala en Ajustes.' : 'Falta la API key de Gemini: añádela en Ajustes.');
 	}
 }
 
 let client: { key: string; ai: GoogleGenAI } | null = null;
 
+/** Se puede usar Gemini: hay key y el alumno no eligió el modo sin IA. */
 export function hasGemini() {
-	return !!config.geminiApiKey;
+	return !!config.geminiApiKey && !config.aiOff;
 }
 
 export function ai(): GoogleGenAI {
-	if (!config.geminiApiKey) throw new GeminiUnavailableError();
+	if (!hasGemini()) throw new GeminiUnavailableError();
 	// Se recrea si el alumno cambia la key en Ajustes.
 	if (client?.key !== config.geminiApiKey) {
 		client = { key: config.geminiApiKey, ai: new GoogleGenAI({ apiKey: config.geminiApiKey }) };

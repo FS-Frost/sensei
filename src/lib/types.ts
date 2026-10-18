@@ -88,11 +88,32 @@ export type VocabInfo = {
 	inflection?: { surface: string; reasons: string[] };
 };
 
+/** Explicación de un componente (Gemini o pregenerada): qué dibuja, por qué el nombre y cómo actúa en los kanji. */
+export type ComponentExplanation = {
+	/** Qué representa el dibujo y de dónde viene. */
+	depicts: string;
+	/** Por qué el nombre tiene sentido. */
+	why: string;
+	/** Su papel en los kanji: pista de significado, de sonido o solo de forma. */
+	role: string;
+	/** Kanji de ejemplo donde se ve por qué tiene sentido. */
+	examples: { char: string; note: string }[];
+	/** Gancho corto para usarlo en mnemotecnias. */
+	hook: string;
+};
+
 export type ComponentInfo = {
 	symbol: string;
 	nameEs: string | null;
 	strokes: number | null;
 	usedIn: string[];
+	/** Kanji del que es variante (氵 → 水), si lo hay. */
+	fullForm: { char: string; meaning: string | null } | null;
+	explanation: ComponentExplanation | null;
+	/** Ejemplos útiles: primero los kanji que ya estudias, luego los próximos de la ruta. */
+	examples: { char: string; meaning: string; status: ItemStatus }[];
+	/** Kanji cercanos en la ruta que no lo llevan (para «¿en cuál aparece?»). */
+	distractors: string[];
 };
 
 /** Estado de aprendizaje de un ítem: none (sin tarjeta), learning, review, mastered. */

@@ -108,3 +108,28 @@ export const RADICAL_NAMES_ES: Record<string, string> = {
 	'无': 'no tener',
 	'五': 'cinco'
 };
+
+/**
+ * Forma completa de los componentes que son variantes reducidas de un kanji (氵 es 水 al ir a la izquierda).
+ * La lección lo muestra para que el nombre tenga sentido: «es 水, apretado en el lateral».
+ */
+export const COMPONENT_FULL_FORM: Record<string, string> = {
+	'亻': '人',
+	'𠆢': '人',
+	'刂': '刀',
+	'忄': '心',
+	'扌': '手',
+	'氵': '水',
+	'犭': '犬',
+	'艹': '艸',
+	'⻏': '邑',
+	'阝': '阜',
+	'耂': '老',
+	'灬': '火',
+	'礻': '示',
+	'衤': '衣',
+	'罒': '网',
+	'辶': '辵',
+	'攵': '攴',
+	'⺌': '小'
+};

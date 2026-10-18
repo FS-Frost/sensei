@@ -76,6 +76,7 @@ bun run dev                     # http://localhost:5173
 - **Inicio**: el **siguiente paso recomendado y por qué**, tu posición en la **ruta de hitos** (kana → 50 → 100 → 300 → 600 → 1000 → 2000 kanji), repasos pendientes, cupo de lecciones, racha, progreso, previsión, puntos débiles y confusiones.
 - **Diagnóstico de kana**: solo los kana que fallas o en los que dudas (> 4 s) entran al SRS.
 - **Lecciones**: componentes → kanji (mnemotecnia en español, lecturas, vocabulario) → mini-quiz. Orden "componentes + frecuencia". El vocabulario se desbloquea cuando sus kanji pasan a repaso.
+  - **Componentes explicados:** qué dibujan, por qué el nombre, qué aportan (significado, sonido o solo forma) y su forma completa (氵 es 水). Ejemplos con la pieza resaltada en color dentro de cada kanji, «lo vas a usar en…» y la pregunta «¿en cuál aparece?».
 - **Repaso SRS (FSRS)**: lectura en romaji que se convierte en vivo a kana; significado en español con tolerancia a tildes y erratas; "¿Por qué?" pide la explicación al tutor; las confusiones se detectan solas.
 - **Tutor** (chat por turnos con function calling): conversación-quiz, quiz a medida, explicador, detective de confusiones y libre. Recuerda tus sesiones mediante resúmenes y notas.
   - **En toda la app:** el botón 話 abre un panel lateral que sabe qué estás viendo.
@@ -85,6 +86,7 @@ bun run dev                     # http://localhost:5173
   - `?tutor=1` en cualquier URL abre el panel.
 - **Lectura graduada** (i+1), **Explicador** (texto o foto), **furigana adaptativa**, validación de lecturas contra JMdict.
 - **Mapa de kanji**, ficha por kanji (con orden de trazos de KanjiVG), **estadísticas** y **ajustes**.
+- **Con IA o sin IA**: al empezar (o si no hay API key) se pregunta si usarás la IA. En **modo sin IA** desaparecen el tutor, las lecturas graduadas, el explicador, los costos y los botones de generar, y el resto funciona con el contenido ya preparado. El modo se ve en Inicio y al pie del menú; se cambia en Ajustes → Inteligencia artificial (la key se conserva).
 - **Avisos arriba de la pantalla**: confirmaciones, información y advertencias se cierran solas (pasar el ratón las pausa); los errores quedan hasta cerrarlos con ✕. Algunos traen botones («Actualizar», «Seguir →»).
 
 ### El viaje: del primer kanji a leer lo que quieres
@@ -97,7 +99,7 @@ Cada llamada guarda tokens y costo estimado con el precio de ese día: gasto del
 
 ### Datos y copias (`/datos`)
 
-Exportar/importar .zip (importar reemplaza, con copia previa), copias automáticas diarias y manuales en el navegador (7 días, descargables), reinicios por tipo, ítem, tutor, contenido generado o costos, y restablecer ajustes. Las operaciones destructivas piden escribir REINICIAR o REEMPLAZAR.
+Exportar/importar .zip eligiendo secciones (progreso, tutor, biblioteca, costos, ajustes, contenido generado), preferencias del dispositivo y, opcional, la API key de Gemini cifrada con contraseña; al importar, vista previa por sección y solo se reemplaza lo elegido (con copia previa). Copias automáticas diarias y manuales en el navegador (7 días, descargables), reinicios por tipo, ítem, tutor, contenido generado o costos, y restablecer ajustes. Las operaciones destructivas piden escribir REINICIAR o REEMPLAZAR.
 
 - **Almacenamiento**: cuánto ocupa Sensei, si el navegador puede borrarlo («Pedir protección»), tamaños de base, copias y cachés, comprobar la base y compactarla.
 - **Preparar por adelantado**: genera ya las mnemotecnias, glosas y frases de los próximos kanji que vas a estudiar (por tandas, se puede parar y retomar).
@@ -119,7 +121,7 @@ Un botón en Inicio encadena repasos (con tope) → lección → lectura corta �
 
 ### Contenido pregenerado
 
-El diccionario publicado trae mnemotecnias, glosas y frases ya hechas para los primeros kanji (`content/pregen.json`): se empieza sin gastar ni key. Para ampliarlo: `GEMINI_API_KEY=… bun run pregen --kanji 500` (continúa donde se quedó) y `bun run build:dict`.
+El diccionario publicado trae mnemotecnias, explicaciones de componentes, glosas y frases ya hechas para los primeros kanji (`content/pregen.json`): se empieza sin gastar ni key. Para ampliarlo: `GEMINI_API_KEY=… bun run pregen --kanji 500` (continúa donde se quedó) y `bun run build:dict`. Lo que ya generaste usando la app también se puede publicar: exporta con «Contenido generado» y ejecuta `bun run pregen:import <exportación.zip> [--dry]` (suma lo que falta y nunca publica mnemotecnias personales).
 
 ## Fuentes y licencias
 

@@ -99,7 +99,8 @@ export function previewReset(db: DB, req: ResetRequest): ResetPreview {
 		library: req.library ? count(db, s.libraryText) : 0,
 		texts: req.generated ? count(db, s.generatedText) : 0,
 		mnemonics: req.generated
-			? count(db, s.kanji, sql`${s.kanji.mnemonicMeaning} is not null and coalesce(${s.kanji.mnemonicSource}, 'gemini') != 'pregen'`)
+			? count(db, s.kanji, sql`${s.kanji.mnemonicMeaning} is not null and coalesce(${s.kanji.mnemonicSource}, 'gemini') != 'pregen'`) +
+				count(db, s.component, sql`${s.component.explanationSource} = 'gemini'`)
 			: 0,
 		translations: req.generated
 			? count(db, s.vocab, sql`${s.vocab.glossesEsSource} = 'gemini'`) +
@@ -149,6 +150,7 @@ export function applyReset(db: DB, req: ResetRequest) {
 				.run();
 			tx.update(s.sentence).set({ es: null, esSource: null }).where(notPregen(s.sentence.esSource)).run();
 			tx.update(s.similarKanji).set({ tip: null, tipSource: null }).where(notPregen(s.similarKanji.tipSource)).run();
+			tx.update(s.component).set({ explanation: null, explanationSource: null }).where(eq(s.component.explanationSource, 'gemini')).run();
 			// Componentes nombrados por Gemini: volver al nombre estático o al significado del kanji.
 			const named = tx.select({ symbol: s.component.symbol }).from(s.component).where(eq(s.component.nameSource, 'gemini')).all();
 			for (const { symbol } of named) {

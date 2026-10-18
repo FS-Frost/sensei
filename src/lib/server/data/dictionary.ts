@@ -36,7 +36,8 @@ export async function downloadDict(
 		async start(controller) {
 			try {
 				for (const p of parts) {
-					const res = await fetch(`${assets}/dict/${variant}/${p.file}`);
+					// `?v=`: los trozos se llaman igual en cada versión; sin esto la caché HTTP puede servir el de la anterior.
+				const res = await fetch(`${assets}/dict/${variant}/${p.file}?v=${manifest.version}`);
 					if (!res.ok || !res.body) throw new Error(`No se pudo descargar ${p.file} (${res.status})`);
 					const reader = res.body.getReader();
 					for (;;) {

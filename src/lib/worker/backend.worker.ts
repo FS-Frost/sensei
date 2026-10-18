@@ -6,7 +6,7 @@ import { exportDbFile, hasDbFile, importDbFile, initSqlite, openWasmDb, type Bun
 import { buildRoutes, dispatch, LoadError, LoadRedirect, type ServerLoad } from '../server/router.ts';
 import { createBackup, setBackupStore, startBackupScheduler } from '../server/data/backups.ts';
 import { opfsStore } from '../server/data/store.ts';
-import { getInternal } from '../server/settings.ts';
+import { getInternal, syncAiMode } from '../server/settings.ts';
 import { setGeminiApiKey } from '../server/config.ts';
 import {
 	captureUserData,
@@ -62,6 +62,7 @@ async function open() {
 	conn = await openWasmDb();
 	setDb(conn.db);
 	setGeminiApiKey(getInternal(conn.db, 'geminiApiKey') ?? '');
+	syncAiMode(conn.db);
 	setBackupStore(opfsStore('backups'));
 	// Con el proxy `db`: si luego se cambia de base (actualizar diccionario), el temporizador sigue valiendo.
 	startBackupScheduler(activeDb);
@@ -115,11 +116,13 @@ async function install(variant: DictVariant) {
 			setState({ state: 'installing', phase: 'restore', loaded: 0, total: 0, variant });
 			restoreUserData(conn!.db, saved);
 			setGeminiApiKey(getInternal(conn!.db, 'geminiApiKey') ?? '');
+			syncAiMode(conn!.db);
 		}
 		markDict(conn!.db, manifest, variant);
 		setState(readyState());
 	} catch (e) {
-		if (conn) setState(readyState());
+		// Falló antes de cambiar de base: se sigue con la anterior, pero el alumno debe saberlo.
+		if (conn) setState({ ...readyState(), updateError: errMsg(e) } as BackendState);
 		else setState({ state: 'needs-dict', manifest, error: errMsg(e) });
 		console.error('[sensei] instalación del diccionario', e);
 	}

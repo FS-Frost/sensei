@@ -5,7 +5,9 @@
 // Lo que forma parte de un formulario (un campo inválido) sigue mostrándose junto al campo, no como toast.
 // Lo pinta components/Toaster.svelte (en el layout raíz, también en el laboratorio y la instalación).
 
-export type ToastKind = 'success' | 'info' | 'warn' | 'error';
+import { untrack } from 'svelte';
+
+export type ToastKind ='success' | 'info' | 'warn' | 'error';
 
 export type ToastAction = { label: string; run: () => void | Promise<void>; /** No cerrar el toast al pulsar. */ keep?: boolean };
 
@@ -41,12 +43,15 @@ function schedule(t: Toast, ms: number) {
 }
 
 export function show(kind: ToastKind, message: string, opts: ToastOptions = {}): number {
-	const duration = opts.duration === undefined ? DURATIONS[kind] : opts.duration;
-	if (opts.key) for (const old of toasts.list.filter((x) => x.key === opts.key)) dismiss(old.id);
-	const t: Toast = { ...opts, id: nextId++, kind, message, duration, createdAt: Date.now() };
-	toasts.list = [...toasts.list, t].slice(-MAX_TOASTS);
-	if (duration != null) schedule(t, duration);
-	return t.id;
+	// Sin rastrear la lista: llamado desde un $effect, leerla lo volvería a disparar en bucle.
+	return untrack(() => {
+		const duration = opts.duration === undefined ? DURATIONS[kind] : opts.duration;
+		if (opts.key) for (const old of toasts.list.filter((x) => x.key === opts.key)) dismiss(old.id);
+		const t: Toast = { ...opts, id: nextId++, kind, message, duration, createdAt: Date.now() };
+		toasts.list = [...toasts.list, t].slice(-MAX_TOASTS);
+		if (duration != null) schedule(t, duration);
+		return t.id;
+	});
 }
 
 export function dismiss(id: number) {
@@ -57,7 +62,7 @@ export function dismiss(id: number) {
 
 /** Cierra los toasts con esa clave (p. ej. «sin conexión» al volver la red). */
 export function dismissKey(key: string) {
-	for (const t of toasts.list.filter((x) => x.key === key)) dismiss(t.id);
+	for (const t of untrack(() => toasts.list.filter((x) => x.key === key))) dismiss(t.id);
 }
 
 /** Pausa el cierre automático (ratón o foco encima) y lo reanuda con el tiempo que quedaba. */

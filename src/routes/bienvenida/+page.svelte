@@ -6,6 +6,8 @@
 	import { post, errMsg } from '#lib/client/api.ts';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import InstallCard from '#lib/components/InstallCard.svelte';
+	import AiChoice from '#lib/components/AiChoice.svelte';
+	import { aiKey, aiMode, aiUi } from '#lib/client/ai.svelte.ts';
 	import type { FuriganaMode } from '#lib/types.ts';
 
 	let { data }: PageProps = $props();
@@ -22,7 +24,7 @@
 	let furigana: FuriganaMode = $state(untrack(() => data.settings.furigana));
 	let saving = $state(false);
 
-	const STEPS = ['Bienvenida', 'El camino', 'El SRS', 'Tu ritmo', 'Leer sin muletas', 'El tutor', '¡A empezar!'];
+	const STEPS = ['Bienvenida', 'El camino', 'El SRS', 'Tu ritmo', 'Leer sin muletas', 'La IA', '¡A empezar!'];
 	const last = STEPS.length - 1;
 
 	async function finish(target: string) {
@@ -121,22 +123,27 @@
 			</ul>
 			<div class="row small">Tema: <ThemeToggle /></div>
 		{:else if step === 5}
-			<h2>El tutor</h2>
-			{#if data.gemini}
-				<p>Un tutor con IA (Gemini) que conoce tu progreso, tus fallos y tus confusiones, y recuerda las sesiones anteriores.</p>
-				<ul>
-					<li><strong>Conversación-quiz</strong>: te pregunta por turnos y se adapta.</li>
-					<li><strong>Quiz a medida</strong>: pide «10 preguntas con 氵» o «vocabulario de comida».</li>
-					<li><strong>Explicador</strong>: pega una frase o una foto de manga y la desglosa.</li>
-					<li><strong>Detective de confusiones</strong>: ejercicios para separar 未/末, 土/士…</li>
-				</ul>
-				<p class="small muted">Sus lecturas se comprueban contra el diccionario; si algo no cuadra, se marca con subrayado punteado.</p>
+			<h2>La IA: un tutor, si lo quieres</h2>
+			<p>Con IA (Gemini) tienes un tutor que conoce tu progreso, tus fallos y tus confusiones, y recuerda las sesiones anteriores.</p>
+			<ul>
+				<li><strong>Conversación-quiz</strong>: te pregunta por turnos y se adapta.</li>
+				<li><strong>Quiz a medida</strong>: pide «10 preguntas con 氵» o «vocabulario de comida».</li>
+				<li><strong>Explicador</strong>: pega una frase o una foto de manga y la desglosa.</li>
+				<li><strong>Lecturas graduadas</strong> a tu nivel y <strong>«¿Por qué?»</strong> al fallar un repaso.</li>
+			</ul>
+			{#if aiMode() === 'ask' && !aiKey()}
+				<!-- Con `ondone` no navega: el asistente sigue en este paso y muestra lo elegido. -->
+				<AiChoice compact ondone={() => {}} />
+			{:else if aiUi()}
+				<p class="small">
+					✓ IA activada{aiKey() ? '' : ': pega tu API key en Ajustes cuando termines (es gratis crearla en Google AI Studio)'}. Si
+					prefieres no usarla, cámbialo en <a href="/ajustes#ia">Ajustes</a>.
+				</p>
 			{:else}
-				<div class="warning small">
-					Sin API key de Gemini el tutor, las lecturas graduadas, el explicador y las mnemotecnias no están disponibles. El SRS, las
-					lecciones y el diccionario funcionan igual. Puedes añadirla luego en <a href="/ajustes#gemini">Ajustes</a> (es gratis crearla
-					en Google AI Studio).
-				</div>
+				<p class="small">
+					✓ <strong>Modo sin IA</strong>: el SRS, las lecciones, el diccionario y la biblioteca
+					funcionan igual, con mnemotecnias ya preparadas para los primeros 500 kanji. Puedes activarla cuando quieras en Ajustes.
+				</p>
 			{/if}
 		{:else}
 			<h2>¡A empezar!</h2>

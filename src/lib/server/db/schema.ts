@@ -7,6 +7,7 @@ import {
 	index,
 	uniqueIndex
 } from 'drizzle-orm/sqlite-core';
+import type { ComponentExplanation } from '../../types.ts';
 
 const json = <T>(name: string) => text(name, { mode: 'json' }).$type<T>();
 
@@ -31,7 +32,8 @@ export const kanji = sqliteTable(
 		 * Origen de la mnemotecnia: `pregen` = publicada con el diccionario (data/pregen, no se exporta ni se borra al
 		 * reiniciar el contenido generado); `gemini` (o null, datos antiguos) = generada con la key del alumno.
 		 */
-		mnemonicSource: text('mnemonic_source').$type<'gemini' | 'pregen'>()
+		/** `personal`: hecha con los intereses del alumno (tarjeta difícil); se exporta, nunca se publica como pregenerada. */
+		mnemonicSource: text('mnemonic_source').$type<'gemini' | 'pregen' | 'personal'>()
 	},
 	(t) => [index('kanji_learn_order').on(t.learnOrder)]
 );
@@ -43,6 +45,9 @@ export const component = sqliteTable(
 		nameEs: text('name_es'),
 		/** Origen del nombre: estático (radicals.ts), significado del kanji, generado por Gemini o pregenerado (diccionario). */
 		nameSource: text('name_source').$type<'static' | 'kanji' | 'gemini' | 'pregen'>(),
+		/** Explicación para la lección (qué dibuja, por qué el nombre, papel, ejemplos): Gemini o pregenerada. */
+		explanation: json<ComponentExplanation>('explanation'),
+		explanationSource: text('explanation_source').$type<'gemini' | 'pregen'>(),
 		strokes: integer('strokes'),
 		learnOrder: integer('learn_order')
 	},

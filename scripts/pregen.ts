@@ -1,4 +1,4 @@
-// Pregenera contenido (mnemotecnias, nombres de componentes, glosas, frases, consejos de parecidos) de los primeros N kanji
+// Pregenera contenido (mnemotecnias, nombres y explicaciones de componentes, glosas, frases, consejos de parecidos) de los primeros N kanji
 // del orden de aprendizaje y lo guarda en data/pregen/content/pregen.json, que build-dict publica con el diccionario.
 //
 // Uso: GEMINI_API_KEY=… bun run pregen [--kanji 500] [--batch 8] [--dry]
@@ -12,7 +12,8 @@ import { setDb } from '../src/lib/server/db/index.ts';
 import { runImport } from '../src/lib/server/import/run.ts';
 import { config } from '../src/lib/server/config.ts';
 import { applyPregen, collectGenerated, emptyPregen, kanjiInOrder, PREGEN_FORMAT, type PregenContent } from '../src/lib/server/data/pregen.ts';
-import { pregenerateBatch } from '../src/lib/server/gemini/pregen.ts';
+import { componentsMissingExplanation, pregenerateBatch } from '../src/lib/server/gemini/pregen.ts';
+import { ensureComponentExplanations } from '../src/lib/server/gemini/enrich.ts';
 
 const args = process.argv.slice(2);
 const opt = (name: string, def: string) => {
@@ -51,7 +52,11 @@ const chars = kanjiInOrder(db, target);
 const pending = chars.filter(
 	(c) => !(db.all<{ n: number }>(sql`select count(*) as n from kanji where char = ${c} and mnemonic_meaning is not null`)[0]?.n ?? 0)
 );
-console.log(`Objetivo: ${chars.length} kanji · faltan ${pending.length} · modelos ${config.modelPro} / ${config.modelFlash}`);
+const unexplained = () => componentsMissingExplanation(db, chars);
+console.log(
+	`Objetivo: ${chars.length} kanji · faltan ${pending.length} · componentes sin explicar ${unexplained().length} · ` +
+		`modelos ${config.modelPro} / ${config.modelFlash}`
+);
 if (dry) process.exit(0);
 
 function save(done: string[]) {
@@ -83,5 +88,20 @@ for (let i = 0; i < pending.length; i += batch) {
 		`  ${Math.min(i + batch, pending.length)}/${pending.length} ${part.join('')} (${((performance.now() - t0) / 1000).toFixed(1)} s) · ` +
 			`${m.mnemonics.length} mnemotecnias · ${m.glosses.length} glosas · $${usd.toFixed(3)} en total`
 	);
+}
+// Componentes de kanji procesados antes de que existieran las explicaciones (o cuya tanda falló a medias).
+const rest = unexplained();
+for (let i = 0; i < rest.length; i += 20) {
+	const part = rest.slice(i, i + 20);
+	try {
+		await ensureComponentExplanations(db, part);
+	} catch (e) {
+		console.error(`  componentes ${part.join('')} fallaron: ${e instanceof Error ? e.message : e}. Vuelve a ejecutar para seguir.`);
+		save(done);
+		process.exit(1);
+	}
+	const m = save(done);
+	const usd = db.all<{ usd: number }>(sql`select coalesce(sum(cost_usd), 0) as usd from gemini_usage`)[0].usd;
+	console.log(`  componentes ${Math.min(i + 20, rest.length)}/${rest.length} · ${m.componentExplanations?.length ?? 0} explicados · $${usd.toFixed(3)} en total`);
 }
 console.log(`\nListo: ${OUT}. Publica con: bun run build:dict`);

@@ -4,6 +4,7 @@ import { setting } from './db/schema.ts';
 
 import type { FuriganaMode } from '../types.ts';
 import { normalizePrices, type ModelPrices } from './gemini/pricing.ts';
+import { setAiOff } from './config.ts';
 export type { FuriganaMode };
 
 export type Settings = {
@@ -37,7 +38,14 @@ export type Settings = {
 	writingReviews: boolean;
 	/** Kanji nuevos al día que entran a los repasos de escritura (si están activados). */
 	newWritingPerDay: number;
+	/**
+	 * Uso de la IA (Gemini): `ask` = aún no se eligió (se pregunta si no hay key; con key cuenta como activada),
+	 * `on` = activada, `off` = modo sin IA (ni llamadas ni botones de IA; la key se conserva sin usarse).
+	 */
+	aiMode: AiMode;
 };
+
+export type AiMode = 'ask' | 'on' | 'off';
 
 export type Goal = {
 	label: string;
@@ -68,13 +76,23 @@ export const DEFAULT_SETTINGS: Settings = {
 	monthlyBudgetUsd: null,
 	budgetHardStop: false,
 	writingReviews: false,
-	newWritingPerDay: 5
+	newWritingPerDay: 5,
+	aiMode: 'ask'
 };
 
 /** Vuelve a los valores por defecto. Conserva los valores internos (`_…`, p. ej. el secreto de sesión). */
 export function resetSettings(db: DB) {
 	db.delete(setting).where(sql`substr(${setting.key}, 1, 1) != '_'`).run();
+	syncAiMode(db);
 	return getSettings(db);
+}
+
+/**
+ * Aplica el ajuste `aiMode` al interruptor en memoria (`config.aiOff`, que consulta `hasGemini()`).
+ * Llamar al abrir la base y cada vez que pueda cambiar (ajustes, importar, sincronizar).
+ */
+export function syncAiMode(db: DB) {
+	setAiOff(getSettings(db).aiMode === 'off');
 }
 
 export function getSettings(db: DB): Settings {
@@ -122,6 +140,7 @@ export function updateSettings(db: DB, patch: Partial<Settings>) {
 	next.newVocabPerDay = clampInt(next.newVocabPerDay, 0, 50);
 	next.dayStartHour = clampInt(next.dayStartHour, 0, 23);
 	if (!['adaptive', 'always', 'never'].includes(next.furigana)) next.furigana = 'adaptive';
+	if (!['ask', 'on', 'off'].includes(next.aiMode)) next.aiMode = 'ask';
 	for (const [key, value] of Object.entries(next)) {
 		if (!(key in DEFAULT_SETTINGS)) continue;
 		db.insert(setting)
@@ -129,6 +148,7 @@ export function updateSettings(db: DB, patch: Partial<Settings>) {
 			.onConflictDoUpdate({ target: setting.key, set: { value: JSON.stringify(value) } })
 			.run();
 	}
+	setAiOff(next.aiMode === 'off');
 	return next;
 }
 

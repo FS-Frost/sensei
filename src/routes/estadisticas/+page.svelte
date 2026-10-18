@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HelpLink from '#lib/components/HelpLink.svelte';
+	import { aiUi } from '#lib/client/ai.svelte.ts';
 	import type { PageProps } from './$types';
 	import BarChart from '#lib/components/BarChart.svelte';
 	import ProgressMeter from '#lib/components/ProgressMeter.svelte';
@@ -83,7 +84,7 @@
 						<td class="num">{l.lapses}</td>
 						<td class="acts">
 							{#if l.type === 'kanji'}
-								<button class="small" onclick={() => treat(l.id, 'mnemonic')} disabled={busy[l.id]}>Nueva mnemotecnia</button>
+								{#if aiUi()}<button class="small" onclick={() => treat(l.id, 'mnemonic')} disabled={busy[l.id]}>Nueva mnemotecnia</button>{/if}
 								<!-- Escribirlo a mano fija la forma: ayuda a separarlo de sus parecidos. -->
 								<a class="btn small" href="/kanji/{l.key}#escribir">✍ Escribirlo</a>
 							{/if}
@@ -94,7 +95,7 @@
 				{/each}
 			</tbody>
 		</table>
-		<a class="btn small" href="/tutor?nuevo=confusiones">Practicar con el detective de confusiones</a>
+		{#if aiUi()}<a class="btn small" href="/tutor?nuevo=confusiones">Practicar con el detective de confusiones</a>{/if}
 	{:else}
 		<p class="small muted">Ninguna por ahora. Aparecen cuando fallas 6 veces o más una tarjeta ya aprendida.</p>
 	{/if}

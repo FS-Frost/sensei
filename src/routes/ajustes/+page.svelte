@@ -14,6 +14,7 @@
 	import AppSettings from '#lib/components/AppSettings.svelte';
 	import { DEFAULT_PRESET, PRESETS, presetOf, type ModelPreset } from '#lib/modelPresets.ts';
 	import { ago } from '#lib/client/version.ts';
+	import { aiKey, aiMode, aiUi, setAiMode } from '#lib/client/ai.svelte.ts';
 
 	const builtAt = import.meta.env.VITE_BUILT_AT as string | undefined;
 
@@ -28,7 +29,8 @@
 		try {
 			// El objetivo, los parámetros FSRS y los precios/presupuesto (en /costos) tienen sus propios botones:
 			// no pisarlos con la copia del formulario.
-			const { goal: _g, fsrsParams: _p, fsrsCalibratedAt: _c, modelPrices: _mp, monthlyBudgetUsd: _b, budgetHardStop: _h, ...rest } = s;
+			// El modo IA también tiene su propio interruptor.
+			const { goal: _g, fsrsParams: _p, fsrsCalibratedAt: _c, modelPrices: _mp, monthlyBudgetUsd: _b, budgetHardStop: _h, aiMode: _ai, ...rest } = s;
 			s = await post('/api/settings', rest);
 			toast.success('Ajustes guardados');
 			await refreshAll();
@@ -87,6 +89,23 @@
 			toast.error('No se pudo aplicar la calibración', { detail: errMsg(e) });
 		} finally {
 			calBusy = false;
+		}
+	}
+
+	// ---------- Modo IA ----------
+	const ai = $derived(aiUi());
+	let aiBusy = $state(false);
+	async function changeAi(mode: 'on' | 'off') {
+		aiBusy = true;
+		try {
+			await setAiMode(mode);
+			toast.success(mode === 'on' ? 'IA activada' : 'Modo sin IA', {
+				detail: mode === 'on' ? (aiKey() ? undefined : 'Pega tu API key abajo para empezar.') : 'Las funciones de IA ya no se muestran.'
+			});
+		} catch (e) {
+			toast.error('No se pudo cambiar el modo', { detail: errMsg(e) });
+		} finally {
+			aiBusy = false;
 		}
 	}
 
@@ -306,11 +325,33 @@
 	{/if}
 </div>
 
+<div class="card stack" id="ia">
+	<h2>Inteligencia artificial</h2>
+	<p class="small muted">
+		La IA (Gemini) da el tutor, las lecturas graduadas, el explicador, el «¿Por qué?» de los repasos y las mnemotecnias de los kanji
+		que aún no traen. Sin IA, el SRS, las lecciones, el diccionario, la biblioteca, la velocidad y los informes siguen funcionando
+		con el contenido ya preparado, y desaparecen de la interfaz las funciones de IA. El modo viaja en tus copias y al sincronizar.
+	</p>
+	<div class="row modes" role="radiogroup" aria-label="Modo de IA">
+		<button class="mode" class:sel={ai} role="radio" aria-checked={ai} onclick={() => changeAi('on')} disabled={aiBusy}>
+			<strong>智 IA activada</strong>
+			<span class="small dim">{aiKey() ? 'con tu API key' : 'falta pegar la API key abajo'}</span>
+		</button>
+		<button class="mode" class:sel={aiMode() === 'off'} role="radio" aria-checked={aiMode() === 'off'} onclick={() => changeAi('off')} disabled={aiBusy}>
+			<strong>無 Sin IA</strong>
+			<span class="small dim">{aiKey() ? 'la key se conserva sin usarse' : 'sin llamadas a Gemini'}</span>
+		</button>
+	</div>
+	{#if aiMode() === 'ask' && !aiKey()}<p class="small">Aún no elegiste: elige una opción.</p>{/if}
+</div>
+
+{#if ai}
 <div class="card stack" id="gemini">
 	<h2>API key de Gemini</h2>
 	<p class="small muted">
 		Créala gratis en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio</a>. Se guarda solo en
-		este navegador (no viaja en las exportaciones ni en las copias). Cualquiera con acceso a este navegador podría usarla:
+		este navegador (no viaja en las copias automáticas ni al sincronizar; al exportar puedes incluirla cifrada con contraseña).
+		Cualquiera con acceso a este navegador podría usarla:
 		<strong>restríngela</strong> en Google Cloud a esta dirección (<code>{origin}</code>) y a la «Generative Language API», y ponle un
 		presupuesto en <a href="/costos">Costos</a>.
 	</p>
@@ -376,6 +417,7 @@
 	<p class="dim small">«Elegir…» muestra los modelos de tu API key con su precio y lo que te costarían con tu uso real. Recuerda guardar.</p>
 	</details>
 </div>
+{/if}
 
 <ModelPicker
 	bind:open={pickerOpen}
@@ -434,6 +476,20 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 		gap: 0.6rem;
+	}
+	.modes .mode {
+		flex: 1;
+		min-width: 200px;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.2rem;
+		padding: 0.8rem 0.9rem;
+		text-align: left;
+	}
+	.modes .mode.sel {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 	.preset {
 		display: flex;

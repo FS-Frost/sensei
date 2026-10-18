@@ -4,8 +4,9 @@
 import { and, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { DB } from '../db/index.ts';
 import * as s from '../db/schema.ts';
-import { ensureComponentNames, ensureGlossesEs, ensureMnemonics, ensureSentencesEs, ensureSimilarTips } from './enrich.ts';
+import { ensureComponentExplanations, ensureComponentNames, ensureGlossesEs, ensureMnemonics, ensureSentencesEs, ensureSimilarTips } from './enrich.ts';
 import { kanjiInOrder } from '../data/pregen.ts';
+import type { LessonItem } from '../../types.ts';
 
 /** Palabras por kanji para las que se preparan glosas y frases (las más comunes primero). */
 export const WORDS_PER_KANJI = 4;
@@ -60,6 +61,48 @@ export function pregenStatus(db: DB, count: number): PregenStatus {
 }
 
 /**
+ * De estos componentes, los que se enseñan como componente (no son kanji: esos se aprenden como kanji)
+ * y aún no tienen explicación.
+ */
+export function componentsToExplain(db: DB, symbols: string[]): string[] {
+	if (!symbols.length) return [];
+	return db
+		.all<{ symbol: string }>(
+			sql`select symbol from component
+				where symbol in (${sql.join(symbols.map((x) => sql`${x}`), sql`, `)})
+					and explanation is null
+					and not exists (select 1 from kanji where kanji.char = component.symbol)
+				order by learn_order, symbol`
+		)
+		.map((r) => r.symbol);
+}
+
+/** Componentes (de los kanji `chars`) que faltan por explicar: para completar tandas hechas antes de existir. */
+export function componentsMissingExplanation(db: DB, chars: string[]): string[] {
+	if (!chars.length) return [];
+	const symbols = db
+		.selectDistinct({ symbol: s.kanjiComponent.symbol })
+		.from(s.kanjiComponent)
+		.where(inArray(s.kanjiComponent.kanji, chars))
+		.all()
+		.map((r) => r.symbol);
+	return componentsToExplain(db, symbols);
+}
+
+/**
+ * Qué le falta a una lección que generaría Gemini (para avisar cuando no hay key): kanji sin mnemotecnia,
+ * componentes sin explicación y palabras sin español. null si no falta nada.
+ */
+export function missingContent(db: DB, items: LessonItem[]): { kanji: number; components: number; words: number } | null {
+	const m = {
+		kanji: items.filter((i) => i.type === 'kanji' && !i.kanji.mnemonicMeaning).length,
+		components: componentsToExplain(db, items.filter((i) => i.type === 'component').map((i) => i.key)).length,
+		words: items.filter((i) => i.type === 'vocab' && !i.vocab.glossesEs).length
+	};
+	return m.kanji + m.components + m.words ? m : null;
+}
+
+/**
  * Una tanda: nombres de sus componentes → mnemotecnias (usan esos nombres) → consejos de parecidos → glosas y frases
  * de su vocabulario principal. Las funciones de enrich.ts saltan lo que ya existe.
  */
@@ -72,6 +115,7 @@ export async function pregenerateBatch(db: DB, chars: string[]) {
 		.all()
 		.map((r) => r.symbol);
 	await ensureComponentNames(db, symbols);
+	await ensureComponentExplanations(db, componentsToExplain(db, symbols));
 	await ensureMnemonics(db, chars);
 	const pairs = db.all<{ a: string; b: string }>(sql`
 		select a, b from similar_kanji

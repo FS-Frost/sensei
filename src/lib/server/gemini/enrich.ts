@@ -3,6 +3,8 @@ import { eq, inArray, isNull, and } from 'drizzle-orm';
 import type { DB } from '../db/index.ts';
 import * as s from '../db/schema.ts';
 import { generateJson, hasGemini, models } from './client.ts';
+import { getComponentInfo } from '../items.ts';
+import type { ComponentExplanation } from '../../types.ts';
 
 const SYSTEM =
 	'Eres un profesor de japonés para hispanohablantes cuyo objetivo es aprender a LEER japonés. ' +
@@ -47,6 +49,97 @@ export async function ensureComponentNames(db: DB, symbols: string[]) {
 			.set({ nameEs: it.name_es.trim(), nameSource: 'gemini' })
 			.where(eq(s.component.symbol, it.symbol))
 			.run();
+	}
+}
+
+/** Componentes por llamada al generar explicaciones (cada uno lleva su lista de kanji de ejemplo). */
+const EXPLAIN_CHUNK = 10;
+
+/**
+ * Explicación de cada componente para su lección: qué dibuja, por qué el nombre, su papel y ejemplos razonados
+ * (solo entre los kanji donde aparece de verdad). Salta los que ya la tienen.
+ */
+export async function ensureComponentExplanations(db: DB, symbols: string[]) {
+	if (!hasGemini() || !symbols.length) return;
+	const missing = db
+		.select({ symbol: s.component.symbol, name: s.component.nameEs })
+		.from(s.component)
+		.where(and(inArray(s.component.symbol, symbols), isNull(s.component.explanation)))
+		.orderBy(s.component.learnOrder, s.component.symbol)
+		.all();
+	for (let i = 0; i < missing.length; i += EXPLAIN_CHUNK) {
+		const part = missing.slice(i, i + EXPLAIN_CHUNK);
+		const used = new Map<string, Set<string>>();
+		const desc = part
+			.map((c) => {
+				const info = getComponentInfo(db, c.symbol);
+				const ex = info?.examples ?? [];
+				used.set(c.symbol, new Set(ex.map((e) => e.char)));
+				const exText = ex.map((e) => `${e.char}${e.meaning ? ` «${e.meaning}»` : ''}`).join(', ');
+				const full = info?.fullForm ? `; variante de ${info.fullForm.char}${info.fullForm.meaning ? ` «${info.fullForm.meaning}»` : ''}` : '';
+				return `- ${c.symbol}: nombre «${c.name ?? '—'}»${full}; aparece en: ${exText || '—'}`;
+			})
+			.join('\n');
+		const res = await generateJson<{ items: (ComponentExplanation & { symbol: string })[] }>({
+			db,
+			feature: 'component_explain',
+			model: models(db).pro,
+			system: SYSTEM,
+			contents:
+				'Explica estos componentes de kanji a un principiante que aprende a LEER. Para cada uno:\n' +
+				'- "depicts": qué dibuja y de dónde viene (pictograma, forma reducida de otro kanji…), 1-2 frases. Si el origen es dudoso, descríbelo por su forma y dilo; no inventes etimologías.\n' +
+				'- "why": por qué el nombre dado tiene sentido (relaciona la forma con el nombre), 1 frase.\n' +
+				'- "role": qué aporta en los kanji donde aparece: pista de significado, de sonido o solo de forma, y dónde suele ir (izquierda, arriba…), 1-2 frases.\n' +
+				'- "examples": 2-3 kanji ELEGIDOS SOLO de su lista «aparece en», los más claros, con "note" (1 frase) que muestre cómo el componente encaja con el significado del kanji. Si en uno solo aporta forma, dilo.\n' +
+				'- "hook": una imagen corta y visual para usar el componente en mnemotecnias (máx. 15 palabras).\n' +
+				'Usa el nombre en español dado, sin cambiarlo. Nada de romaji.\n' +
+				desc,
+			schema: {
+				type: 'object',
+				properties: {
+					items: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								symbol: { type: 'string' },
+								depicts: { type: 'string' },
+								why: { type: 'string' },
+								role: { type: 'string' },
+								examples: {
+									type: 'array',
+									items: {
+										type: 'object',
+										properties: { char: { type: 'string' }, note: { type: 'string' } },
+										required: ['char', 'note']
+									}
+								},
+								hook: { type: 'string' }
+							},
+							required: ['symbol', 'depicts', 'why', 'role', 'examples', 'hook']
+						}
+					}
+				},
+				required: ['items']
+			},
+			temperature: 0.4
+		});
+		for (const it of res.items) {
+			const allowed = used.get(it.symbol);
+			if (!allowed || !it.depicts?.trim()) continue;
+			const explanation: ComponentExplanation = {
+				depicts: it.depicts.trim(),
+				why: it.why.trim(),
+				role: it.role.trim(),
+				// Solo ejemplos donde el componente aparece de verdad.
+				examples: (it.examples ?? []).filter((e) => allowed.has(e.char) && e.note?.trim()).slice(0, 3),
+				hook: it.hook.trim()
+			};
+			db.update(s.component)
+				.set({ explanation, explanationSource: 'gemini' })
+				.where(eq(s.component.symbol, it.symbol))
+				.run();
+		}
 	}
 }
 
@@ -189,8 +282,9 @@ export async function regenerateMnemonic(db: DB, char: string, interests: string
 		},
 		temperature: 1
 	});
+	// Hecha a medida (intereses y notas del alumno): `personal` para no publicarla nunca como contenido pregenerado.
 	db.update(s.kanji)
-		.set({ mnemonicMeaning: res.meaning, mnemonicReading: res.reading, mnemonicSource: 'gemini' })
+		.set({ mnemonicMeaning: res.meaning, mnemonicReading: res.reading, mnemonicSource: 'personal' })
 		.where(eq(s.kanji.char, char))
 		.run();
 	return res;

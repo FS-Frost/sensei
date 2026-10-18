@@ -137,8 +137,8 @@ export async function serverLoad<F extends (...a: never[]) => unknown>(
 }
 
 /** Descarga un archivo que sirve la API (exportar, copias) sin enlace directo: el Worker no tiene URL propia. */
-export async function downloadFrom(path: string, fallbackName: string) {
-	const res = await fetch(path);
+export async function downloadFrom(path: string, fallbackName: string, init?: RequestInit) {
+	const res = await fetch(path, init);
 	if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? `Error ${res.status}`);
 	const name = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? fallbackName;
 	const url = URL.createObjectURL(await res.blob());

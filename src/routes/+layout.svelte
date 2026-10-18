@@ -20,6 +20,8 @@
 	import { initDaily } from '#lib/client/daily.svelte.ts';
 	import DailyBar from '#lib/components/DailyBar.svelte';
 	import Toaster from '#lib/components/Toaster.svelte';
+	import AiChoice from '#lib/components/AiChoice.svelte';
+	import AiOff from '#lib/components/AiOff.svelte';
 	import { toast } from '#lib/client/toast.svelte.ts';
 
 	// Temprano: `beforeinstallprompt` puede llegar antes de montar.
@@ -50,6 +52,14 @@
 			]
 		});
 	});
+	$effect(() => {
+		const b = backend.value;
+		if (b.state === 'ready' && b.updateError)
+			toast.error('No se pudo actualizar el diccionario', {
+				detail: `Sigues con la versión anterior y tus datos están intactos. ${b.updateError}`,
+				key: 'dict-update'
+			});
+	});
 	let topH = $state(0);
 	$effect(() => {
 		// Más el hueco (gap) que deja main entre la franja y la página, si la franja tiene algo.
@@ -61,7 +71,13 @@
 		void registerServiceWorker();
 		// Conexión: lo que usa Gemini deja de funcionar sin red; el resto sigue.
 		const offline = () =>
-			toast.warn('Sin conexión', { detail: 'El SRS, las lecciones y el diccionario siguen funcionando; lo que usa Gemini, no.', duration: null, key: 'net' });
+			toast.warn('Sin conexión', {
+				detail: data.aiUi
+					? 'El SRS, las lecciones y el diccionario siguen funcionando; lo que usa la IA, no.'
+					: 'El SRS, las lecciones y el diccionario siguen funcionando.',
+				duration: null,
+				key: 'net'
+			});
 		const online = () => toast.success('Conexión recuperada', { key: 'net', duration: 2500 });
 		if (!navigator.onLine) offline();
 		addEventListener('offline', offline);
@@ -93,7 +109,8 @@
 			setPrefs({ furigana: data.furigana, ttsEnabled: data.ttsEnabled, fontVariety: data.fontVariety, readable: data.readable });
 	});
 
-	type NavItem = { href: string; label: string; icon: string; main: boolean };
+	/** `ai`: solo con las funciones de IA visibles (modo sin IA = fuera del menú). */
+	type NavItem = { href: string; label: string; icon: string; main: boolean; ai?: true };
 	const GROUPS: { title: string; items: NavItem[] }[] = [
 		{
 			title: 'Estudiar',
@@ -102,7 +119,7 @@
 				{ href: '/hoy', label: 'Sesión de hoy', icon: '今', main: false },
 				{ href: '/repaso', label: 'Repaso', icon: '復', main: true },
 				{ href: '/leccion', label: 'Lección', icon: '学', main: true },
-				{ href: '/tutor', label: 'Tutor', icon: '話', main: true },
+				{ href: '/tutor', label: 'Tutor', icon: '話', main: true, ai: true },
 				{ href: '/kana', label: 'Kana', icon: 'あ', main: false }
 			]
 		},
@@ -110,8 +127,8 @@
 			title: 'Leer',
 			items: [
 				{ href: '/biblioteca', label: 'Biblioteca', icon: '書', main: false },
-				{ href: '/lectura', label: 'Lectura graduada', icon: '読', main: false },
-				{ href: '/explicar', label: 'Explicador', icon: '解', main: false },
+				{ href: '/lectura', label: 'Lectura graduada', icon: '読', main: false, ai: true },
+				{ href: '/explicar', label: 'Explicador', icon: '解', main: false, ai: true },
 				{ href: '/velocidad', label: 'Velocidad', icon: '速', main: false }
 			]
 		},
@@ -127,14 +144,20 @@
 			title: 'Sistema',
 			items: [
 				{ href: '/guia', label: 'Guía', icon: '導', main: false },
-				{ href: '/costos', label: 'Costos', icon: '費', main: false },
+				{ href: '/costos', label: 'Costos', icon: '費', main: false, ai: true },
 				{ href: '/sincronizar', label: 'Sincronizar', icon: '同', main: false },
 				{ href: '/datos', label: 'Datos y copias', icon: '保', main: false },
 				{ href: '/ajustes', label: 'Ajustes', icon: '設', main: false }
 			]
 		}
 	];
-	const NAV = GROUPS.flatMap((g) => g.items);
+	const showAi = $derived(!!data.aiUi);
+	/** Páginas que solo existen con IA: en modo sin IA muestran AiOff. */
+	const AI_ROUTES = ['/tutor', '/lectura', '/explicar', '/costos'];
+	const groups = $derived(GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => !n.ai || showAi) })));
+	const NAV = $derived(groups.flatMap((g) => g.items));
+	const AI_LABEL = { on: 'IA activada', off: 'Sin IA', ask: 'IA: sin decidir' } as const;
+	const aiLabel = $derived(data.aiMode === 'ask' && data.aiKey ? AI_LABEL.on : AI_LABEL[data.aiMode ?? 'ask']);
 
 	let moreOpen = $state(false);
 	// Ruta sin la base del sitio (GitHub Pages: /<repo>/…).
@@ -163,7 +186,7 @@
 		<nav class="side" aria-label="Navegación">
 			<a class="brand" href="/"><span class="jp">先生</span> Sensei</a>
 			<div class="side-scroll">
-				{#each GROUPS as g (g.title)}
+				{#each groups as g (g.title)}
 					<div class="group">{g.title}</div>
 					{#each g.items as n (n.href)}
 						<a class="nav" class:active={active(n.href)} href={n.href}>
@@ -175,6 +198,9 @@
 			</div>
 			<div class="side-foot">
 				{#if install.available}<button class="install" onclick={() => promptInstall()}>⤓ Instalar app</button>{/if}
+				<a class="aimode" class:off={!showAi} href="/ajustes#ia" title="Cambiar en Ajustes">
+					<span class="icon jp">{showAi ? '智' : '無'}</span>{aiLabel}
+				</a>
 				<ThemeToggle />
 			</div>
 		</nav>
@@ -183,14 +209,21 @@
 			<!-- Avisos de arriba: su altura (--top-h) la descuentan las páginas de altura fija (el chat del tutor). -->
 			<div class="top" bind:clientHeight={topH}>
 			<DailyBar />
-			{#if !data.gemini}
+			{#if data.aiMode === 'ask' && !data.aiKey && !path.startsWith('/bienvenida')}
+				<!-- Sin decidir y sin key: preguntar una vez en vez de avisar. -->
+				<AiChoice />
+			{:else if data.aiMode === 'on' && !data.aiKey && !path.startsWith('/ajustes')}
 				<div class="warning">
-					Sin API key de Gemini: el tutor, las lecturas, el explicador y las mnemotecnias no estarán disponibles.
-					<a href="/ajustes#gemini">Añádela en Ajustes</a>.
+					Elegiste usar la IA, pero falta la API key de Gemini. <a href="/ajustes#gemini">Añádela en Ajustes</a> o
+					<a href="/ajustes#ia">pasa al modo sin IA</a>.
 				</div>
 			{/if}
 			</div>
-			{@render children()}
+			{#if !showAi && AI_ROUTES.some((r) => path === r || path.startsWith(`${r}/`))}
+				<AiOff />
+			{:else}
+				{@render children()}
+			{/if}
 		</main>
 
 		<nav class="bottom" aria-label="Navegación móvil">
@@ -207,7 +240,7 @@
 		</nav>
 		{#if moreOpen}
 			<div class="more card">
-				{#each GROUPS as g (g.title)}
+				{#each groups as g (g.title)}
 					{@const rest = g.items.filter((n) => !n.main)}
 					{#if rest.length}
 						<div class="group">{g.title}</div>
@@ -227,12 +260,15 @@
 						}}>⤓ Instalar app</button
 					>
 				{/if}
+				<a class="aimode" class:off={!showAi} href="/ajustes#ia" onclick={() => (moreOpen = false)}>
+					<span class="icon jp">{showAi ? '智' : '無'}</span>{aiLabel}
+				</a>
 				<ThemeToggle />
 			</div>
 		{/if}
 	</div>
 	<DictPopover />
-	<TutorPanel />
+	{#if showAi}<TutorPanel />{/if}
 {/if}
 <UpdateNotice />
 <Toaster />
@@ -283,6 +319,23 @@
 	.more :global(.theme),
 	.more .install {
 		width: 100%;
+	}
+	.aimode {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		padding: 0.3rem 0.6rem;
+		margin-bottom: 0.2rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.85rem;
+		color: var(--text-2);
+	}
+	.aimode:hover {
+		background: var(--bg-3);
+		text-decoration: none;
+	}
+	.aimode.off .icon {
+		color: var(--text-3);
 	}
 	.install {
 		margin-bottom: 0.3rem;

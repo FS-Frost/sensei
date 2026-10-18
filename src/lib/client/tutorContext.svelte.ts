@@ -1,5 +1,6 @@
 // Estado global del tutor: panel lateral, contexto de la pantalla actual y preguntas iniciadas desde otras pantallas.
 import type { ScreenContext } from '../types.ts';
+import { aiUi } from './ai.svelte.ts';
 
 export const tutor = $state({
 	open: false,
@@ -26,8 +27,9 @@ export function dismissContext() {
 	tutor.dismissed = tutor.context?.label ?? null;
 }
 
-/** Abre el panel con un contexto concreto y, opcionalmente, una pregunta precargada. */
+/** Abre el panel con un contexto concreto y, opcionalmente, una pregunta precargada. Sin IA, no hace nada. */
 export function askTutor(ctx: ScreenContext | null, draft = '') {
+	if (!aiUi()) return;
 	if (ctx) setScreenContext(ctx);
 	tutor.draft = draft;
 	tutor.open = true;

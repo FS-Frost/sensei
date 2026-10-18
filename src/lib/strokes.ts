@@ -15,6 +15,50 @@ export function parseKanjiVG(svg: string): string[] {
 	return out.sort((a, b) => a.n - b.n).map((x) => x.d);
 }
 
+/** Posiciones de KanjiVG (`kvg:position`) en español. */
+export const POSITION_ES: Record<string, string> = {
+	left: 'a la izquierda',
+	right: 'a la derecha',
+	top: 'arriba',
+	bottom: 'abajo',
+	nyo: 'abajo, envolviendo',
+	tare: 'arriba a la izquierda, colgando',
+	kamae: 'alrededor',
+	tarec: 'colgando',
+	nyoc: 'envolviendo'
+};
+
+/**
+ * Trazos de un SVG de KanjiVG marcando cuáles pertenecen a un componente: los que están dentro de un grupo
+ * cuyo `kvg:element` o `kvg:original` es uno de `symbols` (p. ej. ['氵', '水']). También devuelve dónde va.
+ */
+export function componentStrokes(svg: string, symbols: string[]): { paths: { d: string; on: boolean }[]; position: string | null } {
+	const want = new Set(symbols);
+	const stack: boolean[] = [];
+	const paths: { d: string; on: boolean }[] = [];
+	let position: string | null = null;
+	for (const m of svg.matchAll(/<g\b[^>]*>|<\/g>|<path\b[^>]*>/g)) {
+		const tag = m[0];
+		if (tag === '</g>') {
+			stack.pop();
+			continue;
+		}
+		if (tag.startsWith('<g')) {
+			const el = tag.match(/kvg:element="([^"]+)"/)?.[1];
+			const orig = tag.match(/kvg:original="([^"]+)"/)?.[1];
+			const hit = (el !== undefined && want.has(el)) || (orig !== undefined && want.has(orig));
+			// El grupo raíz es el propio kanji: no cuenta aunque coincida con la forma completa.
+			const root = /id="kvg:[0-9a-f]+"/.test(tag);
+			if (hit && !root && !(stack.at(-1) ?? false)) position ??= tag.match(/kvg:position="([^"]+)"/)?.[1] ?? null;
+			stack.push((stack.at(-1) ?? false) || (hit && !root));
+			continue;
+		}
+		const d = tag.match(/\bd="([^"]+)"/)?.[1];
+		if (d && /-s\d+"/.test(tag)) paths.push({ d, on: stack.at(-1) ?? false });
+	}
+	return { paths, position };
+}
+
 /** Puntos de un path SVG (M, L, H, V, C, S, Q, T, Z; absolutos y relativos), muestreando las curvas. */
 export function pathPoints(d: string, perCurve = 12): Pt[] {
 	const tokens = d.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g) ?? [];

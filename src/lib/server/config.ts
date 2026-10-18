@@ -12,9 +12,15 @@ export const config = {
 	geminiApiKey: env.GEMINI_API_KEY ?? '',
 	// Por defecto: el perfil «Equilibrado» (modelPresets.ts).
 	modelPro: env.GEMINI_MODEL_PRO || DEFAULT_MODELS.pro,
-	modelFlash: env.GEMINI_MODEL_FLASH || DEFAULT_MODELS.flash
+	modelFlash: env.GEMINI_MODEL_FLASH || DEFAULT_MODELS.flash,
+	/** Modo sin IA (ajuste `aiMode = 'off'`): ninguna llamada a Gemini aunque haya key. Lo mantiene `syncAiMode`. */
+	aiOff: false
 };
 
 export function setGeminiApiKey(key: string) {
 	config.geminiApiKey = key.trim();
+}
+
+export function setAiOff(off: boolean) {
+	config.aiOff = off;
 }

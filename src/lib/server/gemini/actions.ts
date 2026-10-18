@@ -381,11 +381,15 @@ export const ACTIONS: Record<string, ActionDef> = {
 			const k = db.select().from(s.kanji).where(eq(s.kanji.char, String(a.kanji))).get()!;
 			const notes = db.select({ n: s.learnerNote.note }).from(s.learnerNote).orderBy(desc(s.learnerNote.createdAt)).limit(10).all().map((r) => r.n);
 			const res = await regenerateMnemonic(db, k.char, notes);
-			return { result: res, undo: { kanji: k.char, meaning: k.mnemonicMeaning, reading: k.mnemonicReading } };
+			return { result: res, undo: { kanji: k.char, meaning: k.mnemonicMeaning, reading: k.mnemonicReading, source: k.mnemonicSource } };
 		},
 		revert: (db, u) =>
 			db.update(s.kanji)
-				.set({ mnemonicMeaning: (u.meaning as string) ?? null, mnemonicReading: (u.reading as string) ?? null })
+				.set({
+					mnemonicMeaning: (u.meaning as string) ?? null,
+					mnemonicReading: (u.reading as string) ?? null,
+					mnemonicSource: (u.source as 'gemini' | 'pregen' | 'personal' | null | undefined) ?? (u.meaning ? 'gemini' : null)
+				})
 				.where(eq(s.kanji.char, String(u.kanji)))
 				.run()
 	},

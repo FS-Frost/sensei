@@ -57,6 +57,20 @@
       "when": 1792331574342,
       "tag": "0007_absent_king_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792339537455,
+      "tag": "0008_dizzy_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792342259480,
+      "tag": "0009_personal_mnemonics",
+      "breakpoints": true
     }
   ]
 }

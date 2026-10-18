@@ -12,6 +12,7 @@
 		"test": "bun test",
 		"build:dict": "bun run scripts/build-dict.ts",
 		"pregen": "bun run scripts/pregen.ts",
+		"pregen:import": "bun run scripts/pregen-import.ts",
 		"export:local": "bun run scripts/export-local.ts",
 		"db:generate": "drizzle-kit generate"
 	},
