@@ -59,7 +59,8 @@ bun run dev                     # http://localhost:5173
 | `bun run dev` | servidor de desarrollo (Vite) |
 | `bun run build` | sitio estático en `build/` (`BASE_PATH=/repo` para GitHub Pages) |
 | `bun run preview` | sirve `build/` |
-| `bun run build:dict` | genera el diccionario publicable en `static/dict/` |
+| `bun run build:dict` | genera el diccionario publicable en `static/dict/` (aplica `content/pregen.json`) |
+| `bun run pregen` | pregenera contenido con Gemini en `content/pregen.json` (`--kanji N`, incremental) |
 | `bun run export:local` | exporta una base de la versión con servidor a .zip |
 | `bun test` | tests (SRS, corrección, tokens, tutor con Gemini simulado, adaptador SQLite WASM, enrutador) |
 | `bun run check` | svelte-check / TypeScript |
@@ -96,6 +97,28 @@ Cada llamada guarda tokens y costo estimado con el precio de ese día: gasto del
 ### Datos y copias (`/datos`)
 
 Exportar/importar .zip (importar reemplaza, con copia previa), copias automáticas diarias y manuales en el navegador (7 días, descargables), reinicios por tipo, ítem, tutor, contenido generado o costos, y restablecer ajustes. Las operaciones destructivas piden escribir REINICIAR o REEMPLAZAR.
+
+- **Almacenamiento**: cuánto ocupa Sensei, si el navegador puede borrarlo («Pedir protección»), tamaños de base, copias y cachés, comprobar la base y compactarla.
+- **Preparar por adelantado**: genera ya las mnemotecnias, glosas y frases de los próximos kanji que vas a estudiar (por tandas, se puede parar y retomar).
+
+### Sesión de hoy (`/hoy`)
+
+Un botón en Inicio encadena repasos (con tope) → lección → lectura corta → cierre con el tutor, en 10, 20 o 40 minutos calculados con tu ritmo real. Una barra arriba muestra el progreso en cualquier pantalla.
+
+### Voz
+
+- **Hablar con el tutor**: 🎙 manda un mensaje de voz (español, japonés o mezclados); verás «Te oí: …». 🔊 lee las respuestas con voz española y japonesa. 🗣 **manos libres**: hablas, haces una pausa y se envía; te responde en voz alta y vuelve a escuchar.
+- **Repasos de lectura en voz alta**: 🎙 junto a la respuesta (reconocimiento del navegador, Chrome/Edge).
+
+### Leer y escribir
+
+- **Lector** en la Biblioteca: pantalla completa, páginas o scroll, **縦書き vertical**, tamaño y letra, marcadores y posición guardada (viajan al sincronizar), velocidad medida sola y capítulo siguiente.
+- **Escritura de kanji**: «✍ Practicar escritura» en la ficha de cada kanji (con silueta o de memoria, corrige orden y dirección). Repasos de escritura opcionales en Ajustes.
+- **Gramática**: 180 puntos en 7 niveles, hasta estilo escrito, keigo, finales de manga y Kansai.
+
+### Contenido pregenerado
+
+El diccionario publicado trae mnemotecnias, glosas y frases ya hechas para los primeros kanji (`content/pregen.json`): se empieza sin gastar ni key. Para ampliarlo: `GEMINI_API_KEY=… bun run pregen --kanji 500` (continúa donde se quedó) y `bun run build:dict`.
 
 ## Fuentes y licencias
 

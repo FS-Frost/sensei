@@ -11,7 +11,9 @@ Japanese-reading tutor for a Spanish speaker. **Static site (GitHub Pages)**: Sv
 - `bun run build` — static site in `build/`; `BASE_PATH=/<repo>` for Pages (Git Bash: prefix `MSYS_NO_PATHCONV=1` or it mangles `/repo`). CI copies `404.html` → `index.html`.
 - `bun run export:local [db] [zip]` — migrate a server-era `data/sensei.db` to an import .zip
 - `bun run db:generate` — after editing `src/lib/server/db/schema.ts`; migrations in `drizzle/` are bundled into the Worker (`import.meta.glob` + `_journal.json`, same hashes as Drizzle's migrator) and applied on open
-- Deploy: `.github/workflows/main.yml` (check, test, build:dict common+full, build, push `build/` to `gh-pages`)
+- `GEMINI_API_KEY=… bun run pregen [--kanji N] [--dry]` — pregenerates mnemonics/glosses/sentences/similar tips for the first N kanji into `content/pregen.json` (versioned; incremental and resumable; uses `GEMINI_MODEL_PRO/FLASH` from `.env` if set). `build:dict` applies it with origin `pregen`.
+- Deploy: `.github/workflows/main.yml` (check, test, build:dict common+full, build, push `build/` to `gh-pages`). Bun pinned (1.3.14), actions on Node 24 versions.
+- Local preview caveat: `bun run preview` caches the file index at startup — restart it after each `bun run build`. Headless Edge `--screenshot/--dump-dom` freezes time (the Worker never settles): drive it through `--remote-debugging-port` instead.
 
 ## SvelteKit 3 specifics (differ from Kit 2 knowledge)
 
@@ -46,6 +48,18 @@ Japanese-reading tutor for a Spanish speaker. **Static site (GitHub Pages)**: Sv
   - Tests: `tests/sync.test.ts` runs two real DBs over an in-memory transport. E2E: two headless Edge profiles + fake media, paste path.
 - **Lab pages** `/lab/*` render without the Worker/dictionary (layout bypass). `/lab/ultrasonido`: experiment for pairing by sound (ggwave, lazy-loaded; `client/sound.ts`, types in `client/ggwave.d.ts`): tone/sweep audibility test, emitter, mic receiver (processing disabled) with 17-21 kHz meter. Plan: `docs/sync-qr.md`.
 - **PWA**: `static/manifest.webmanifest` + icons (vermilion hanko seal with 先生 drawn from KanjiVG strokes: `icons/icon.svg` app, `icons/icon-maskable.svg` full-bleed safe zone, `favicon.svg` = 先 only for 16-32 px tabs; PNGs 192/512/maskable/apple-touch rendered from the SVGs with headless Edge — regenerate them if the SVGs change), `src/service-worker.ts` (Kit 3: `$app/manifest` `immutable`/`assets`, `$app/env` `version`), registered manually in prod by `client/pwa.ts` (`serviceWorker.register: false`). Kit only lists the Worker entry, so `precacheWorkerGraph` crawls its chunks and `.wasm` refs at install. `dict/` is never cached (lives in OPFS after install); external origins (Gemini, fonts) pass through. Cache `sensei-<version>`; `sensei-kanjivg` is kept across versions.
+
+## Features added on 2026-10-18 (plans in `docs/`, gitignored)
+
+- **Storage** (`data/storage.ts`, `/api/data/storage`, `components/StoragePanel.svelte` in Datos): DB size via PRAGMA (OPFS files are locked by sahpool), `integrity_check`, `VACUUM` with `pre-vacuum` backup, prune backups; quota/persistence/caches measured in the page.
+- **AudioWorklet** (`client/sync/capture.worklet.ts` + `frames.ts`, imported with `?worker&url`): `listen()` and `client/voice.ts` capture through it (ScriptProcessor fallback). The SW crawler also scans client chunks for `/_app/immutable/workers/…` refs so it is precached.
+- **Grammar**: 7 levels / 180 points (`grammar.ts` L5-L7 at 500/800/1200 kanji). `tests/grammar.test.ts`: every kanji in examples must carry `{漢字|かな}`, meanings unique.
+- **Reader** (`components/reader/Reader.svelte` + `reader.ts`): full-screen overlay (z 42), paged (CSS columns, step = box width, instant `scrollLeft`) or scroll, `writing-mode: vertical-rl`, prefs in `localStorage['sensei.reader']`; `library_text.position`/`bookmarks` (PATCH `/api/library/[id]`), chapters = texts sharing `created_at`.
+- **Kanji writing**: `strokes.ts` (KanjiVG path parser + resample matcher, `writingGrade`), `KanjiTrace.svelte`. Facet `writing` (answerMode `trace`) is opt-in (`writingReviews`, `newWritingPerDay`, created by `ensureWritingCards` on `/api/review`) and is excluded from item status (`items.ts`, `profile.ts`).
+- **Tutor cache**: `systemPrompt(mode)` must stay constant; learner state goes as a `[Estado del alumno…]` user part only when it changes (`session.state_snapshot`). `buildHistory` replaces media of previous turns (audio → its transcript) and cuts long sessions at turn starts in blocks of `HISTORY_BLOCK`. Costos shows cache % and savings.
+- **Pregenerated content**: `data/pregen.ts` (format, `applyPregen` only fills nulls, `collectGenerated`) + `gemini/pregen.ts` (`pregenerateBatch`, `aheadStatus`). Origin `pregen` in `kanji.mnemonic_source`, `sentence.es_source`, `similar_kanji.tip_source`, `component.name_source`, `vocab.glosses_es_source`: never exported, never wiped by «reiniciar generado». In-app: Datos → «Preparar por adelantado» (`/api/pregen`, batches of 8).
+- **Voice tutor**: `client/voice.ts` records WAV 16 kHz mono (Gemini rejects Chrome's WebM), `voice-core.ts` is the pure/testable part. `UserInput.audio` → `inlineData`; the model starts with `[Oído: …]`, split by `splitHeard`, stored on the user `audio` UI block and emitted as `{type:'heard'}`. ChatView: 🎙 record, 🗣 hands-free (`SilenceDetector`), 🔊 `speakMixed` (es/ja voices). Reviews: 🎙 for reading answers (`recognizeJapanese`; vocab answered in kanji is accepted if it is exactly the word).
+- **Daily session** `/hoy`: `server/daily.ts` (`pace` from `review_log.duration_ms`, `dailyPlan`, `daySummary`), `client/daily.svelte.ts` (per device/day in localStorage), `DailyBar.svelte` in the layout's `.top` strip (its height → `--top-h`, subtracted by fixed-height pages like the tutor chat). Pages call `completeDaily(id)`. Tutor mode `cierre` (not listed in /tutor; `LISTED_MODES`), session origin `daily`.
 
 ## Architecture
 
