@@ -14,6 +14,7 @@
 	import { backend, startBackend, whenBecomesReady, installDict } from '#lib/client/backend.svelte.ts';
 	import { startBaseLinks } from '#lib/client/basePath.ts';
 	import { registerServiceWorker } from '#lib/client/pwa.ts';
+	import UpdateNotice from '#lib/components/UpdateNotice.svelte';
 	import { refreshAll } from '$app/navigation';
 	import { base } from '#lib/client/base.ts';
 
@@ -172,6 +173,7 @@
 	<DictPopover />
 	<TutorPanel />
 {/if}
+<UpdateNotice />
 
 <style>
 	.shell {

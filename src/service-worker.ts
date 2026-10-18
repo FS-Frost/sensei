@@ -55,9 +55,14 @@ sw.addEventListener('install', (event) => {
 			const cache = await caches.open(CACHE);
 			await cache.addAll([...PRECACHE, SHELL]);
 			await precacheWorkerGraph(cache);
-			await sw.skipWaiting();
+			// Sin skipWaiting: si una página vieja sigue abierta, activarse ahora borraría la caché de la que aún carga
+			// chunks diferidos. La página lo pide (client/pwa.ts → applyUpdate) justo antes de recargar.
 		})()
 	);
+});
+
+sw.addEventListener('message', (event) => {
+	if (event.data === 'SKIP_WAITING') void sw.skipWaiting();
 });
 
 sw.addEventListener('activate', (event) => {

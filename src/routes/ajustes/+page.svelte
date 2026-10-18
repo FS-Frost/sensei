@@ -9,6 +9,10 @@
 	import { japaneseVoices, preferredVoiceName, setPreferredVoice, speak, ttsSupported } from '#lib/client/tts.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ModelPicker from '#lib/components/ModelPicker.svelte';
+	import { version } from '$app/env';
+	import { ago } from '#lib/client/version.ts';
+
+	const builtAt = import.meta.env.VITE_BUILT_AT as string | undefined;
 
 	let { data }: PageProps = $props();
 
@@ -355,6 +359,12 @@
 		{/if}
 	</div>
 </div>
+
+<p class="small dim">
+	Versión de Sensei: <code>{version}</code>{#if builtAt && version !== 'dev'} · publicada {ago(builtAt)}
+		({new Date(builtAt).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}){/if}. Se actualiza sola al volver a la
+	pestaña.
+</p>
 
 <style>
 	.pick {
