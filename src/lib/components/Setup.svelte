@@ -4,6 +4,7 @@
 	import { backend, installDict } from '../client/backend.svelte.ts';
 	import type { DictVariant } from '../backendProtocol.ts';
 	import InstallCard from './InstallCard.svelte';
+	import ProgressSteps, { type StepState } from './ProgressSteps.svelte';
 	import { preloadCode } from '$app/navigation';
 
 	const s = $derived(backend.value);
@@ -21,7 +22,6 @@
 	});
 
 	/** Pasos de la primera instalación: descargar → instalar → preparar la primera pantalla (cargar la app y tus datos). */
-	type StepState = 'done' | 'now' | 'todo';
 	const steps = $derived.by((): { label: string; state: StepState }[] => {
 		const phase = s.state === 'installing' ? s.phase : s.state === 'ready' ? 'ready' : null;
 		const order = ['download', 'install', 'ready'];
@@ -75,22 +75,12 @@
 	{:else if s.state === 'installing' || s.state === 'ready'}
 		<!-- «ready» aquí = base lista, pero la primera pantalla aún carga (código de la app y tus datos). -->
 		<div class="card stack">
-			<ol class="steps" aria-label="Progreso de la instalación">
-				{#each steps as st (st.label)}
-					<li class={st.state}>
-						<span class="mark" aria-hidden="true">{#if st.state === 'done'}✓{:else if st.state === 'now'}<span class="spinner"></span>{:else}·{/if}</span>
-						<span>{st.label}</span>
-					</li>
-				{/each}
-			</ol>
 			{#if s.state === 'installing' && s.phase === 'download'}
-				<p class="small">{mb(s.loaded)} de {mb(s.total)}</p>
-				<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((s.loaded / (s.total || 1)) * 100)}>
-					<div style="width:{(s.loaded / (s.total || 1)) * 100}%"></div>
-				</div>
+				<ProgressSteps {steps} note="{mb(s.loaded)} de {mb(s.total)}" progress={s.loaded / (s.total || 1)} />
 			{:else if s.state === 'ready'}
-				<p class="small muted">Casi listo: cargando la app y tu primera pantalla…</p>
-				<div class="bar indeterminate" role="progressbar" aria-label="Cargando"><div></div></div>
+				<ProgressSteps {steps} note="Casi listo: cargando la app y tu primera pantalla…" progress={null} />
+			{:else}
+				<ProgressSteps {steps} progress={undefined} />
 			{/if}
 			<p class="small dim">No cierres esta pestaña.</p>
 		</div>
@@ -157,66 +147,5 @@
 	.opt span {
 		display: flex;
 		flex-direction: column;
-	}
-	.bar {
-		height: 8px;
-		border-radius: 999px;
-		background: var(--bg-3);
-		overflow: hidden;
-	}
-	.bar div {
-		height: 100%;
-		background: var(--series-1);
-		transition: width 0.2s;
-	}
-	.bar.indeterminate div {
-		width: 35%;
-		border-radius: 999px;
-		animation: slide 1.1s ease-in-out infinite;
-	}
-	@keyframes slide {
-		from {
-			transform: translateX(-100%);
-		}
-		to {
-			transform: translateX(290%);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.bar.indeterminate div {
-			animation: none;
-			width: 100%;
-			opacity: 0.5;
-		}
-	}
-	.steps {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.45rem;
-	}
-	.steps li {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-	}
-	.steps .mark {
-		width: 1.3rem;
-		text-align: center;
-		flex: none;
-	}
-	.steps .done {
-		color: var(--text-2);
-	}
-	.steps .done .mark {
-		color: var(--ok);
-		font-weight: 700;
-	}
-	.steps .now {
-		font-weight: 600;
-	}
-	.steps .todo {
-		color: var(--text-3);
 	}
 </style>

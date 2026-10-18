@@ -163,6 +163,17 @@
 
 	<section id="repaso" class="card">
 		<h2>Repaso (SRS)</h2>
+		<div class="simple">
+			<p>
+				<strong>SRS</strong> (<em>sistema de repetición espaciada</em>) es el método: en vez de repasar todo cada día, cada cosa vuelve
+				justo cuando estás a punto de olvidarla. Lo que sabes bien aparece cada vez menos (días, semanas, meses); lo que fallas, pronto.
+			</p>
+			<p>
+				<strong>FSRS</strong> es el algoritmo concreto que usa Sensei para decidir esa fecha. Aprende de tus respuestas cuánto te dura
+				cada recuerdo y programa el repaso para cuando tu probabilidad de acordarte baje a {Math.round(data.algo.retention * 100)} %. Más
+				detalle en <a href="#por-dentro-srs">Cómo funciona por dentro</a>.
+			</p>
+		</div>
 		<p>Cada ítem tiene tarjetas: <span class="pill meaning">significado</span> (escribe en español) y <span class="pill reading">lectura</span> (escribe en romaji; se convierte a kana).</p>
 		<ul>
 			<li>Acierto → <strong>Difícil / Bien / Fácil</strong> (teclas 1/2/3; Enter = Bien). Elige con honestidad: decide cuándo vuelve.</li>
@@ -171,7 +182,7 @@
 			<li>Si respondes el significado de otro kanji que ya estudiaste, se registra una <strong>confusión</strong>.</li>
 			<li>En vocabulario, si escribes la lectura del kanji suelto en vez de la de la palabra, te avisa sin contarlo como fallo.</li>
 		</ul>
-		<p>Estados: <em>aprendiendo</em> (pasos iniciales) → <em>en repaso</em> → <em>dominado</em> (intervalo de 21+ días).</p>
+		<p>Estados: <em>aprendiendo</em> (pasos iniciales) → <em>en repaso</em> → <em>dominado</em> (intervalo de {MASTERED_DAYS}+ días).</p>
 	</section>
 
 	<section id="frases" class="card">
@@ -442,6 +453,11 @@
 		</nav>
 
 		<h3 id="por-dentro-srs">Repasos: el algoritmo FSRS</h3>
+		<p class="simple">
+			<strong>En pocas palabras:</strong> el <strong>SRS</strong> (repetición espaciada) es la idea de repasar cada cosa justo antes de
+			olvidarla; <strong>FSRS</strong> («Free Spaced Repetition Scheduler») es el algoritmo moderno, abierto y basado en datos de
+			millones de repasos que calcula ese momento para cada tarjeta, y se ajusta a ti con tu historial.
+		</p>
 		<p>
 			<strong>Qué es.</strong> Un modelo de tu memoria. Para cada tarjeta guarda dos números: la <strong>estabilidad</strong> (cuántos días
 			tardas en bajar a un 90 % de probabilidad de recordarla) y la <strong>dificultad</strong> (lo que te cuesta ese ítem, de 1 a 10).
@@ -553,6 +569,16 @@
 </article>
 
 <style>
+	.simple {
+		background: var(--bg-3);
+		border-left: 3px solid var(--series-1);
+		border-radius: var(--radius-sm);
+		padding: 0.6rem 0.8rem;
+		margin: 0.4rem 0 0.6rem;
+	}
+	.simple p {
+		margin: 0.2rem 0;
+	}
 	.sub {
 		display: flex;
 		flex-wrap: wrap;

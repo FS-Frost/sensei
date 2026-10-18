@@ -6,6 +6,7 @@
 	import type { PageProps } from './$types';
 	import { post, errMsg } from '#lib/client/api.ts';
 	import InstallCard from '#lib/components/InstallCard.svelte';
+	import ProgressSteps, { type StepState } from '#lib/components/ProgressSteps.svelte';
 	import { aiKey, aiMode, aiNews, setAiMode } from '#lib/client/ai.svelte.ts';
 	import { setTheme, theme, type ThemeMode } from '#lib/client/theme.svelte.ts';
 	import { MODE_DESC } from '#lib/tutorModes.ts';
@@ -165,8 +166,23 @@
 	/** Adónde lleva «empezar»: el diagnóstico de lo que dices saber, o la primera lección de kana. */
 	const startTarget = $derived(diagScripts.length ? `/kana?diag=${diagScripts.join(',')}` : '/leccion');
 
+	/**
+	 * Al terminar: guardar y abrir la primera pantalla. Abrirla (sobre todo Inicio) calcula tu plan, progreso y siguiente
+	 * paso y puede tardar un momento: mientras, se muestra el progreso como en la instalación (ProgressSteps).
+	 */
+	let finishing = $state<{ phase: 'save' | 'load'; dest: string } | null>(null);
+	const DEST: Record<string, string> = { '/': 'tu inicio', '/leccion': 'tu primera lección' };
+	const finishSteps = $derived.by(() => {
+		if (!finishing) return [];
+		const load = finishing.phase === 'load';
+		return [
+			{ label: 'Guardar tu configuración', state: (load ? 'done' : 'now') as StepState },
+			{ label: `Preparar ${finishing.dest}`, state: (load ? 'now' : 'todo') as StepState }
+		];
+	});
 	async function finish(target: string) {
 		saving = true;
+		finishing = { phase: 'save', dest: DEST[target] ?? (target.startsWith('/kana') ? 'la prueba de kana' : 'la siguiente pantalla') };
 		try {
 			await post('/api/settings', {
 				newKanjiPerDay: pace,
@@ -176,16 +192,31 @@
 				startLevel: level,
 				onboardingDone: true
 			});
+			finishing = { ...finishing, phase: 'load' };
 			await goto(target, { refreshAll: true });
 		} catch (e) {
 			toast.error('No se pudo guardar tu ritmo', { detail: errMsg(e) });
 			saving = false;
+			finishing = null;
 		}
 	}
 </script>
 
 <svelte:head><title>Bienvenida · Sensei</title></svelte:head>
 
+{#if finishing}
+	<!-- Mientras se guarda y carga la primera pantalla: el mismo progreso que la instalación inicial. -->
+	<div class="wiz">
+		<div class="card stack page">
+			<h2><span class="jp accent">先生</span> ¡Listo!</h2>
+			<ProgressSteps
+				steps={finishSteps}
+				note={finishing.phase === 'load' ? 'Calculando tu plan, tu progreso y tu siguiente paso…' : ''}
+				progress={null}
+			/>
+		</div>
+	</div>
+{:else}
 <div class="wiz">
 	<div class="dots" aria-label="Progreso">
 		{#each STEPS as s, i (s)}
@@ -258,9 +289,19 @@
 			<p class="small">{planText}</p>
 		{:else if at('El SRS')}
 			<h2>El SRS: repasar justo antes de olvidar</h2>
+			<div class="simple">
+				<p>
+					<strong>SRS</strong> = <em>sistema de repetición espaciada</em>. Es el método: cada cosa vuelve justo cuando estás a punto de
+					olvidarla. Lo que sabes bien aparece cada vez menos; lo que fallas, pronto. Así repasas poco y recuerdas mucho.
+				</p>
+				<p>
+					<strong>FSRS</strong> es el algoritmo que usa Sensei para elegir ese momento: aprende de tus respuestas cuánto te dura cada
+					recuerdo y calcula la fecha del próximo repaso de cada tarjeta.
+				</p>
+			</div>
 			<p>
-				Cada cosa que aprendes se convierte en tarjetas (significado y lectura). Un algoritmo (FSRS) calcula cuándo vas a olvidarla y
-				te la pregunta justo antes: al principio en minutos, luego días, luego meses.
+				Cada cosa que aprendes se convierte en tarjetas (significado y lectura). Al principio vuelven en minutos, luego en días, luego en
+				semanas y meses.
 			</p>
 			<ul>
 				<li><strong>Repasa cada día</strong>, aunque sean 5 minutos. Saltarse días acumula repasos.</li>
@@ -467,6 +508,7 @@
 		{/if}
 	</div>
 </div>
+{/if}
 
 <style>
 	.wiz {
@@ -553,6 +595,15 @@
 	}
 	.notif p {
 		margin: 0;
+	}
+	.simple {
+		background: var(--bg-3);
+		border-left: 3px solid var(--series-1);
+		border-radius: var(--radius-sm);
+		padding: 0.6rem 0.8rem;
+	}
+	.simple p {
+		margin: 0.2rem 0;
 	}
 	.tutor-more summary {
 		cursor: pointer;
