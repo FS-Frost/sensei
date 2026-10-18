@@ -1,14 +1,14 @@
 {
-  "version": "74fa25f2ae34",
-  "createdAt": "2026-10-18T15:57:20.135Z",
+  "version": "568f190f4cde",
+  "createdAt": "2026-10-18T20:56:07.414Z",
   "variants": {
     "common": {
-      "bytes": 15081472,
-      "gzBytes": 5492459,
+      "bytes": 15151104,
+      "gzBytes": 5508652,
       "parts": [
         {
           "file": "part-000.bin",
-          "bytes": 5492459
+          "bytes": 5508652
         }
       ],
       "kanji": 2600,
@@ -16,12 +16,12 @@
       "sentences": 17562
     },
     "full": {
-      "bytes": 91250688,
-      "gzBytes": 31707056,
+      "bytes": 91320320,
+      "gzBytes": 31723710,
       "parts": [
         {
           "file": "part-000.bin",
-          "bytes": 31707056
+          "bytes": 31723710
         }
       ],
       "kanji": 2600,

@@ -1,0 +1,1 @@
+import"./Bsm6vcKc.js";import{t as e}from"./CpMCNpD4.js";import"./Bi-OIe8u.js";import{a as t}from"./L2kX7K5S.js";import{r as n}from"./C3dRcqIh.js";var r=()=>e.data,i=()=>!!r().aiUi,a=()=>r().aiMode??`ask`,o=()=>!!r().aiKey;async function s(e){await t(`/api/settings`,{aiMode:e}),await n()}export{s as i,a as n,i as r,o as t};
