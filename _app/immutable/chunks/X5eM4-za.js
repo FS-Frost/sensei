@@ -1,1 +1,0 @@
-import{K as e,M as t,P as n,c as r,t as i}from"./Bsm6vcKc.js";var a=n(`<a class="help svelte-19x5ni1">?</a>`);function o(n,o){let s=i(o,`label`,3,`Ayuda`);var c=a();e(()=>{r(c,`href`,`/guia#${o.section??``}`),r(c,`title`,`${s()??``}: cómo funciona esta pantalla`),r(c,`aria-label`,`${s()??``}: cómo funciona esta pantalla`)}),t(n,c)}export{o as t};

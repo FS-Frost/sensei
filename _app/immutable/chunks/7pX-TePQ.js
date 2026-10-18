@@ -1,0 +1,1 @@
+import{F as e,N as t,c as n,q as r}from"./Bv_Y6bDX.js";var i=e(`<a class="how small svelte-1e6pjgp">¿Cómo funciona?</a>`);function a(e,a){var o=i();r(()=>n(o,`href`,`/guia#por-dentro-${a.part??``}`)),t(e,o)}export{a as t};
