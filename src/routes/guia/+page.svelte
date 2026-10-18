@@ -300,7 +300,8 @@
 	<section id="ajustes" class="card">
 		<h2>Ajustes</h2>
 		<p>
-			Ritmo diario, hora de inicio del día, furigana, audio y voz, y modelos de Gemini. «Elegir…» abre una tabla con los modelos de
+			Ritmo diario, hora de inicio del día, furigana, audio y voz, y modelos de Gemini: tres perfiles (🌱 Ahorro, ⚖ Equilibrado —el
+			recomendado y por defecto— y 🎓 Máximo) con lo que te habría costado tu último mes con cada uno, o a mano. «Elegir…» abre una tabla con los modelos de
 			tu API key: precio, contexto, si razonan, lo que te habrían costado tus últimos 30 días con cada uno y cuánto más caro o barato
 			es frente al actual. El tema (☀/☾/◐) y la voz se guardan por dispositivo.
 		</p>

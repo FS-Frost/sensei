@@ -22,29 +22,41 @@ export const LONG_PROMPT = 200_000;
 
 const ALWAYS = '2000-01-01';
 
-// Revisado el 2026-10-17. Solo modelos de texto (los de voz, imagen, vídeo o embeddings no los usa Sensei).
+// Revisado el 2026-10-18. Solo modelos de texto (los de voz, imagen, vídeo o embeddings no los usa Sensei).
+const FLASH_38: PriceTier[] = [
+	{ from: ALWAYS, input: 0.75, cached: 0.075, output: 3.75 },
+	{ from: '2027-01-01', input: 1.5, cached: 0.15, output: 7.5 }
+];
+const FLASH_36: PriceTier[] = [
+	{ from: ALWAYS, input: 0.75, cached: 0.075, output: 3.75 },
+	{ from: '2027-01-01', input: 1.5, cached: 0.15, output: 7.5 }
+];
+const FLASH_LITE_35: PriceTier[] = [{ from: ALWAYS, input: 0.3, cached: 0.03, output: 2.5 }];
+const PRO_31: PriceTier[] = [{ from: ALWAYS, input: 2, cached: 0.2, output: 12, long: { input: 4, cached: 0.4, output: 18 } }];
+
 export const DEFAULT_PRICES: ModelPrices = {
 	'gemini-4-argon': [
 		{ from: ALWAYS, input: 2, cached: 0.1, output: 10 },
 		{ from: '2026-12-01', input: 4, cached: 0.2, output: 20 }
 	],
-	'gemini-3.8-flash': [
-		{ from: ALWAYS, input: 0.75, cached: 0.075, output: 3.75 },
-		{ from: '2027-01-01', input: 1.5, cached: 0.15, output: 7.5 }
-	],
-	'gemini-3.6-flash': [
-		{ from: ALWAYS, input: 0.75, cached: 0.075, output: 3.75 },
-		{ from: '2027-01-01', input: 1.5, cached: 0.15, output: 7.5 }
-	],
-	'gemini-3.5-flash-lite': [{ from: ALWAYS, input: 0.3, cached: 0.03, output: 2.5 }],
+	'gemini-3.8-flash': FLASH_38,
+	'gemini-3.6-flash': FLASH_36,
+	'gemini-3.5-flash-lite': FLASH_LITE_35,
 	'gemini-3.1-flash-lite': [{ from: ALWAYS, input: 0.25, cached: 0.025, output: 1.5 }],
-	'gemini-3.1-pro-preview': [
-		{ from: ALWAYS, input: 2, cached: 0.2, output: 12, long: { input: 4, cached: 0.4, output: 18 } }
-	],
+	'gemini-3.1-pro-preview': PRO_31,
 	'gemini-3-flash-preview': [{ from: ALWAYS, input: 0.5, cached: 0.05, output: 3 }],
 	'gemini-2.5-pro': [{ from: ALWAYS, input: 1.25, cached: 0.125, output: 10, long: { input: 2.5, cached: 0.25, output: 15 } }],
 	'gemini-2.5-flash': [{ from: ALWAYS, input: 0.3, cached: 0.03, output: 2.5 }],
-	'gemini-2.5-flash-lite': [{ from: ALWAYS, input: 0.1, cached: 0.01, output: 0.4 }]
+	'gemini-2.5-flash-lite': [{ from: ALWAYS, input: 0.1, cached: 0.01, output: 0.4 }],
+
+	// Sin precio propio en la tabla de Google: se cobran como el modelo que realmente responde (changelog de la API).
+	// En desuso desde el 2026-10-08, con las llamadas redirigidas:
+	'gemini-3.7-flash': FLASH_38, // → gemini-3.8-flash
+	'gemini-3.5-flash': FLASH_36, // → gemini-3.6-flash
+	// Alias «-latest» (apuntan a la última versión de cada línea y cambian sin aviso de precio):
+	'gemini-flash-latest': FLASH_36, // → gemini-3.5-flash (2026-05-19), redirigido a 3.6; 3.6 y 3.8 cuestan lo mismo
+	'gemini-pro-latest': PRO_31, // → gemini-3-pro-preview (2026-01-21), que apunta a gemini-3.1-pro-preview desde el 2026-03-09
+	'gemini-flash-lite-latest': FLASH_LITE_35 // destino no documentado: se supone el Flash-Lite estable más reciente (3.5)
 };
 
 /** Tokens de una llamada (de `usageMetadata`). `prompt` incluye `cached`. */

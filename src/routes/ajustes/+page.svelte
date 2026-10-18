@@ -11,6 +11,7 @@
 	import ModelPicker from '#lib/components/ModelPicker.svelte';
 	import { version } from '$app/env';
 	import AppSettings from '#lib/components/AppSettings.svelte';
+	import { DEFAULT_PRESET, PRESETS, presetOf, type ModelPreset } from '#lib/modelPresets.ts';
 	import { ago } from '#lib/client/version.ts';
 
 	const builtAt = import.meta.env.VITE_BUILT_AT as string | undefined;
@@ -127,6 +128,29 @@
 	}
 
 	// ---------- Modelos ----------
+	// Perfil = par de modelos efectivos (vacío = el de por defecto). «Equilibrado» se guarda vacío: sigue lo recomendado.
+	const effPro = $derived(s.modelPro || data.env.modelPro);
+	const effFlash = $derived(s.modelFlash || data.env.modelFlash);
+	const currentPreset = $derived(presetOf(effPro, effFlash));
+	let presetMsg = $state('');
+	async function applyPreset(p: ModelPreset) {
+		const isDefault = p.id === DEFAULT_PRESET && data.env.modelPro === p.pro && data.env.modelFlash === p.flash;
+		const patch = { modelPro: isDefault ? '' : p.pro, modelFlash: isDefault ? '' : p.flash };
+		try {
+			const r = await post<typeof s>('/api/settings', patch);
+			s.modelPro = r.modelPro;
+			s.modelFlash = r.modelFlash;
+			presetMsg = `${p.icon} ${p.label} activado.`;
+			setTimeout(() => (presetMsg = ''), 3000);
+			await refreshAll();
+		} catch (e) {
+			presetMsg = errMsg(e);
+		}
+	}
+	const costOfPreset = (id: string) => data.presetCosts.find((c) => c.id === id);
+	const baseMix = $derived(costOfPreset(DEFAULT_PRESET)?.mix ?? null);
+	const usd = (n: number) => (n < 0.01 ? '< $0,01' : `$${n.toFixed(2).replace('.', ',')}`);
+
 	let pickerRole: 'pro' | 'flash' = $state('pro');
 	let pickerOpen = $state(false);
 	function openPicker(role: 'pro' | 'flash') {
@@ -302,6 +326,28 @@
 
 <div class="card stack">
 	<h2>Modelos de Gemini</h2>
+	<div class="presets">
+		{#each PRESETS as p (p.id)}
+			{@const c = costOfPreset(p.id)}
+			<button class="preset" class:sel={currentPreset === p.id} onclick={() => applyPreset(p)} aria-pressed={currentPreset === p.id}>
+				<strong>{p.icon} {p.label}{#if p.id === DEFAULT_PRESET} <span class="small muted">· recomendado</span>{/if}</strong>
+				<span class="small">{p.desc}</span>
+				<span class="small dim"><code>{p.pro}</code> + <code>{p.flash}</code></span>
+				<span class="small cost">
+					{#if c?.usd != null}Tu último mes: ≈ {usd(c.usd)}
+					{:else if c?.mix != null && baseMix}{c.mix / baseMix < 0.95 ? `~${(baseMix / c.mix).toFixed(1).replace('.', ',')}× más barato` : c.mix / baseMix > 1.05 ? `~${(c.mix / baseMix).toFixed(1).replace('.', ',')}× más caro` : 'referencia'}{/if}
+				</span>
+			</button>
+		{/each}
+	</div>
+	{#if currentPreset === 'custom'}<p class="small muted">Ahora: <strong>personalizado</strong> (modelos elegidos a mano abajo).</p>{/if}
+	{#if presetMsg}<p class="small">{presetMsg}</p>{/if}
+	<p class="dim small">
+		Costos a precios de hoy y suponiendo los mismos tokens (un modelo que razona más gasta más). Argon sube al doble el 1 de diciembre y
+		los Flash 3.6/3.8, el 1 de enero. Detalle en <a href="/costos">Costos</a>.
+	</p>
+	<details>
+		<summary class="small">Elegir los modelos a mano</summary>
 	<p class="dim small">Vacío = el de por defecto (Pro: <code>{data.env.modelPro}</code>, Flash: <code>{data.env.modelFlash}</code>).</p>
 	<div class="cols">
 		<div>
@@ -320,6 +366,7 @@
 		</div>
 	</div>
 	<p class="dim small">«Elegir…» muestra los modelos de tu API key con su precio y lo que te costarían con tu uso real. Recuerda guardar.</p>
+	</details>
 </div>
 
 <ModelPicker
@@ -373,6 +420,30 @@
 	.pick {
 		display: flex;
 		gap: 0.4rem;
+	}
+	.presets {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+		gap: 0.6rem;
+	}
+	.preset {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.25rem;
+		padding: 0.8rem 0.9rem;
+		text-align: left;
+	}
+	.preset.sel {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+	.preset code {
+		font-size: 0.75rem;
+	}
+	.preset .cost {
+		margin-top: auto;
+		color: var(--text);
 	}
 	.pick input {
 		flex: 1;
