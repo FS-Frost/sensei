@@ -1,1 +1,0 @@
-import{$ as e}from"./DJq6DCdy.js";var t=e({open:!1,context:null,dismissed:null,draft:``});function n(e){t.context=e,e?.label!==t.dismissed&&(t.dismissed=null)}function r(){return t.context&&t.context.label!==t.dismissed?t.context:null}function i(){t.dismissed=t.context?.label??null}function a(e,r=``){e&&n(e),t.draft=r,t.open=!0}export{t as a,n as i,a as n,i as r,r as t};
