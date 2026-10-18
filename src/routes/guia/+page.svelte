@@ -335,7 +335,8 @@
 		<ol>
 			<li>Abre <a href="/sincronizar">Sincronizar</a> en ambos. Pulsa «Iniciar» en uno y «Unirme» en el otro.</li>
 			<li>
-				Elige el mismo método en los dos (se recuerda el último): <strong>sonido</strong> (se turnan emitiendo por ultrasonido; pide el
+				Elige el mismo método en los dos (se pregunta cada vez): <strong>QR + sonido</strong> (recomendado para PC ↔ móvil: inicia el
+				PC, el móvil escanea su QR y responde por ultrasonido; el PC solo necesita micrófono), <strong>sonido</strong> (se turnan emitiendo por ultrasonido; pide el
 				micrófono), <strong>QR</strong> (cada uno escanea el del otro; pide la cámara) o <strong>copiar y pegar</strong> (pasas el código
 				por un chat o una nota; sin permisos, pero en algunas redes no conecta). «Cambiar a:» salta a otro método sin volver atrás.
 			</li>

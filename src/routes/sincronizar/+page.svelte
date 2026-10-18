@@ -95,7 +95,7 @@
 <h1>Sincronizar <HelpLink section="sincronizar" /></h1>
 <p class="muted small">
 	Pasa tu progreso entre este dispositivo y otro (PC ↔ móvil) <strong>sin internet</strong>: se emparejan por sonido y los datos
-	viajan por tu red local. Eliges cómo emparejarlos: sonido, QR o copiar y pegar. Este dispositivo: <strong>{myName}</strong>.
+	viajan por tu red local. Eliges cómo emparejarlos: QR + sonido, sonido, QR o copiar y pegar. Este dispositivo: <strong>{myName}</strong>.
 </p>
 {#if error}<div class="error small">{error}</div>{/if}
 
