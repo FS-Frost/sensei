@@ -11,6 +11,11 @@
 				var t = localStorage.getItem('sensei.theme');
 				if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
 			} catch (e) {}
+			// El navegador puede ofrecer instalar antes de que arranque la app: guardar el evento (client/install.svelte.ts).
+			addEventListener('beforeinstallprompt', function (e) {
+				e.preventDefault();
+				window.__senseiInstall = e;
+			});
 		</script>
 		<link rel="icon" href="/sensei/favicon.svg" />
 		<link rel="apple-touch-icon" href="/sensei/apple-touch-icon.png" />
@@ -26,8 +31,8 @@
 		<link href="/sensei/_app/immutable/chunks/CSkGYr0-.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/yJEVmVe5.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/D-cV47v0.js" rel="modulepreload">
-		<link href="/sensei/_app/immutable/entry/app.BA8Zsqq0.js" rel="modulepreload">
-		<link href="/sensei/_app/immutable/nodes/0.BfZg4K2W.js" rel="modulepreload">
+		<link href="/sensei/_app/immutable/entry/app.-g933a6P.js" rel="modulepreload">
+		<link href="/sensei/_app/immutable/nodes/0.CjAH5-R9.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/XKyaHtl9.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/CO1F68oG.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/Cgi_Y7Jf.js" rel="modulepreload">
@@ -50,8 +55,10 @@
 		<link href="/sensei/_app/immutable/chunks/CwwjOmRx.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/B1XftyvB.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/c1QT6vQg.js" rel="modulepreload">
+		<link href="/sensei/_app/immutable/chunks/Cc2XE_Zk.js" rel="modulepreload">
+		<link href="/sensei/_app/immutable/chunks/gzm4yMRM.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/CfDOSQPg.js" rel="modulepreload">
-		<link href="/sensei/_app/immutable/chunks/OeXOFaf8.js" rel="modulepreload">
+		<link href="/sensei/_app/immutable/chunks/CHp6x89B.js" rel="modulepreload">
 		<link href="/sensei/_app/immutable/chunks/mKUf-UhD.js" rel="modulepreload">
 		
 		<link href="/sensei/_app/immutable/assets/SpeakButton.7mKQDjPO.css" rel="stylesheet">
@@ -63,23 +70,24 @@
 		<link href="/sensei/_app/immutable/assets/MineSentence.iadcze07.css" rel="stylesheet">
 		<link href="/sensei/_app/immutable/assets/PromptText.WsmvmZ5h.css" rel="stylesheet">
 		<link href="/sensei/_app/immutable/assets/ChatView.CB-7od7n.css" rel="stylesheet">
-		<link href="/sensei/_app/immutable/assets/0.FMTTj_2T.css" rel="stylesheet">
+		<link href="/sensei/_app/immutable/assets/InstallCard.CtO0z4-P.css" rel="stylesheet">
+		<link href="/sensei/_app/immutable/assets/0.DRRHjlts.css" rel="stylesheet">
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_1fxtw2g = {
+					__sveltekit_1ramvs5 = {
 						base: "/sensei",
-						version: "c381afc",
+						version: "74e14fe",
 						assets: "/sensei"
 					};
 
 					const element = document.currentScript.parentElement;
 
 					import("/sensei/_app/immutable/entry/start.DUKTykwL.js").then(async (kit) => {
-						kit.init(__sveltekit_1fxtw2g);
-						const app = await import("/sensei/_app/immutable/entry/app.BA8Zsqq0.js");
+						kit.init(__sveltekit_1ramvs5);
+						const app = await import("/sensei/_app/immutable/entry/app.-g933a6P.js");
 						kit.start(app, element);
 					});
 				}
