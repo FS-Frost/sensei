@@ -87,7 +87,7 @@ bun run dev                     # http://localhost:5173
   - **Sesiones:** se guardan al primer mensaje; tabla ordenable con buscador, filtro, renombrar y borrar.
   - **Errores pasajeros de Gemini:** reintento automático y botón «Reintentar».
   - `?tutor=1` en cualquier URL abre el panel.
-- **Lectura graduada** (i+1), **Explicador** (texto o foto), **furigana adaptativa**, validación de lecturas contra JMdict.
+- **Lectura graduada** (i+1), **Explicador** (texto, imagen o foto con la cámara, trasera en el móvil), **furigana adaptativa**, validación de lecturas contra JMdict.
 - **Mapa de kanji**, ficha por kanji (con orden de trazos de KanjiVG), **estadísticas** y **ajustes**.
 - **Con IA o sin IA**: al empezar (o si no hay API key) se pregunta si usarás la IA. En **modo sin IA** desaparecen el tutor, las lecturas graduadas, el explicador, los costos y los botones de generar, y el resto funciona con el contenido ya preparado. El modo se ve en Inicio y al pie del menú; se cambia en Ajustes → Inteligencia artificial (la key se conserva).
 - **Avisos arriba de la pantalla**: confirmaciones, información y advertencias se cierran solas (pasar el ratón las pausa); los errores quedan hasta cerrarlos con ✕. Algunos traen botones («Actualizar», «Seguir →»).

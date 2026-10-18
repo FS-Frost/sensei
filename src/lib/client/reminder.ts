@@ -79,6 +79,34 @@ export async function enableReminder(): Promise<{ ok: boolean; message: string }
 	}
 }
 
+/**
+ * Muestra una notificación ahora mismo para comprobar que llegan (pide permiso si hace falta). Por el service worker si
+ * hay uno (Android solo permite notificaciones desde él), si no con `new Notification`.
+ */
+export async function testNotification(): Promise<{ ok: boolean; message: string }> {
+	if (typeof Notification === 'undefined') return { ok: false, message: 'Este navegador no muestra notificaciones.' };
+	const perm = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
+	if (perm !== 'granted') return { ok: false, message: 'Sin permiso de notificaciones: actívalo en los ajustes del sitio.' };
+	const title = 'Sensei';
+	const options: NotificationOptions = {
+		body: 'Notificación de prueba: así te avisaré cuando tengas repasos pendientes.',
+		icon: `${base}/icons/icon-192.png`,
+		tag: 'sensei-test'
+	};
+	try {
+		const reg = await navigator.serviceWorker?.getRegistration?.(`${base}/`);
+		if (reg) await reg.showNotification(title, options);
+		else new Notification(title, options);
+		return {
+			ok: true,
+			message:
+				'Enviada. Si no la ves, revisa que el sistema no tenga las notificaciones del navegador silenciadas (modo «No molestar», ajustes de notificaciones del sistema).'
+		};
+	} catch (e) {
+		return { ok: false, message: `No se pudo mostrar: ${e instanceof Error ? e.message : String(e)}` };
+	}
+}
+
 export async function disableReminder() {
 	setEnabled(false);
 	await publishSchedule();

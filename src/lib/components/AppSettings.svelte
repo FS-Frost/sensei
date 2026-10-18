@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { install, isIos, promptInstall } from '../client/install.svelte.ts';
 	import { toast } from '../client/toast.svelte.ts';
-	import { disableReminder, enableReminder, reminderEnabled, reminderSupport, type ReminderSupport } from '../client/reminder.ts';
+	import { disableReminder, enableReminder, reminderEnabled, reminderSupport, testNotification, type ReminderSupport } from '../client/reminder.ts';
 
 	let on = $state(false);
 	let busy = $state(false);
@@ -17,6 +17,19 @@
 		on = reminderEnabled() && typeof Notification !== 'undefined' && Notification.permission === 'granted';
 		denied = typeof Notification !== 'undefined' && Notification.permission === 'denied';
 	});
+
+	let testing = $state(false);
+	async function test() {
+		testing = true;
+		try {
+			const r = await testNotification();
+			if (r.ok) toast.success('Notificación de prueba enviada', { detail: r.message, duration: 8000 });
+			else toast.warn('No se pudo probar', { detail: r.message });
+			denied = typeof Notification !== 'undefined' && Notification.permission === 'denied';
+		} finally {
+			testing = false;
+		}
+	}
 
 	async function toggle() {
 		busy = true;
@@ -66,10 +79,15 @@
 	{#if !support.notifications}
 		<p class="small warn-text">Este navegador no muestra notificaciones.</p>
 	{:else}
-		<label class="check small">
-			<input type="checkbox" checked={on} disabled={busy || (denied && !on)} onchange={toggle} />
-			Avisarme si tengo repasos pendientes
-		</label>
+		<div class="row">
+			<label class="check small">
+				<input type="checkbox" checked={on} disabled={busy || (denied && !on)} onchange={toggle} />
+				Avisarme si tengo repasos pendientes
+			</label>
+			<button class="small" onclick={test} disabled={testing || denied} title="Muestra una notificación ahora para comprobar que llegan">
+				{#if testing}<span class="spinner"></span>{/if} 🔔 Probar notificación
+			</button>
+		</div>
 		{#if denied && !on}<p class="small warn-text">Notificaciones bloqueadas para este sitio: permítelas en los ajustes del navegador.</p>{/if}
 		{#if !support.periodic}
 			<p class="small dim">

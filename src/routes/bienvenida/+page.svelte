@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { toast } from '#lib/client/toast.svelte.ts';
 	import { goto } from '#lib/client/nav.ts';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { disableReminder, enableReminder, reminderEnabled, reminderSupport, testNotification } from '#lib/client/reminder.ts';
 	import type { PageProps } from './$types';
 	import { post, errMsg } from '#lib/client/api.ts';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
@@ -39,6 +40,37 @@
 	]);
 	const last = $derived(STEPS.length - 1);
 	const at = (name: string) => STEPS[step] === name;
+
+	// ---------- Recordatorio ----------
+	let notifSupported = $state(false);
+	let notifPeriodic = $state(true);
+	let notif = $state<'on' | 'off' | null>(null);
+	let notifBusy = $state(false);
+	let notifMsg = $state('');
+	onMount(() => {
+		const sup = reminderSupport();
+		notifSupported = sup.notifications;
+		notifPeriodic = sup.periodic;
+		if (reminderEnabled() && Notification.permission === 'granted') notif = 'on';
+	});
+	async function chooseNotif(yes: boolean) {
+		notifBusy = true;
+		try {
+			if (yes) {
+				// Al pulsar (gesto del usuario): así el navegador deja pedir el permiso.
+				const r = await enableReminder();
+				notif = r.ok ? 'on' : null;
+				notifMsg = r.ok ? `✓ ${r.message}` : r.message;
+				if (r.ok) await testNotification();
+			} else {
+				await disableReminder();
+				notif = 'off';
+				notifMsg = '';
+			}
+		} finally {
+			notifBusy = false;
+		}
+	}
 
 	// ---------- IA ----------
 	/** En «La IA» hay que elegir (no hay opción por defecto) antes de seguir. */
@@ -211,6 +243,27 @@
 				{/each}
 			</div>
 			<p class="small dim">Lo puedes cambiar cuando quieras en Ajustes. Mejor empezar bajo y subir que quemarse.</p>
+			{#if notifSupported}
+				<div class="notif stack">
+					<strong>¿Quieres un recordatorio de repasos?</strong>
+					<p class="small muted">
+						Como mucho un aviso al día (entre las 8 y las 22 h) si tienes repasos pendientes. El navegador te pedirá permiso.
+						{#if !notifPeriodic}En este navegador el aviso solo llega con la app instalada y abierta a menudo (Chrome/Edge); si no, verás los pendientes al abrirla.{/if}
+					</p>
+					<!-- Sin opción por defecto. -->
+					<div class="choice-row" role="radiogroup" aria-label="Recordatorio de repasos">
+						<button class="opt" class:sel={notif === 'on'} role="radio" aria-checked={notif === 'on'} onclick={() => chooseNotif(true)} disabled={notifBusy}>
+							<strong>{#if notifBusy}<span class="spinner"></span>{/if} Sí, avisarme</strong>
+							<span class="small dim">Puedes probarlo o quitarlo en Ajustes → App</span>
+						</button>
+						<button class="opt" class:sel={notif === 'off'} role="radio" aria-checked={notif === 'off'} onclick={() => chooseNotif(false)} disabled={notifBusy}>
+							<strong>No, gracias</strong>
+							<span class="small dim">Sin avisos</span>
+						</button>
+					</div>
+					{#if notifMsg}<p class="small" class:warning={notif !== 'on'}>{notifMsg}</p>{/if}
+				</div>
+			{/if}
 		{:else if step === 5}
 			<h2>Leer sin muletas</h2>
 			<p>La <strong>furigana</strong> (lectura pequeña sobre el kanji) ayuda al principio, pero si siempre está, no aprendes a leer.</p>
@@ -429,6 +482,15 @@
 	.opt.sel {
 		border-color: var(--accent);
 		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+	.notif {
+		border-top: 1px solid var(--line);
+		padding-top: 0.8rem;
+		margin-top: 0.4rem;
+		gap: 0.5rem;
+	}
+	.notif p {
+		margin: 0;
 	}
 	.howto {
 		margin: 0;

@@ -12,6 +12,7 @@
 	import type { OperationCost } from '#lib/cost.ts';
 	import { onMount } from 'svelte';
 	import { takePending } from '#lib/client/inbox.ts';
+	import CameraCapture from '#lib/components/CameraCapture.svelte';
 
 	// Llegó compartido hacia Sensei (/compartir): texto o imagen listos para explicar.
 	onMount(() => {
@@ -60,6 +61,20 @@
 	let cost = $state<OperationCost | null>(null);
 	let loading = $state(false);
 	let fileInput: HTMLInputElement | undefined = $state();
+	let cameraInput: HTMLInputElement | undefined = $state();
+	let cameraOpen = $state(false);
+	// Móvil (pantalla táctil sin ratón): la app de cámara del sistema, que abre la trasera con capture="environment".
+	// Si no, la cámara dentro de la app (si el navegador la permite).
+	let mobile = $state(false);
+	let canCamera = $state(false);
+	onMount(() => {
+		mobile = matchMedia('(pointer: coarse) and (hover: none)').matches;
+		canCamera = mobile || !!navigator.mediaDevices?.getUserMedia;
+	});
+	function openCamera() {
+		if (mobile) cameraInput?.click();
+		else cameraOpen = true;
+	}
 
 	const MAX = 1600; // px del lado mayor tras reducir
 
@@ -77,6 +92,7 @@
 
 	function onfile(e: Event) {
 		const f = (e.target as HTMLInputElement).files?.[0];
+		(e.target as HTMLInputElement).value = ''; // poder elegir/hacer la misma foto otra vez
 		if (f) pick(f).catch((err) => toast.error('No se pudo explicar', { detail: errMsg(err) }));
 	}
 
@@ -122,16 +138,20 @@
 </script>
 
 <svelte:window {onpaste} />
+<CameraCapture bind:open={cameraOpen} oncapture={(f) => pick(f).catch((err) => toast.error('No se pudo usar la foto', { detail: errMsg(err) }))} />
 <svelte:head><title>Explicador · Sensei</title></svelte:head>
 
 <h1>Explicador <HelpLink section="explicar" /></h1>
-<p class="muted small">Pega texto japonés o sube/pega una captura (manga, juego, cartel). El tutor lo transcribe y lo desglosa.</p>
+<p class="muted small">Pega texto japonés, sube o pega una captura, o hazle una foto con la cámara (manga, juego, cartel). El tutor lo transcribe y lo desglosa.</p>
 
 <div class="card stack">
 	<textarea bind:value={text} rows="3" class="jp" placeholder="Pega aquí el texto japonés…"></textarea>
 	<div class="row">
 		<input type="file" accept="image/*" bind:this={fileInput} onchange={onfile} hidden />
-		<button onclick={() => fileInput?.click()}>📷 Imagen</button>
+		<!-- En el móvil, la cámara nativa (trasera); en PC/tablet, la cámara dentro de la app. -->
+		<input type="file" accept="image/*" capture="environment" bind:this={cameraInput} onchange={onfile} hidden />
+		<button onclick={() => fileInput?.click()}>🖼 Subir imagen</button>
+		{#if canCamera}<button onclick={openCamera}>📸 Cámara</button>{/if}
 		{#if image}
 			<img src={image.url} alt="Imagen a explicar" class="thumb" />
 			<button class="small ghost" onclick={() => (image = null)}>Quitar</button>
