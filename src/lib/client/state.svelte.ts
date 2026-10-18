@@ -5,14 +5,17 @@ export const prefs = $state({
 	furigana: 'adaptive' as FuriganaMode,
 	ttsEnabled: true,
 	fontVariety: true,
-	readable: new Set<string>()
+	readable: new Set<string>(),
+	/** Kana que aún no lees con soltura: bajo ellos se muestra romaji de apoyo (KanaHint). */
+	weakKana: new Set<string>()
 });
 
-export function setPrefs(p: { furigana: FuriganaMode; ttsEnabled: boolean; fontVariety: boolean; readable: string }) {
+export function setPrefs(p: { furigana: FuriganaMode; ttsEnabled: boolean; fontVariety: boolean; readable: string; weakKana?: string }) {
 	prefs.furigana = p.furigana;
 	prefs.ttsEnabled = p.ttsEnabled;
 	prefs.fontVariety = p.fontVariety;
 	prefs.readable = new Set([...p.readable]);
+	prefs.weakKana = new Set([...(p.weakKana ?? '')]);
 }
 
 const FONTS: PromptFont[] = ['gothic', 'mincho', 'kyokasho', 'maru', 'brush', 'manga'];

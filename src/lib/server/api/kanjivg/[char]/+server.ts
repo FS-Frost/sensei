@@ -7,7 +7,8 @@ const CACHE = 'sensei-kanjivg';
 /** Orden de trazos (KanjiVG, CC-BY-SA). Se descarga una vez y se guarda en la Cache API del navegador. */
 export const GET: RequestHandler = async ({ params }) => {
 	const ch = params.char;
-	if ([...ch].length !== 1 || !isKanjiChar(ch)) return new Response('Kanji inválido', { status: 400 });
+	// Kanji y kana (KanjiVG trae también hiragana y katakana, con dakuten).
+	if ([...ch].length !== 1 || !(isKanjiChar(ch) || /^[ぁ-ゖァ-ヺ]$/.test(ch))) return new Response('Carácter inválido', { status: 400 });
 	const hex = ch.codePointAt(0)!.toString(16).padStart(5, '0');
 	const url = `${BASE}/${hex}.svg`;
 	const cache = typeof caches !== 'undefined' ? await caches.open(CACHE) : null;

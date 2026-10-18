@@ -3,7 +3,8 @@ import type { DB } from '../db/index.ts';
 import * as s from '../db/schema.ts';
 import type { Facet, GradeResult, ItemType, ReviewItem } from '../../types.ts';
 import { acceptedKanjiReadings, kanjiIn, meaningMatches, normalizeReading, readingMatches } from '../../jp.ts';
-import { acceptedRomaji, kanaRomaji, kanaScript, ALL_KANA } from '../../kana.ts';
+import { acceptedRomaji, kanaRomaji, kanaScript, ALL_KANA, wordRomaji } from '../../kana.ts';
+import { COURSE_KANA, isSpecialKana, kanaEntry, kanaSimilar, rowOf, SPECIAL_WORDS } from '../../kanaCourse.ts';
 import { emptyCard, revive, schedule, serialize, Rating, State, type Grade, type SchedulerConfig } from './fsrs.ts';
 import { GRAMMAR, GRAMMAR_BY_ID } from '../../grammar.ts';
 import { exampleFor, similarTo } from '../items.ts';
@@ -28,6 +29,8 @@ function kanjiRow(db: DB, char: string) {
 
 export function acceptedAnswers(db: DB, type: ItemType, key: string, facet: Facet): Accepted {
 	if (type === 'kana') {
+		// Inversa y escritura: la respuesta es el propio kana.
+		if (facet === 'meaning' || facet === 'writing') return { accepted: [key], display: [key] };
 		const r = acceptedRomaji(key);
 		return { accepted: r, display: [r[0]] };
 	}
@@ -82,6 +85,21 @@ const LABELS: Record<ItemType, string> = {
 	sentence: 'Frase'
 };
 
+/**
+ * Opciones para «¿cuál es?» de un kana: la correcta y 3 distractores de la misma escritura y tamaño, empezando por
+ * los parecidos (ソ/ン) y la misma fila, que es donde está la confusión real.
+ */
+export function kanaOptions(key: string): string[] {
+	const script = kanaScript(key);
+	const len = [...key].length;
+	const pool = COURSE_KANA.filter((k) => k !== key && kanaScript(k) === script && [...k].length === len && !isSpecialKana(k));
+	const similar = kanaSimilar(key).map((x) => x.char).filter((k) => pool.includes(k));
+	const row = (rowOf(key)?.chars ?? []).filter((k) => k !== key && pool.includes(k) && !similar.includes(k));
+	const shuffle = <T>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
+	const picked = [...similar, ...shuffle(row), ...shuffle(pool)].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
+	return shuffle([key, ...picked]);
+}
+
 /** 3 distractores de puntos cercanos en el currículo + la correcta, mezclados. */
 function grammarOptions(id: string): string[] {
 	const idx = GRAMMAR.findIndex((g) => g.id === id);
@@ -92,12 +110,35 @@ function grammarOptions(id: string): string[] {
 }
 
 export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemType; itemKey: string; facet: Facet }): ReviewItem {
-	const { display } = acceptedAnswers(db, c.itemType, c.itemKey, c.facet);
+	let { display } = acceptedAnswers(db, c.itemType, c.itemKey, c.facet);
 	let prompt = c.itemKey;
 	let extra: ReviewItem['extra'];
 	let options: string[] | undefined;
 	let highlight: string | undefined;
-	if (c.itemType === 'vocab') {
+	if (c.itemType === 'kana') {
+		const e = kanaEntry(c.itemKey);
+		const similar = kanaSimilar(c.itemKey);
+		extra = {
+			mnemonic: e.mnemonic,
+			similar: similar.length ? similar.map((x) => ({ char: x.char, tip: x.tip })) : undefined
+		};
+		if (c.facet === 'reading' && isSpecialKana(c.itemKey)) {
+			// っ/ー: se lee una palabra entera; la respuesta mostrada es la de esa palabra.
+			const words = SPECIAL_WORDS[c.itemKey];
+			const w = words[Math.floor(Math.random() * words.length)];
+			prompt = w.word;
+			display = [wordRomaji(w.word)[0]];
+			extra.meaning = w.es;
+		} else if (c.facet === 'meaning') {
+			// Inversa: se ve (y se oye) el sonido; se elige el kana entre parecidos.
+			prompt = e.romaji;
+			options = kanaOptions(c.itemKey);
+		} else if (c.facet === 'writing') {
+			prompt = e.romaji;
+			extra.reading = e.romaji;
+		}
+		if (e.example && c.facet !== 'reading') extra.meaning = `${e.example.word}: ${e.example.es}`;
+	} else if (c.itemType === 'vocab') {
 		const v = db.select().from(s.vocab).where(eq(s.vocab.id, c.itemKey)).get();
 		prompt = v?.mainForm ?? c.itemKey;
 		extra = {
@@ -137,7 +178,9 @@ export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemTy
 		c.facet === 'writing'
 			? 'trace'
 			: c.itemType === 'kana'
-				? 'romaji'
+				? c.facet === 'meaning'
+					? 'choice'
+					: 'romaji'
 				: c.itemType === 'grammar'
 					? 'choice'
 					: c.facet === 'reading'
@@ -147,7 +190,11 @@ export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemTy
 		c.facet === 'writing'
 			? 'escritura'
 			: c.itemType === 'kana'
-			? 'romaji'
+			? c.facet === 'meaning'
+				? '¿cuál es?'
+				: isSpecialKana(c.itemKey)
+					? 'lee la palabra en romaji'
+					: 'romaji'
 			: c.itemType === 'grammar'
 				? '¿qué expresa?'
 				: c.itemType === 'sentence'
@@ -176,8 +223,12 @@ export function gradeAnswer(db: DB, type: ItemType, key: string, facet: Facet, a
 	if (type === 'grammar') return { correct: accepted.includes(answer.trim()), answers: display };
 	// Escritura: el cliente compara los trazos (strokes.ts) y manda cuántos falló.
 	if (facet === 'writing') return { correct: writingGrade(Number(answer) || 0).correct, answers: display };
+	if (type === 'kana' && facet === 'meaning') {
+		const a = answer.trim();
+		return { correct: a === key, answers: display, confusedWith: a && a !== key ? a : null };
+	}
 	if (type === 'kana') {
-		const a = answer.trim().toLowerCase();
+		const a = answer.trim().toLowerCase().replace(/[\s'-]/g, '');
 		const correct = accepted.includes(a);
 		let confusedWith: string | null = null;
 		if (!correct && a) {
@@ -253,8 +304,10 @@ export function ensureCard(db: DB, type: ItemType, key: string, facet: Facet, no
 		.get();
 }
 
-export function facetsFor(type: ItemType): Facet[] {
-	if (type === 'kana' || type === 'sentence') return ['reading'];
+export function facetsFor(type: ItemType, key?: string): Facet[] {
+	// Kana: lectura e inversa (っ y ー, solo lectura). Sin clave, la faceta base.
+	if (type === 'kana') return key && !isSpecialKana(key) ? ['reading', 'meaning'] : ['reading'];
+	if (type === 'sentence') return ['reading'];
 	if (type === 'component' || type === 'grammar') return ['meaning'];
 	return ['meaning', 'reading'];
 }
@@ -308,14 +361,28 @@ export function ensureWritingCards(db: DB, now = new Date()) {
 		db.get<[number]>(sql`select count(*) from card where facet = 'writing' and created_at >= ${start}`)?.[0] ?? 0;
 	const left = st.newWritingPerDay - today;
 	if (left <= 0) return 0;
+	// Primero los kana (un solo carácter, en orden del curso) que ya lees con soltura; luego los kanji.
+	const kanaRows = db.all<{ k: string }>(sql`
+		select c.item_key as k from card c
+		where c.item_type = 'kana' and c.facet = 'reading' and c.state = ${State.Review}
+			and not exists (select 1 from card w where w.item_type = 'kana' and w.item_key = c.item_key and w.facet = 'writing')`);
+	const order = new Map(COURSE_KANA.map((k, i) => [k, i]));
+	const kana = kanaRows
+		.map((r) => r.k)
+		.filter((k) => [...k].length === 1 && !isSpecialKana(k) && order.has(k))
+		.sort((a, b) => order.get(a)! - order.get(b)!)
+		.slice(0, left);
+	for (const k of kana) ensureCard(db, 'kana', k, 'writing', now);
+	const rest = left - kana.length;
+	if (rest <= 0) return kana.length;
 	const next = db.all<{ k: string }>(sql`
 		select c.item_key as k from card c join kanji k on k.char = c.item_key
 		where c.item_type = 'kanji' and c.facet = 'meaning' and c.state = ${State.Review}
 			and not exists (select 1 from card w where w.item_type = 'kanji' and w.item_key = c.item_key and w.facet = 'writing')
 		order by coalesce(k.learn_order, 99999), c.created_at
-		limit ${left}`);
+		limit ${rest}`);
 	for (const { k } of next) ensureCard(db, 'kanji', k, 'writing', now);
-	return next.length;
+	return kana.length + next.length;
 }
 
 /** Tarjetas «sanguijuela»: muchos fallos acumulados. Repetirlas igual no funciona; hay que cambiar de estrategia. */

@@ -4,6 +4,7 @@
 	import SpeakButton from './SpeakButton.svelte';
 	import StatusBadge from './StatusBadge.svelte';
 	import KanjiTrace from './KanjiTrace.svelte';
+	import KanaHint from './KanaHint.svelte';
 
 	let { k, compact = false }: { k: KanjiInfo; compact?: boolean } = $props();
 	let showStrokes = $state(false);
@@ -26,10 +27,14 @@
 			<div class="meaning">{meanings.slice(0, 5).join(', ')}</div>
 			<div class="readings jp">
 				{#if k.onReadings.length}
-					<div><span class="tag">音 on</span> {k.onReadings.join('、')} <SpeakButton text={k.onReadings[0]} /></div>
+					<div>
+						<span class="tag">音 on</span>
+						{#each k.onReadings as r, i (r)}{#if i}、{/if}<KanaHint text={r} />{/each}
+						<SpeakButton text={k.onReadings[0]} />
+					</div>
 				{/if}
 				{#if k.kunReadings.length}
-					<div><span class="tag">訓 kun</span> {k.kunReadings.join('、')}</div>
+					<div><span class="tag">訓 kun</span> {#each k.kunReadings as r, i (r)}{#if i}、{/if}<KanaHint text={r} />{/each}</div>
 				{/if}
 			</div>
 			<div class="row small dim">

@@ -24,8 +24,37 @@
 	let furigana: FuriganaMode = $state(untrack(() => data.settings.furigana));
 	let saving = $state(false);
 
-	const STEPS = ['Bienvenida', 'El camino', 'El SRS', 'Tu ritmo', 'Leer sin muletas', 'La IA', '¡A empezar!'];
+	const STEPS = ['Bienvenida', 'El camino', 'Tu punto de partida', 'El SRS', 'Tu ritmo', 'Leer sin muletas', 'La IA', '¡A empezar!'];
 	const last = STEPS.length - 1;
+
+	// ---------- Punto de partida ----------
+	type KanaSelf = 'none' | 'some' | 'slow' | 'fluent';
+	const KANA_SELF: { v: KanaSelf; label: string }[] = [
+		{ v: 'none', label: 'No lo sé' },
+		{ v: 'some', label: 'Algunos' },
+		{ v: 'slow', label: 'Lo leo, lento' },
+		{ v: 'fluent', label: 'Con fluidez' }
+	];
+	const KANJI_SELF = [
+		{ v: 'none', label: 'Ninguno' },
+		{ v: 'some', label: 'Algunos (<100)' },
+		{ v: 'basic', label: 'Básicos (~300)' },
+		{ v: 'many', label: 'Bastantes (600+)' }
+	] as const;
+	let level = $state(
+		untrack(() => data.settings.startLevel ?? { hiragana: 'none' as KanaSelf, katakana: 'none' as KanaSelf, kanji: 'none' as 'none' | 'some' | 'basic' | 'many' })
+	);
+	/** Escrituras a diagnosticar (las que dices saber algo); las demás, al curso desde cero. */
+	const diagScripts = $derived((['hiragana', 'katakana'] as const).filter((s) => level[s] !== 'none'));
+	const planText = $derived(
+		(level.hiragana === 'none'
+			? 'Empezarás aprendiendo el hiragana fila a fila (unos días, 10 kana al día), con una imagen para cada uno. '
+			: `Una prueba corta de ${diagScripts.join(' y ')} detectará lo que dominas y lo que no. `) +
+			(level.katakana === 'none' && level.hiragana !== 'none' ? 'El katakana lo aprenderás en las lecciones, junto a los primeros kanji. ' : '') +
+			(level.kanji !== 'none' ? 'Después, el test de nivel de kanji para no repetir lo que ya sabes.' : 'Los kanji empiezan cuando termines el hiragana básico.')
+	);
+	/** Adónde lleva «empezar»: el diagnóstico de lo que dices saber, o la primera lección de kana. */
+	const startTarget = $derived(diagScripts.length ? `/kana?diag=${diagScripts.join(',')}` : '/leccion');
 
 	async function finish(target: string) {
 		saving = true;
@@ -35,6 +64,7 @@
 				newVocabPerDay: pace,
 				newGrammarPerDay: pace >= 15 ? 3 : 2,
 				furigana,
+				startLevel: level,
 				onboardingDone: true
 			});
 			await goto(target, { refreshAll: true });
@@ -69,6 +99,7 @@
 		{:else if step === 1}
 			<h2>El camino: piezas → kanji → palabras → lectura</h2>
 			<ol class="path">
+				<li><strong class="c-kana">Kana</strong> — los dos silabarios (hiragana y katakana), un sonido por letra. Si no los sabes, empiezas por aquí: unos días.</li>
 				<li><strong class="c-comp">Componentes</strong> — las piezas visuales de los kanji (氵 «agua», 亻 «persona»). Pocas, reutilizadas en cientos de kanji.</li>
 				<li><strong class="c-kanji">Kanji</strong> — cada uno con una mnemotecnia en español que combina sus componentes. Orden: <em>lo más frecuente primero</em>, siempre después de sus piezas.</li>
 				<li><strong class="c-vocab">Vocabulario</strong> — se desbloquea cuando dominas sus kanji. Leer es reconocer palabras, no kanji sueltos.</li>
@@ -80,6 +111,28 @@
 			</ol>
 			<p class="muted small">Ejemplo: 休 «descansar» = 亻 persona + 木 árbol → una persona apoyada en un árbol. Aprendes 亻 y 木 antes que 休.</p>
 		{:else if step === 2}
+			<h2>Tu punto de partida</h2>
+			<p class="muted small">Así Sensei empieza donde estás: desde cero, con una prueba corta o saltando lo que ya dominas.</p>
+			{#each [['hiragana', 'Hiragana (あいう…)', 'Las letras redondeadas: con ellas se escribe la gramática y cualquier palabra.'], ['katakana', 'Katakana (アイウ…)', 'Las angulosas: palabras extranjeras, nombres y onomatopeyas.']] as const as [key, label, desc] (key)}
+				<fieldset class="q">
+					<legend><strong>{label}</strong> <span class="small muted">— {desc}</span></legend>
+					<div class="opts-row">
+						{#each KANA_SELF as o (o.v)}
+							<label class="pill" class:sel={level[key] === o.v}><input type="radio" bind:group={level[key]} value={o.v} /> {o.label}</label>
+						{/each}
+					</div>
+				</fieldset>
+			{/each}
+			<fieldset class="q">
+				<legend><strong>Kanji</strong></legend>
+				<div class="opts-row">
+					{#each KANJI_SELF as o (o.v)}
+						<label class="pill" class:sel={level.kanji === o.v}><input type="radio" bind:group={level.kanji} value={o.v} /> {o.label}</label>
+					{/each}
+				</div>
+			</fieldset>
+			<p class="small">{planText}</p>
+		{:else if step === 3}
 			<h2>El SRS: repasar justo antes de olvidar</h2>
 			<p>
 				Cada cosa que aprendes se convierte en tarjetas (significado y lectura). Un algoritmo (FSRS) calcula cuándo vas a olvidarla y
@@ -94,7 +147,7 @@
 					protegerte, no un castigo.
 				</li>
 			</ul>
-		{:else if step === 3}
+		{:else if step === 4}
 			<h2>Tu ritmo diario</h2>
 			<p class="muted small">Kanji nuevos por día (y otras tantas palabras). El tiempo incluye los repasos cuando el ritmo se estabiliza.</p>
 			<div class="paces">
@@ -108,7 +161,7 @@
 				{/each}
 			</div>
 			<p class="small dim">Lo puedes cambiar cuando quieras en Ajustes. Mejor empezar bajo y subir que quemarse.</p>
-		{:else if step === 4}
+		{:else if step === 5}
 			<h2>Leer sin muletas</h2>
 			<p>La <strong>furigana</strong> (lectura pequeña sobre el kanji) ayuda al principio, pero si siempre está, no aprendes a leer.</p>
 			<div class="opts">
@@ -122,7 +175,7 @@
 				<li>El botón 🔊 lee en voz alta (si tu sistema tiene voz japonesa).</li>
 			</ul>
 			<div class="row small">Tema: <ThemeToggle /></div>
-		{:else if step === 5}
+		{:else if step === 6}
 			<h2>La IA: un tutor, si lo quieres</h2>
 			<p>Con IA (Gemini) tienes un tutor que conoce tu progreso, tus fallos y tus confusiones, y recuerda las sesiones anteriores.</p>
 			<ul>
@@ -147,24 +200,31 @@
 			{/if}
 		{:else}
 			<h2>¡A empezar!</h2>
-			{#if !data.diagDone}
+			{#if data.diagDone}
+				<p>Ya hiciste el diagnóstico de kana. Siguiente paso: tu <strong>primera lección</strong>.</p>
+			{:else if diagScripts.length}
 				<p>
-					Primer paso recomendado: el <strong>diagnóstico de kana</strong> (~5 min). Detecta los hiragana/katakana en los que dudas y
-					solo esos entran a tu SRS. Si los kana fallan, todo lo demás cuesta el doble.
+					Primer paso: una <strong>prueba corta de {diagScripts.join(' y ')}</strong> (~3-5 min). Empieza con una muestra: si fallas
+					mucho, esa escritura se aprende desde cero; si no, detecta lo que dudas y solo eso entra a tu SRS.
 				</p>
 			{:else}
-				<p>Ya hiciste el diagnóstico de kana. Siguiente paso: tu <strong>primera lección</strong> de kanji.</p>
+				<p>
+					Primer paso: tu <strong>primera lección de hiragana</strong>, las vocales あいうえお. Cada kana trae su sonido, una imagen
+					para recordarlo, una palabra real y su trazo. Con 10 al día, en unos 5 días lees hiragana.
+				</p>
 			{/if}
+			<p class="small muted">{planText}</p>
 			<p class="small muted">
-				Cada día, la página de Inicio te dirá <strong>qué hacer ahora y por qué</strong>, y en qué punto del viaje estás. ¿Ya sabes
-				algunos kanji? Haz después el <a href="/nivel">test de nivel</a> para no repetir lo que dominas.
+				Cada día, la página de Inicio te dirá <strong>qué hacer ahora y por qué</strong>, y en qué punto del viaje estás.
 			</p>
 			<InstallCard dismissible={false} />
 			<div class="row">
-				{#if !data.diagDone}
-					<button class="primary" onclick={() => finish('/kana')} disabled={saving}>Ir al diagnóstico de kana</button>
-				{:else}
+				{#if data.diagDone}
 					<button class="primary" onclick={() => finish('/leccion')} disabled={saving}>Primera lección</button>
+				{:else}
+					<button class="primary" onclick={() => finish(startTarget)} disabled={saving}>
+						{diagScripts.length ? 'Ir a la prueba de kana' : 'Primera lección de hiragana'}
+					</button>
 				{/if}
 				<button onclick={() => finish('/')} disabled={saving}>Ir al inicio</button>
 			</div>
@@ -223,6 +283,42 @@
 	}
 	.c-comp {
 		color: var(--component);
+	}
+	.c-kana {
+		color: var(--kana);
+	}
+	.q {
+		border: none;
+		padding: 0;
+		margin: 0 0 0.6rem;
+	}
+	.q legend {
+		padding: 0;
+		margin-bottom: 0.35rem;
+	}
+	.opts-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		padding: 0.25rem 0.75rem;
+		margin: 0;
+		cursor: pointer;
+		color: var(--text);
+	}
+	.pill input {
+		width: auto;
+		margin: 0;
+	}
+	.pill.sel {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 	.c-kanji {
 		color: var(--kanji);

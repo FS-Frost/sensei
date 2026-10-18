@@ -5,6 +5,7 @@ import { applyReview, dueCount, ensureCard, gradeAnswer, interleave } from '../s
 import { State } from '../src/lib/server/srs/fsrs.ts';
 import { lessonQuota, nextLesson, unlockedVocab } from '../src/lib/server/srs/lessons.ts';
 import { updateSettings, dayStart } from '../src/lib/server/settings.ts';
+import { knowAllKana } from './helpers.ts';
 
 let db: DB;
 
@@ -87,6 +88,8 @@ describe('FSRS', () => {
 });
 
 describe('lecciones', () => {
+	beforeEach(() => knowAllKana(db));
+
 	test('respeta el orden componentes+kanji', () => {
 		const { items } = nextLesson(db, 'kanji');
 		expect(items.map((i) => i.key)).toEqual(['日', '丶', '本']);

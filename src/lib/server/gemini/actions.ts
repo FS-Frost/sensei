@@ -447,7 +447,7 @@ function cardsOf(db: DB, it: ResolvedItem) {
 function createCards(db: DB, it: ResolvedItem): number[] {
 	const existing = new Set(cardsOf(db, it).map((c) => c.facet));
 	const created: number[] = [];
-	for (const f of facetsFor(it.type)) {
+	for (const f of facetsFor(it.type, it.key)) {
 		if (existing.has(f)) continue;
 		created.push(ensureCard(db, it.type, it.key, f).id);
 	}

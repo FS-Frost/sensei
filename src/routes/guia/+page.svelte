@@ -94,12 +94,20 @@
 	</section>
 
 	<section id="kana" class="card">
-		<h2>Diagnóstico de kana</h2>
+		<h2>Kana: desde cero o con una prueba</h2>
 		<p>
-			Escribe el romaji de cada kana lo más rápido que puedas. Los que falles, o en los que tardes más de 4 s, entran a tu SRS; el resto se
-			da por dominado. Si confundes dos (シ/ツ), queda registrado como confusión. Puedes repetirlo cuando quieras; para empezar de cero
-			con los kana, reinícialos en <a href="/datos">Datos</a>.
+			En la bienvenida dices tu punto de partida (hiragana, katakana y kanji). Si no sabes kana, las lecciones empiezan por ellos:
+			<strong>fila a fila</strong> (あいうえお, かきくけこ…), 10 al día, cada uno con su sonido 🔊, una imagen para recordarlo, una
+			palabra real, sus parecidos (ソ/ン, ぬ/め) y la práctica del trazo. Después vienen los kana con ゛ y ゜, los combinados (きゃ), la
+			っ pequeña, y en katakana la raya ー y los extendidos (ファ, ティ).
 		</p>
+		<ul>
+			<li><strong>Los kanji y la gramática esperan</strong> a que termines el hiragana básico (46): todo se lee con kana. El katakana sigue en paralelo a los primeros kanji.</li>
+			<li><strong>Repaso</strong>: ves el kana y escribes el romaji; y al revés, oyes o ves el sonido y eliges el kana entre parecidos. Con «Repasos de escritura» (Ajustes) también los trazas.</li>
+			<li><strong>Romaji de apoyo</strong>: bajo las lecturas en kana (fichas, lecciones, diccionario, repasos) aparece el romaji pequeño solo mientras haya algún kana que aún no lees con soltura. Desaparece solo.</li>
+			<li><strong>Prueba de kana</strong> (adaptativa): una muestra corta; con muchos fallos, esa escritura se aprende desde cero. Si va bien, sigue con el resto: lo correcto y rápido queda en repaso; lo fallado o lento (más de 4 s), a aprender.</li>
+			<li><strong>Practicar lectura</strong>: en la página Kana, palabras reales escritas solo con los kana que ya estudiaste.</li>
+		</ul>
 	</section>
 
 	<section id="nivel" class="card">
@@ -426,7 +434,7 @@
 				<li class:reached={m.reached} class:next={j.next?.id === m.id}>
 					<div class="spread">
 						<strong>{m.reached ? '✓ ' : ''}{m.title}</strong>
-						<span class="small muted">{m.kanji ? `${m.kanji} kanji` : 'kana'}</span>
+						<span class="small muted">{m.kanji ? `${m.kanji} kanji` : m.kana ?? 'kana'}</span>
 					</div>
 					<div class="small">{m.unlocks}</div>
 					<div class="small muted">Consejo: {m.tip}</div>

@@ -4,6 +4,7 @@ import { readableKanji } from '#lib/server/items.ts';
 import { dueCount } from '#lib/server/srs/service.ts';
 import { hasGemini } from '#lib/server/gemini/client.ts';
 import { config } from '#lib/server/config.ts';
+import { weakKanaChars } from '#lib/server/kana.ts';
 import { sql } from 'drizzle-orm';
 
 export const load = () => {
@@ -15,6 +16,7 @@ export const load = () => {
 		ttsEnabled: st.ttsEnabled,
 		fontVariety: st.fontVariety,
 		readable: [...readableKanji(db)].join(''),
+		weakKana: weakKanaChars(db),
 		due: dueCount(db),
 		/** Se puede llamar a Gemini ahora (key y modo IA). */
 		gemini: hasGemini(),

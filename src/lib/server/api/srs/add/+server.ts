@@ -59,6 +59,6 @@ export const POST: RequestHandler = ({ request }) =>
 		} else {
 			throw new HttpError(400, 'Indica kanji, vocabId o word');
 		}
-		const cards = facetsFor(type).map((f) => ensureCard(db, type, key, f));
+		const cards = facetsFor(type, key).map((f) => ensureCard(db, type, key, f));
 		return Response.json({ type, key, cards: cards.map((c) => c.id) });
 	});

@@ -74,7 +74,10 @@ bun run dev                     # http://localhost:5173
 
 - **Bienvenida y guía**: un asistente inicial explica el método y fija tu ritmo. La página **Guía** documenta cada pantalla, y el botón «?» de cada una lleva a su sección.
 - **Inicio**: el **siguiente paso recomendado y por qué**, tu posición en la **ruta de hitos** (kana → 50 → 100 → 300 → 600 → 1000 → 2000 kanji), repasos pendientes, cupo de lecciones, racha, progreso, previsión, puntos débiles y confusiones.
-- **Diagnóstico de kana**: solo los kana que fallas o en los que dudas (> 4 s) entran al SRS.
+- **Kana desde cero o con una prueba**: la bienvenida pregunta tu punto de partida (hiragana, katakana, kanji).
+  - **Curso de kana** fila a fila: sonido, una imagen en español para recordar cada kana, palabra real, parecidos (ソ/ン) y trazo; luego ゛/゜, combinados (きゃ), っ, ー y katakana extendido. Repaso en los dos sentidos (kana → romaji y sonido → elegir el kana) y escritura opcional.
+  - Los kanji y la gramática esperan al hiragana básico; el katakana va en paralelo. Romaji de apoyo bajo las lecturas solo mientras no domines esos kana.
+  - **Prueba adaptativa**: muestra corta por escritura; si fallas mucho, esa escritura se aprende desde cero; si no, lo dominado queda en repaso y lo dudoso (> 4 s) entra a aprender. Práctica de lectura con palabras reales escritas solo con tus kana.
 - **Lecciones**: componentes → kanji (mnemotecnia en español, lecturas, vocabulario) → mini-quiz. Orden "componentes + frecuencia". El vocabulario se desbloquea cuando sus kanji pasan a repaso.
   - **Componentes explicados:** qué dibujan, por qué el nombre, qué aportan (significado, sonido o solo forma) y su forma completa (氵 es 水). Ejemplos con la pieza resaltada en color dentro de cada kanji, «lo vas a usar en…» y la pregunta «¿en cuál aparece?».
 - **Repaso SRS (FSRS)**: lectura en romaji que se convierte en vivo a kana; significado en español con tolerancia a tildes y erratas; "¿Por qué?" pide la explicación al tutor; las confusiones se detectan solas.

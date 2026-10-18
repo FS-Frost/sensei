@@ -6,6 +6,8 @@
 	import type { LessonItem, ReviewItem } from '#lib/types.ts';
 	import KanjiDetail from '#lib/components/KanjiDetail.svelte';
 	import ComponentCard from '#lib/components/ComponentCard.svelte';
+	import KanaCard from '#lib/components/KanaCard.svelte';
+	import KanaHint from '#lib/components/KanaHint.svelte';
 	import ReviewSession from '#lib/components/ReviewSession.svelte';
 	import SpeakButton from '#lib/components/SpeakButton.svelte';
 	import PromptText from '#lib/components/PromptText.svelte';
@@ -13,7 +15,18 @@
 	import { completeDaily } from '#lib/client/daily.svelte.ts';
 	import { aiUi } from '#lib/client/ai.svelte.ts';
 
-	type Quota = { kanjiLeft: number; vocabLeft: number; grammarLeft: number; brake: string; due: number; queued: number };
+	type Quota = {
+		kanaLeft: number;
+		kanaAvailable: number;
+		kanjiLocked: boolean;
+		hiraganaLeft: number;
+		kanjiLeft: number;
+		vocabLeft: number;
+		grammarLeft: number;
+		brake: string;
+		due: number;
+		queued: number;
+	};
 	type Lesson = {
 		items: LessonItem[];
 		quiz: ReviewItem[];
@@ -28,7 +41,7 @@
 	let error = $state('');
 	let idx = $state(0);
 	let stage: 'learn' | 'quiz' | 'done' = $state('learn');
-	let kind: 'auto' | 'kanji' | 'vocab' = $state('auto');
+	let kind: 'auto' | 'kana' | 'kanji' | 'vocab' | 'grammar' = $state('auto');
 
 	async function load() {
 		loading = true;
@@ -53,7 +66,9 @@
 	$effect(() => {
 		if (stage !== 'learn' || !item) return;
 		const desc =
-			item.type === 'kanji'
+			item.type === 'kana'
+				? { kana: item.key, romaji: item.kana.romaji, row: item.kana.row, note: 'el alumno está aprendiendo este kana' }
+				: item.type === 'kanji'
 				? { kanji: item.key, meanings: item.kanji.meaningsEs, on: item.kanji.onReadings, kun: item.kanji.kunReadings, components: item.kanji.components.map((c) => `${c.symbol}(${c.nameEs ?? '?'})`), mnemonic: item.kanji.mnemonicMeaning }
 				: item.type === 'component'
 					? { component: item.key, name: item.component.nameEs, full_form: item.component.fullForm?.char, explanation: item.component.explanation, used_in: item.component.usedIn.slice(0, 8) }
@@ -63,7 +78,7 @@
 		const shown = item.type === 'vocab' ? item.vocab.mainForm : item.type === 'grammar' ? item.grammar.pattern : item.key;
 		setScreenContext({ kind: 'lesson', label: `lección · ${shown}`, data: desc });
 	});
-	const TYPE_LABEL = { component: 'Componente', kanji: 'Kanji', vocab: 'Vocabulario', grammar: 'Gramática' } as const;
+	const TYPE_LABEL = { kana: 'Kana', component: 'Componente', kanji: 'Kanji', vocab: 'Vocabulario', grammar: 'Gramática' } as const;
 
 	function onkeydown(e: KeyboardEvent) {
 		if (stage !== 'learn' || !lesson || e.target instanceof HTMLInputElement) return;
@@ -80,6 +95,7 @@
 	<div class="row">
 		<select bind:value={kind} onchange={load} aria-label="Tipo de lección" style="width:auto">
 			<option value="auto">Automática</option>
+			<option value="kana">Kana</option>
 			<option value="kanji">Kanji</option>
 			<option value="vocab">Vocabulario</option>
 			<option value="grammar">Gramática</option>
@@ -114,6 +130,16 @@
 			{#if lesson.quota.brake === 'stop'}
 				<p>Lecciones en pausa: tienes {lesson.quota.due} repasos pendientes. Repasa primero para no saturarte.</p>
 				<a class="btn primary" href="/repaso">Ir a repaso</a>
+			{:else if lesson.quota.kanjiLocked}
+				<p>
+					Hoy ya aprendiste tus kana nuevos. Los kanji empiezan cuando termines el hiragana básico
+					(te faltan <strong>{lesson.quota.hiraganaLeft}</strong>): todo en japonés se lee con kana.
+				</p>
+				<div class="row">
+					<a class="btn primary" href="/repaso">Repasar</a>
+					<a class="btn" href="/kana#practica">Practicar lectura</a>
+					<a class="small" href="/ajustes">Subir el cupo de kana</a>
+				</div>
 			{:else if lesson.quota.kanjiLeft === 0 && lesson.quota.vocabLeft === 0 && lesson.quota.grammarLeft === 0}
 				<p>Ya completaste el cupo de hoy. Puedes subirlo en <a href="/ajustes">Ajustes</a>.</p>
 			{:else}
@@ -132,7 +158,9 @@
 		<div class="card">
 			<span class="badge {item.type}">{TYPE_LABEL[item.type]}</span>
 			<div class="body">
-				{#if item.type === 'kanji'}
+				{#if item.type === 'kana'}
+					<KanaCard k={item.kana} />
+				{:else if item.type === 'kanji'}
 					<KanjiDetail k={item.kanji} compact />
 					{#if item.similar.length}
 						<div class="warning similar">
@@ -177,7 +205,7 @@
 							<span class="jp vocab">{v.mainForm}</span>
 							<SpeakButton text={v.mainReading} />
 						</div>
-						<div class="jp reading">{v.kanaForms.slice(0, 3).join('・')}</div>
+						<div class="jp reading">{#each v.kanaForms.slice(0, 3) as r, i (r)}{#if i}・{/if}<KanaHint text={r} />{/each}</div>
 						<div class="meaning">{(v.glossesEs ?? v.glossesEn).slice(0, 4).join('; ')}</div>
 						{#if v.sentences?.length}
 							<div>
@@ -246,6 +274,9 @@
 	}
 	.t-component {
 		color: var(--component);
+	}
+	.t-kana {
+		color: var(--kana);
 	}
 	.t-vocab {
 		color: var(--vocab);

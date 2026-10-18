@@ -121,16 +121,16 @@
 		<div class="stages">
 			{#each j.milestones as m (m.id)}
 				<span class="stage" class:reached={m.reached} class:next={j.next?.id === m.id} title="{m.title}: {m.unlocks}">
-					{m.kanji || 'かな'}
+					<span class:jp={!!m.badge}>{m.badge ?? m.kanji}</span>
 				</span>
 			{/each}
 		</div>
 		{#if j.next}
 			<p>
 				<strong>Próxima meta: {j.next.title}</strong>
-				{#if j.next.kanji}({j.known}/{j.next.kanji} kanji){/if} — {j.next.unlocks}
+				{#if j.next.kanji}({j.known}/{j.next.kanji} kanji){:else if j.next.kana}({Math.round(j.progressToNext * 100)} % firmes){/if} — {j.next.unlocks}
 			</p>
-			{#if j.next.kanji}
+			{#if j.next.kanji || j.next.kana}
 				<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(j.progressToNext * 100)}>
 					<div style="width:{j.progressToNext * 100}%"></div>
 				</div>
@@ -189,7 +189,7 @@
 		/>
 		{#if data.kanaCards}
 			{@const kn = p.counts.kana ?? { learning: 0, review: 0, mastered: 0 }}
-			<ProgressMeter label="Kana débiles" learning={kn.learning} review={kn.review} mastered={kn.mastered} total={data.kanaCards} />
+			<ProgressMeter label="Kana" learning={kn.learning} review={kn.review} mastered={kn.mastered} total={data.kanaCards} />
 		{/if}
 	</div>
 	<div class="card">

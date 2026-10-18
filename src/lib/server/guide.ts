@@ -9,6 +9,8 @@ import { hasGemini } from './gemini/client.ts';
 import { leeches } from './srs/service.ts';
 import { rereadsDue } from './text/library.ts';
 import { reportDue } from './report.ts';
+import { kanaProgress, nextKana } from './kana.ts';
+import { rowOf } from '../kanaCourse.ts';
 
 export type Step = { id: string; title: string; why: string; href: string; cta: string };
 
@@ -102,13 +104,15 @@ export function nextSteps(db: DB, now = new Date()): Step[] {
 			cta: 'Abrir bienvenida'
 		});
 
-	if (!diagDone)
+	const kanaCards = n(db, sql`select count(*) as n from card where item_type = 'kana'`) > 0;
+	// Sin rastro de kana (ni diagnóstico ni lecciones) y sin kanji: ¿ya los sabe? Prueba corta; si no, el curso.
+	if (!diagDone && !kanaCards && quota.kanjiLocked)
 		steps.push({
 			id: 'kana',
-			title: 'Haz el diagnóstico de kana',
-			why: 'Los kanji se leen con kana: si dudas en ソ/ン o ぬ/め, cada lectura nueva costará el doble. El test detecta solo esos y los mete al SRS.',
+			title: '¿Ya sabes hiragana? Haz la prueba corta',
+			why: 'Si ya los lees, la prueba (adaptativa, ~3-5 min) los marca como sabidos y pasas antes a los kanji. Si no, la propia lección te enseña desde cero.',
 			href: '/kana',
-			cta: 'Diagnóstico (~5 min)'
+			cta: 'Prueba de kana'
 		});
 
 	if (reportDue(db, now.getTime()))
@@ -141,6 +145,20 @@ export function nextSteps(db: DB, now = new Date()): Step[] {
 			href: '/estadisticas#sanguijuelas',
 			cta: 'Tratarlas'
 		});
+
+	if (quota.kanaAvailable > 0) {
+		const next = nextKana(db, 1)[0];
+		const row = next ? rowOf(next) : null;
+		steps.push({
+			id: 'kana-lesson',
+			title: row ? `Aprende kana: ${row.title}` : 'Aprende kana nuevos',
+			why: quota.kanjiLocked
+				? `Todo en japonés se lee con kana: te faltan ${quota.hiraganaLeft} hiragana básicos para empezar con los kanji. Cada kana trae su sonido, una imagen y una palabra real.`
+				: 'El katakana se usa para palabras extranjeras, nombres y onomatopeyas: lo aprendes en paralelo a los primeros kanji, una fila cada vez.',
+			href: '/leccion',
+			cta: 'Lección de kana'
+		});
+	}
 
 	const lessonAvail = quota.kanjiLeft > 0 || quota.vocabAvailable > 0 || quota.grammarAvailable > 0;
 	if (lessonAvail)
@@ -191,6 +209,16 @@ export function nextSteps(db: DB, now = new Date()): Step[] {
 			why: `Conoces ${known} kanji: suficiente para textos cortos. Leer lo aprendido en contexto es el objetivo final y consolida más que las tarjetas solas.`,
 			href: '/lectura',
 			cta: 'Lectura graduada'
+		});
+
+	const kp = kanaProgress(db);
+	if (quota.kanjiLocked && kp.hiragana.taught >= 10)
+		steps.push({
+			id: 'kana-practice',
+			title: 'Lee palabras reales con tus kana',
+			why: `Ya estudiaste ${kp.hiragana.taught} hiragana: con ellos se escriben palabras de verdad. Leerlas da soltura antes de llegar a los kanji.`,
+			href: '/kana#practica',
+			cta: 'Practicar lectura'
 		});
 
 	if (goal && !goal.onTrack && goal.remaining > 0)
@@ -246,11 +274,13 @@ export function nextSteps(db: DB, now = new Date()): Step[] {
 
 // ---------- Hitos ----------
 
-export type Milestone = { id: string; kanji: number; title: string; unlocks: string; tip: string };
+/** `kana`: hito de una escritura (se alcanza con todos sus kana básicos firmes); el resto, por kanji aprendidos. */
+export type Milestone = { id: string; kanji: number; title: string; unlocks: string; tip: string; kana?: 'hiragana' | 'katakana'; badge?: string };
 
 /** Cifras orientativas: un texto real necesita además vocabulario y gramática, no solo kanji. */
 export const MILESTONES: Milestone[] = [
-	{ id: 'm0', kanji: 0, title: 'Kana sólidos', unlocks: 'Leer cualquier texto con furigana, aunque sin entenderlo todo.', tip: 'Haz el diagnóstico de kana y repasa los dudosos hasta que salgan sin pensar.' },
+	{ id: 'hira', kanji: 0, kana: 'hiragana', badge: 'あ', title: 'Hiragana', unlocks: 'Leer cualquier palabra con furigana y la gramática; se abren los kanji.', tip: 'Una fila al día con su imagen; practica leyendo palabras reales en Kana → Practicar lectura.' },
+	{ id: 'kata', kanji: 0, kana: 'katakana', badge: 'ア', title: 'Katakana', unlocks: 'Palabras extranjeras, nombres y onomatopeyas: menús, juegos, manga.', tip: 'Va en paralelo a los primeros kanji; cuidado con ソ/ン y シ/ツ.' },
 	{ id: 'm50', kanji: 50, title: 'Primeros pasos', unlocks: 'Números, días, personas, «grande/pequeño», «arriba/abajo»: fechas y precios.', tip: 'Fíjate en los componentes: aparecerán en cientos de kanji más. Empieza la gramática básica (は, が, を…).' },
 	{ id: 'm100', kanji: 100, title: 'Señales y menús', unlocks: 'Carteles básicos (入口, 出口, 営業中), menús sencillos, botones de juegos.', tip: 'Usa el Explicador con fotos de cosas reales y guarda frases.' },
 	{ id: 'm300', kanji: 300, title: 'Manga con furigana', unlocks: 'Manga para jóvenes con furigana y diálogos de juegos sencillos: reconocerás muchas palabras.', tip: 'Trae un capítulo a la Biblioteca y estudia su plan antes de leerlo.' },
@@ -261,20 +291,25 @@ export const MILESTONES: Milestone[] = [
 
 export function journey(db: DB) {
 	const known = knownKanji(db).length;
-	const diagDone = n(db, sql`select count(*) as n from review_log where source in ('diagnostic', 'placement')`) > 0;
-	const weakKana = n(db, sql`select count(*) as n from card where item_type = 'kana' and (state != 2 or stability < 7)`);
-	const kanaOk = diagDone && weakKana === 0;
-	const reached = MILESTONES.map((m) => (m.kanji === 0 ? kanaOk : known >= m.kanji));
-	const currentIdx = reached.lastIndexOf(true);
-	const next = MILESTONES[currentIdx + 1] ?? null;
-	const prevKanji = currentIdx >= 0 ? MILESTONES[currentIdx].kanji : 0;
+	const kp = kanaProgress(db);
+	const kanaShare = (s: 'hiragana' | 'katakana') => {
+		const p = s === 'hiragana' ? kp.hiraganaBasic : kp.katakanaBasic;
+		return p.solid / Math.max(1, p.total);
+	};
+	const reached = MILESTONES.map((m) => (m.kana ? kanaShare(m.kana) >= 1 : known >= m.kanji));
+	const kanaOk = reached[0] && reached[1];
+	// La próxima meta: la primera no alcanzada (el katakana puede quedar pendiente mientras avanzan los kanji).
+	const nextIdx = reached.indexOf(false);
+	const next = nextIdx >= 0 ? MILESTONES[nextIdx] : null;
+	const prevKanji = MILESTONES.filter((m, i) => !m.kana && reached[i]).at(-1)?.kanji ?? 0;
+	const currentIdx = nextIdx < 0 ? MILESTONES.length - 1 : nextIdx - 1;
 	return {
 		known,
 		kanaOk,
 		milestones: MILESTONES.map((m, i) => ({ ...m, reached: reached[i] })),
 		current: currentIdx >= 0 ? MILESTONES[currentIdx] : null,
 		next,
-		progressToNext: next ? (next.kanji === 0 ? 0 : Math.min(1, (known - prevKanji) / Math.max(1, next.kanji - prevKanji))) : 1,
+		progressToNext: next ? (next.kana ? kanaShare(next.kana) : Math.min(1, (known - prevKanji) / Math.max(1, next.kanji - prevKanji))) : 1,
 		goal: goalStatus(db)
 	};
 }

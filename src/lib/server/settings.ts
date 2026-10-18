@@ -43,9 +43,17 @@ export type Settings = {
 	 * `on` = activada, `off` = modo sin IA (ni llamadas ni botones de IA; la key se conserva sin usarse).
 	 */
 	aiMode: AiMode;
+	/** Kana nuevos al día en el curso de kana (se enseñan por filas completas). */
+	newKanaPerDay: number;
+	/** Punto de partida declarado en la bienvenida (null = no lo dijo). */
+	startLevel: StartLevel | null;
+	/** Pasó por el diagnóstico de kana nuevo: los kana sin tarjeta ya no cuentan como «sabidos de antes» (server/kana.ts). */
+	kanaAssessed: boolean;
 };
 
 export type AiMode = 'ask' | 'on' | 'off';
+export type KanaSelf = 'none' | 'some' | 'slow' | 'fluent';
+export type StartLevel = { hiragana: KanaSelf; katakana: KanaSelf; kanji: 'none' | 'some' | 'basic' | 'many' };
 
 export type Goal = {
 	label: string;
@@ -77,7 +85,10 @@ export const DEFAULT_SETTINGS: Settings = {
 	budgetHardStop: false,
 	writingReviews: false,
 	newWritingPerDay: 5,
-	aiMode: 'ask'
+	aiMode: 'ask',
+	newKanaPerDay: 10,
+	startLevel: null,
+	kanaAssessed: false
 };
 
 /** Vuelve a los valores por defecto. Conserva los valores internos (`_…`, p. ej. el secreto de sesión). */
@@ -141,6 +152,17 @@ export function updateSettings(db: DB, patch: Partial<Settings>) {
 	next.dayStartHour = clampInt(next.dayStartHour, 0, 23);
 	if (!['adaptive', 'always', 'never'].includes(next.furigana)) next.furigana = 'adaptive';
 	if (!['ask', 'on', 'off'].includes(next.aiMode)) next.aiMode = 'ask';
+	next.newKanaPerDay = clampInt(next.newKanaPerDay, 0, 40);
+	next.kanaAssessed = !!next.kanaAssessed;
+	if (next.startLevel) {
+		const l = next.startLevel;
+		const kana = (x: unknown): KanaSelf => (['none', 'some', 'slow', 'fluent'].includes(String(x)) ? (x as KanaSelf) : 'none');
+		next.startLevel = {
+			hiragana: kana(l.hiragana),
+			katakana: kana(l.katakana),
+			kanji: ['none', 'some', 'basic', 'many'].includes(String(l.kanji)) ? l.kanji : 'none'
+		};
+	}
 	for (const [key, value] of Object.entries(next)) {
 		if (!(key in DEFAULT_SETTINGS)) continue;
 		db.insert(setting)

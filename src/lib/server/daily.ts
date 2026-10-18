@@ -8,6 +8,7 @@ import { dayStart, getSettings } from './settings.ts';
 import { hasGemini } from './gemini/client.ts';
 import { rereadsDue } from './text/library.ts';
 import { knownKanji } from './items.ts';
+import { taughtKana } from './kana.ts';
 
 export type DailyStepId = 'review' | 'lesson' | 'reading' | 'close';
 export type DailyStep = { id: DailyStepId; title: string; detail: string; href: string; minutes: number };
@@ -61,7 +62,8 @@ export function dailyPlan(db: DB, budget = 20, now = new Date()): DailyPlan {
 			sql`select exists(select 1 from kanji where learn_order is not null and not exists (select 1 from card where item_type = 'kanji' and item_key = kanji.char)) as n`,
 			db
 		)?.n ?? 0) > 0;
-	const lessonAvail = quota.brake !== 'stop' && (kanjiToLearn || quota.vocabAvailable > 0 || quota.grammarAvailable > 0);
+	const kanaToLearn = quota.kanaAvailable > 0;
+	const lessonAvail = quota.brake !== 'stop' && (kanaToLearn || kanjiToLearn || quota.vocabAvailable > 0 || quota.grammarAvailable > 0);
 
 	// 1) Repasos: primero, pero sin comerse toda la sesión si hay lecciones (deja ~40 % para lo demás).
 	const due = dueCount(db, now.getTime());
@@ -82,15 +84,16 @@ export function dailyPlan(db: DB, budget = 20, now = new Date()): DailyPlan {
 	// 2) Lección (si queda tiempo para al menos unos ítems).
 	if (lessonAvail && left >= 4 * 60) {
 		const items = Math.min(
-			(kanjiToLearn ? quota.kanjiLeft : 0) + Math.min(quota.vocabLeft, 5) + Math.min(quota.grammarLeft, 1),
+			(kanaToLearn ? quota.kanaLeft : 0) + (kanjiToLearn ? quota.kanjiLeft : 0) + Math.min(quota.vocabLeft, 5) + Math.min(quota.grammarLeft, 1),
 			Math.floor(left / p.secsPerLessonItem)
 		);
 		if (items > 0) {
 			steps.push({
 				id: 'lesson',
-				title: 'Lección nueva',
-				detail:
-					kanjiToLearn
+				title: kanaToLearn ? 'Lección de kana' : 'Lección nueva',
+				detail: kanaToLearn
+					? `Kana nuevos (te quedan ${quota.kanaLeft} hoy), con su sonido, una imagen y su mini-quiz.`
+					: kanjiToLearn
 						? `Componentes y kanji nuevos (te quedan ${quota.kanjiLeft} hoy), con su mini-quiz.`
 						: quota.vocabAvailable > 0
 							? 'Vocabulario nuevo con los kanji que ya repasas.'
@@ -107,7 +110,10 @@ export function dailyPlan(db: DB, budget = 20, now = new Date()): DailyPlan {
 		const known = knownKanji(db).length;
 		const rr = rereadsDue(db, now.getTime());
 		const lib = one<{ id: number; title: string }>(sql`select id, title from library_text order by created_at desc limit 1`, db);
-		const reading: Omit<DailyStep, 'minutes'> | null = rr.length
+		const kanaReader = quota.kanjiLocked && taughtKana(db).size >= 10;
+		const reading: Omit<DailyStep, 'minutes'> | null = kanaReader
+			? { id: 'reading', title: 'Leer palabras en kana', detail: 'Palabras reales escritas con los kana que ya estudiaste.', href: '/kana?hoy=1#practica' }
+			: rr.length
 			? {
 					id: 'reading',
 					title: `Releer «${rr[0].title}»`,

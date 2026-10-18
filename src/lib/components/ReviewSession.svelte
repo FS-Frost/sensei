@@ -12,6 +12,7 @@
 	import { onMount } from 'svelte';
 	import { keepAwake } from '../client/wakeLock.ts';
 	import KanjiTrace from './KanjiTrace.svelte';
+	import KanaHint from './KanaHint.svelte';
 	import { toast } from '../client/toast.svelte.ts';
 	import { writingGrade } from '../strokes.ts';
 	import { recognizeJapanese, speechRecognitionSupported } from '../client/voice.ts';
@@ -287,6 +288,10 @@
 		<div class="prompt type-{current.itemType} facet-{current.facet}">
 			{#if current.answerMode === 'trace'}
 				<span class="sentence">✍ {current.prompt}</span>
+			{:else if current.itemType === 'kana' && current.facet === 'meaning'}
+				<!-- Inversa: el sonido (romaji y voz); se elige el kana. -->
+				<span class="big romaji">{current.prompt}</span>
+				<SpeakButton text={current.itemKey} />
 			{:else if current.itemType === 'grammar' || current.itemType === 'sentence'}
 				<span class="jp sentence"><PromptText text={current.prompt} highlight={current.highlight} {font} /></span>
 			{:else}
@@ -317,6 +322,8 @@
 				{#each current.options as opt (opt)}
 					<button
 						class="choice"
+						class:jp={current.itemType === 'kana'}
+						class:kana-opt={current.itemType === 'kana'}
 						class:right={result && result.answers.includes(opt)}
 						class:wrong={result && !result.correct && answer === opt}
 						disabled={!!result || busy}
@@ -352,8 +359,14 @@
 			<div class="card reveal stack">
 				<div class="row">
 					<strong>{result.correct ? '✓ Correcto' : '✗ Incorrecto'}</strong>
-					<span class="jp">{result.answers.join('、')}</span>
-					{#if current.itemType !== 'component' && current.itemType !== 'kana'}
+					<span class="jp">
+						{#if current.facet === 'reading' && current.itemType !== 'kana'}
+							{#each result.answers as a, i (a)}{#if i}、{/if}<KanaHint text={a} />{/each}
+						{:else}{result.answers.join('、')}{/if}
+					</span>
+					{#if current.itemType === 'kana'}
+						<SpeakButton text={current.facet === 'reading' ? current.prompt : current.itemKey} />
+					{:else if current.itemType !== 'component'}
 						<SpeakButton text={current.extra?.reading?.split('、')[0] ?? current.prompt} />
 					{/if}
 				</div>
@@ -363,7 +376,9 @@
 				{#if current.extra?.meaning || current.extra?.reading}
 					<div class="small muted">
 						{#if current.extra.meaning}<div>Significado: {current.extra.meaning}</div>{/if}
-						{#if current.extra.reading}<div class="jp">Lectura: {current.extra.reading}</div>{/if}
+						{#if current.extra.reading && current.itemType !== 'kana'}
+							<div class="jp">Lectura: {#each current.extra.reading.split('、') as r, i (r)}{#if i}、{/if}<KanaHint text={r} />{/each}</div>
+						{/if}
 					</div>
 				{/if}
 				{#if current.extra?.explanation}
@@ -470,6 +485,15 @@
 	.choice {
 		justify-content: flex-start;
 		text-align: left;
+	}
+	.choice.kana-opt {
+		justify-content: center;
+		font-size: 2rem;
+		padding: 0.5rem 1rem;
+	}
+	.romaji {
+		font-family: var(--font-ui, system-ui, sans-serif);
+		letter-spacing: 0.04em;
 	}
 	.choice.right {
 		border-color: var(--ok);

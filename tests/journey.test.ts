@@ -20,6 +20,7 @@ import { applySnapshot, buildSnapshot, readZip, snapshotToZip } from '../src/lib
 import { applyReset, previewReset } from '../src/lib/server/data/reset.ts';
 import { applyCalibration, calibrate, MIN_REVIEWS } from '../src/lib/server/srs/optimizer.ts';
 import { weekMetrics } from '../src/lib/server/report.ts';
+import { knowAllKana } from './helpers.ts';
 
 let db: DB;
 const DAY = 86_400_000;
@@ -131,6 +132,7 @@ describe('gramática (1)', () => {
 	});
 
 	test('lección y tarjeta de opción múltiple', () => {
+		knowAllKana(db);
 		updateSettings(db, { newKanjiPerDay: 0, newVocabPerDay: 0 });
 		const { items } = nextLesson(db, 'auto');
 		expect(items[0].type).toBe('grammar');
@@ -144,6 +146,7 @@ describe('gramática (1)', () => {
 
 describe('cola de estudio desde un texto (4)', () => {
 	test('los kanji en cola van primero', () => {
+		knowAllKana(db);
 		enqueue(db, [{ type: 'kanji', key: '生' }]);
 		const { items } = nextLesson(db, 'kanji');
 		expect(items[0].key).toBe('生');

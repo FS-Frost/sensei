@@ -30,7 +30,7 @@
 			// El objetivo, los parámetros FSRS y los precios/presupuesto (en /costos) tienen sus propios botones:
 			// no pisarlos con la copia del formulario.
 			// El modo IA también tiene su propio interruptor.
-			const { goal: _g, fsrsParams: _p, fsrsCalibratedAt: _c, modelPrices: _mp, monthlyBudgetUsd: _b, budgetHardStop: _h, aiMode: _ai, ...rest } = s;
+			const { goal: _g, fsrsParams: _p, fsrsCalibratedAt: _c, modelPrices: _mp, monthlyBudgetUsd: _b, budgetHardStop: _h, aiMode: _ai, startLevel: _sl, kanaAssessed: _ka, ...rest } = s;
 			s = await post('/api/settings', rest);
 			toast.success('Ajustes guardados');
 			await refreshAll();
@@ -204,6 +204,10 @@
 			<input id="ng" type="number" min="0" max="10" bind:value={s.newGrammarPerDay} />
 		</div>
 		<div>
+			<label for="nkana">Kana nuevos por día</label>
+			<input id="nkana" type="number" min="0" max="40" bind:value={s.newKanaPerDay} />
+		</div>
+		<div>
 			<label for="ds">El día empieza a las (hora)</label>
 			<input id="ds" type="number" min="0" max="23" bind:value={s.dayStartHour} />
 		</div>
@@ -233,7 +237,7 @@
 		<div>
 			<label for="gk">Kanji necesarios</label>
 			<select id="gk" bind:value={goalKanji}>
-				{#each data.milestones as m (m.id)}<option value={m.kanji}>{m.kanji} — {m.title}</option>{/each}
+				{#each data.milestones.filter((m) => !m.kana) as m (m.id)}<option value={m.kanji}>{m.kanji} — {m.title}</option>{/each}
 			</select>
 		</div>
 		<div>

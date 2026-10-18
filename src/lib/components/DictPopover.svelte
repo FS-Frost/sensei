@@ -8,6 +8,7 @@
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import { askTutor } from '../client/tutorContext.svelte.ts';
 	import { aiUi } from '../client/ai.svelte.ts';
+	import KanaHint from './KanaHint.svelte';
 
 	type Result = { words: VocabInfo[]; kanji: KanjiInfo | null; component: ComponentInfo | null; similar?: SimilarInfo[] };
 
@@ -146,8 +147,8 @@
 					<div>
 						<div>{(k.meaningsEs.length ? k.meaningsEs : k.meaningsEn).slice(0, 4).join(', ')}</div>
 						<div class="small muted jp">
-							{#if k.onReadings.length}音 {k.onReadings.join('、')}{/if}
-							{#if k.kunReadings.length}&nbsp; 訓 {k.kunReadings.join('、')}{/if}
+							{#if k.onReadings.length}音 {#each k.onReadings as r, i (r)}{#if i}、{/if}<KanaHint text={r} />{/each}{/if}
+							{#if k.kunReadings.length}&nbsp; 訓 {#each k.kunReadings as r, i (r)}{#if i}、{/if}<KanaHint text={r} />{/each}{/if}
 						</div>
 						<div class="row small">
 							<StatusBadge status={k.status} />
@@ -178,7 +179,7 @@
 				<div class="word">
 					<div class="row">
 						<span class="jp wf">{w.mainForm}</span>
-						<span class="jp muted">【{w.kanaForms.slice(0, 2).join('・')}】</span>
+						<span class="jp muted">【{#each w.kanaForms.slice(0, 2) as r, i (r)}{#if i}・{/if}<KanaHint text={r} />{/each}】</span>
 						<SpeakButton text={w.mainReading} />
 						{#if w.common}<span class="badge">común</span>{/if}
 						{#if aiUi()}<button class="ghost small ask" onclick={() => ask(w)} title="Preguntar al tutor sobre esta palabra">話</button>{/if}

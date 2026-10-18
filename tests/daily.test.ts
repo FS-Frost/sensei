@@ -4,6 +4,7 @@ import { openDb } from '../src/lib/server/db/bun.ts';
 import * as s from '../src/lib/server/db/schema.ts';
 import { dailyPlan, daySummary, pace, summaryText } from '../src/lib/server/daily.ts';
 import { hasGemini } from '../src/lib/server/gemini/client.ts';
+import { knowAllKana } from './helpers.ts';
 
 const now = new Date('2026-10-18T12:00:00');
 
@@ -69,6 +70,7 @@ test('pocos pendientes: todos entran; sin kanji por aprender, la lección es de 
 	const db = setup(5);
 	expect(dailyPlan(db, 20, now).steps[0].href).toContain('limite=5');
 	const empty = openDb(':memory:').db;
+	knowAllKana(empty);
 	const plan = dailyPlan(empty, 20, now);
 	expect(plan.steps.map((x) => x.id)).toEqual(['lesson', 'close']);
 	expect(plan.steps[0].detail).toBe('Un punto de gramática.');

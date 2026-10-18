@@ -49,7 +49,7 @@ export const GET: RequestHandler = ({ url }) =>
 		const missing = hasGemini() || config.aiOff ? null : missingContent(db, items);
 
 		const quiz = items.flatMap((i) =>
-			facetsFor(i.type).map((facet) => buildReviewItem(db, { id: null, itemType: i.type, itemKey: i.key, facet }))
+			facetsFor(i.type, i.key).map((facet) => buildReviewItem(db, { id: null, itemType: i.type, itemKey: i.key, facet }))
 		);
 		return Response.json({ items, quiz, quota, warning, missing });
 	});

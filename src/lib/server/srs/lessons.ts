@@ -7,6 +7,7 @@ import { dayStart, getSettings } from '../settings.ts';
 import { dueCount } from './service.ts';
 import { State } from './fsrs.ts';
 import { GRAMMAR } from '../../grammar.ts';
+import { hiraganaLeft, hiraganaReady, kanaInfo, kanaLearnedToday, kanaStatuses, nextKana } from '../kana.ts';
 
 const BATCH = 5;
 const MAX_COMPONENTS = 8;
@@ -18,6 +19,13 @@ export const BRAKE_STOP = 150;
 export type Brake = 'none' | 'half' | 'stop';
 
 export type LessonQuota = {
+	kanaLearnedToday: number;
+	kanaLeft: number;
+	/** Quedan kana por aprender (hoy, si hay cupo). */
+	kanaAvailable: number;
+	/** Los kanji y la gramática esperan al hiragana básico (con `hiraganaLeft` por estudiar). */
+	kanjiLocked: boolean;
+	hiraganaLeft: number;
 	kanjiLearnedToday: number;
 	vocabLearnedToday: number;
 	grammarLearnedToday: number;
@@ -56,13 +64,22 @@ export function lessonQuota(db: DB, now = new Date()): LessonQuota {
 	const due = dueCount(db, now.getTime());
 	const brake: Brake = due >= BRAKE_STOP ? 'stop' : due >= BRAKE_HALF ? 'half' : 'none';
 	const factor = brake === 'stop' ? 0 : brake === 'half' ? 0.5 : 1;
+	const kanaToday = kanaLearnedToday(db, start);
+	const kanaLeft = Math.max(0, Math.floor(settings.newKanaPerDay * factor) - kanaToday);
+	const kanjiLocked = !hiraganaReady(db);
 	const kanjiLearnedToday = learnedToday(db, 'kanji', start);
 	const vocabLearnedToday = learnedToday(db, 'vocab', start);
 	const grammarLearnedToday = learnedToday(db, 'grammar', start);
-	const kanjiLeft = Math.max(0, Math.floor(settings.newKanjiPerDay * factor) - kanjiLearnedToday);
+	// Sin el hiragana básico no hay kanji ni gramática que aprender (todo se escribe con kana).
+	const kanjiLeft = kanjiLocked ? 0 : Math.max(0, Math.floor(settings.newKanjiPerDay * factor) - kanjiLearnedToday);
 	const vocabLeft = Math.max(0, Math.floor(settings.newVocabPerDay * factor) - vocabLearnedToday);
-	const grammarLeft = Math.max(0, Math.floor(settings.newGrammarPerDay * factor) - grammarLearnedToday);
+	const grammarLeft = kanjiLocked ? 0 : Math.max(0, Math.floor(settings.newGrammarPerDay * factor) - grammarLearnedToday);
 	return {
+		kanaLearnedToday: kanaToday,
+		kanaLeft,
+		kanaAvailable: kanaLeft > 0 ? nextKana(db, 1).length : 0,
+		kanjiLocked,
+		hiraganaLeft: kanjiLocked ? hiraganaLeft(db) : 0,
 		kanjiLearnedToday,
 		vocabLearnedToday,
 		grammarLearnedToday,
@@ -182,7 +199,7 @@ export function knownGrammar(db: DB): GrammarPoint[] {
 	return GRAMMAR.filter((g) => have.has(g.id));
 }
 
-export type LessonKind = 'auto' | 'kanji' | 'vocab' | 'grammar';
+export type LessonKind = 'auto' | 'kana' | 'kanji' | 'vocab' | 'grammar';
 
 function kanjiItem(db: DB, char: string): LessonItem | null {
 	const kanji = getKanjiInfo(db, char, { vocabLimit: 4 });
@@ -193,6 +210,13 @@ function kanjiItem(db: DB, char: string): LessonItem | null {
 export function nextLesson(db: DB, kind: LessonKind = 'auto', now = new Date()) {
 	const quota = lessonQuota(db, now);
 	const items: LessonItem[] = [];
+
+	// Kana primero: el curso va por filas y es corto cada día; con el hiragana básico se abren los kanji.
+	if ((kind === 'auto' || kind === 'kana') && quota.kanaLeft > 0) {
+		const statuses = kanaStatuses(db);
+		for (const k of nextKana(db, quota.kanaLeft)) items.push({ type: 'kana', key: k, kana: kanaInfo(db, k, statuses) });
+		if (items.length) return { items, quota };
+	}
 
 	if ((kind === 'auto' || kind === 'kanji') && quota.kanjiLeft > 0) {
 		const maxKanji = Math.min(BATCH, quota.kanjiLeft);

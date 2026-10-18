@@ -3,6 +3,7 @@ import type { Content, GenerateContentResponseUsageMetadata, Part } from '@googl
 import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
 import type { DB } from '../db/index.ts';
 import * as s from '../db/schema.ts';
+import { kanaProgress } from '../kana.ts';
 import type { ChatMode, Quiz, QuizAnswer, ScreenContext, UiBlock } from '../../types.ts';
 import { meaningMatches, normalizeReading, readingMatches } from '../../jp.ts';
 import { buildProfile } from '../profile.ts';
@@ -91,7 +92,14 @@ export function studentState(db: DB): string {
 		.map(([t, c]) => `${t}: ${c.learning} aprendiendo, ${c.review} en repaso, ${c.mastered} dominados`)
 		.join('; ');
 	const steps = nextSteps(db).slice(0, 3);
+	const kp = kanaProgress(db);
+	const kanaLine = (label: string, x: { total: number; taught: number; solid: number }) =>
+		x.taught === 0 ? `${label}: aún no lo conoce` : x.solid >= x.total ? `${label}: lo lee con soltura` : `${label}: ${x.taught}/${x.total} estudiados, ${x.solid} firmes`;
 	return [
+		`- Kana: ${kanaLine('hiragana', kp.hiragana)}; ${kanaLine('katakana', kp.katakana)}.` +
+			(kp.hiraganaBasic.solid < kp.hiraganaBasic.total || kp.katakanaBasic.solid < kp.katakanaBasic.total
+				? ' Única excepción a «nunca romaji»: mientras aprende una escritura, añade el romaji entre paréntesis tras cada palabra escrita con ella, y usa sobre todo los kana que ya estudió.'
+				: ''),
 		`- Progreso: ${counts || 'aún sin tarjetas'}`,
 		`- Repasos pendientes: ${p.due}; precisión 7 días: ${p.accuracy7d ?? '—'}%; racha: ${p.streakDays} días`,
 		steps.length ? `- Siguiente paso recomendado por Sensei: ${steps.map((x) => x.title).join(' · ')}` : '',

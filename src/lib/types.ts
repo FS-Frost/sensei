@@ -164,7 +164,28 @@ export type GrammarPoint = {
 
 export type SimilarInfo = { char: string; meaning: string; tip: string | null; status: ItemStatus };
 
+/** Ficha de un kana para su lección (contenido fijo de kanaCourse.ts). */
+export type KanaInfo = {
+	char: string;
+	romaji: string;
+	script: 'hiragana' | 'katakana';
+	/** Título de su fila («Fila か (ka)»). */
+	row: string;
+	group: 'basic' | 'dakuten' | 'yoon' | 'special' | 'extended';
+	mnemonic: string | null;
+	/** «か + ゛», «き + ゃ pequeña» para los derivados. */
+	formation: string | null;
+	example: { word: string; es: string } | null;
+	similar: { char: string; tip: string }[];
+	/** Regla del grupo (dakuten, combinados…), con el primer kana de la fila. */
+	rule: string | null;
+	/** Se puede practicar el trazo (un solo carácter con datos de KanjiVG). */
+	traceable: boolean;
+	status: ItemStatus;
+};
+
 export type LessonItem =
+	| { type: 'kana'; key: string; kana: KanaInfo }
 	| { type: 'component'; key: string; component: ComponentInfo }
 	| { type: 'kanji'; key: string; kanji: KanjiInfo; similar: SimilarInfo[] }
 	| { type: 'vocab'; key: string; vocab: VocabInfo }
