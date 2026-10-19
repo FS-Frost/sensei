@@ -1,0 +1,1 @@
+import{n as e}from"./BhCZXx-z.js";function t(t){return e(t)||t===`々`}function n(e){return[...e].some(t)}export{t as n,n as t};

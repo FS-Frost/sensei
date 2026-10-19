@@ -1,14 +1,14 @@
 {
-  "version": "568f190f4cde",
-  "createdAt": "2026-10-19T00:36:39.084Z",
+  "version": "2483071bb8b3",
+  "createdAt": "2026-10-19T16:44:35.334Z",
   "variants": {
     "common": {
       "bytes": 15151104,
-      "gzBytes": 5508652,
+      "gzBytes": 5508690,
       "parts": [
         {
           "file": "part-000.bin",
-          "bytes": 5508652
+          "bytes": 5508690
         }
       ],
       "kanji": 2600,
@@ -17,11 +17,11 @@
     },
     "full": {
       "bytes": 91320320,
-      "gzBytes": 31723710,
+      "gzBytes": 31723813,
       "parts": [
         {
           "file": "part-000.bin",
-          "bytes": 31723710
+          "bytes": 31723813
         }
       ],
       "kanji": 2600,
