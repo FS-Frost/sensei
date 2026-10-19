@@ -10,6 +10,12 @@ export type Facet = 'meaning' | 'reading' | 'writing';
  */
 export type AnswerMode = 'romaji' | 'kana' | 'meaning' | 'choice' | 'trace';
 
+/** Cómo respondió el alumno de verdad (se guarda en `review_log.via`): las opciones son reconocer, no recordar. */
+export type AnswerVia = 'typed' | 'choice' | 'voice' | 'trace';
+
+/** Forma de responder por defecto en los repasos (si el ítem admite ambas; se cambia en la propia sesión). */
+export type AnswerStyle = 'choice' | 'typed';
+
 /** Fuente con la que se muestra el enunciado (variedad para reconocer kanji en manga, juegos, carteles). */
 export type PromptFont = 'gothic' | 'mincho' | 'kyokasho' | 'maru' | 'brush' | 'manga';
 
@@ -24,7 +30,10 @@ export type ReviewItem = {
 	label: string;
 	/** Respuestas correctas para mostrar tras responder. */
 	answers: string[];
-	/** Solo answerMode 'choice'. */
+	/**
+	 * Opciones (la correcta y 3 distractores). Con answerMode 'choice' son la única forma de responder; en el resto, una
+	 * alternativa a escribir (ausentes si no hay distractores que no sean también correctos).
+	 */
 	options?: string[];
 	/** Frases: la palabra objetivo dentro del enunciado (se resalta). */
 	highlight?: string;
@@ -51,6 +60,10 @@ export type GradeResult = {
 	confusedWith?: string | null;
 	/** Lectura válida pero no la que se pedía (p. ej. kun en vez de on en vocabulario). */
 	nearMiss?: boolean;
+	/** Respuesta por voz: la alternativa del reconocedor que se tomó como respuesta. */
+	heard?: string;
+	/** Respuesta por voz: el alumno dijo «no sé». */
+	gaveUp?: boolean;
 };
 
 export type KanjiInfo = {

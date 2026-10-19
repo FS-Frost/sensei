@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { DB } from './db/index.ts';
 import { setting } from './db/schema.ts';
 
-import type { FuriganaMode } from '../types.ts';
+import type { AnswerStyle, FuriganaMode } from '../types.ts';
 import { normalizePrices, type ModelPrices } from './gemini/pricing.ts';
 import { setAiOff } from './config.ts';
 export type { FuriganaMode };
@@ -51,6 +51,8 @@ export type Settings = {
 	kanaAssessed: boolean;
 	/** Exigencia al corregir la escritura a mano (strokes.ts `Strictness`). */
 	writingStrictness: 'relaxed' | 'normal' | 'strict';
+	/** Forma de responder por defecto en los repasos: elegir entre opciones o escribir. */
+	answerStyle: AnswerStyle;
 };
 
 export type AiMode = 'ask' | 'on' | 'off';
@@ -91,7 +93,8 @@ export const DEFAULT_SETTINGS: Settings = {
 	newKanaPerDay: 10,
 	startLevel: null,
 	kanaAssessed: false,
-	writingStrictness: 'normal'
+	writingStrictness: 'normal',
+	answerStyle: 'choice'
 };
 
 /** Vuelve a los valores por defecto. Conserva los valores internos (`_…`, p. ej. el secreto de sesión). */
@@ -158,6 +161,7 @@ export function updateSettings(db: DB, patch: Partial<Settings>) {
 	next.newKanaPerDay = clampInt(next.newKanaPerDay, 0, 40);
 	next.kanaAssessed = !!next.kanaAssessed;
 	if (!['relaxed', 'normal', 'strict'].includes(next.writingStrictness)) next.writingStrictness = 'normal';
+	if (!['choice', 'typed'].includes(next.answerStyle)) next.answerStyle = 'choice';
 	if (next.startLevel) {
 		const l = next.startLevel;
 		const kana = (x: unknown): KanaSelf => (['none', 'some', 'slow', 'fluent'].includes(String(x)) ? (x as KanaSelf) : 'none');

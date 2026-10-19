@@ -16,6 +16,7 @@ export const load = () => {
 		ttsEnabled: st.ttsEnabled,
 		fontVariety: st.fontVariety,
 		writingStrictness: st.writingStrictness,
+		answerStyle: st.answerStyle,
 		readable: [...readableKanji(db)].join(''),
 		weakKana: weakKanaChars(db),
 		due: dueCount(db),

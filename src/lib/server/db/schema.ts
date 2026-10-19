@@ -7,7 +7,7 @@ import {
 	index,
 	uniqueIndex
 } from 'drizzle-orm/sqlite-core';
-import type { ComponentExplanation } from '../../types.ts';
+import type { AnswerVia, ComponentExplanation } from '../../types.ts';
 
 const json = <T>(name: string) => text(name, { mode: 'json' }).$type<T>();
 
@@ -152,6 +152,8 @@ export const reviewLog = sqliteTable(
 		answer: text('answer'),
 		durationMs: integer('duration_ms'),
 		source: text('source').$type<'review' | 'lesson' | 'quiz' | 'diagnostic' | 'placement'>().notNull(),
+		/** Cómo se respondió (null = antes de registrarlo, o fuera de los repasos). */
+		via: text('via').$type<AnswerVia>(),
 		reviewedAt: integer('reviewed_at').notNull()
 	},
 	(t) => [index('rl_time').on(t.reviewedAt), index('rl_item').on(t.itemType, t.itemKey)]

@@ -75,13 +75,25 @@
 	function onkeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && tutor.open && !(e.target as HTMLElement)?.closest?.('dialog')) tutor.open = false;
 	}
+
+	// Al bajar por la página el botón se encoge a una pestaña en el borde (no tapa el contenido); al subir o arriba del
+	// todo vuelve a su tamaño. Tocar la pestaña abre el tutor igual.
+	let mini = $state(false);
+	let lastY = 0;
+	function onscroll() {
+		const y = window.scrollY;
+		if (y < 40) mini = false;
+		else if (y > lastY + 6) mini = true;
+		else if (y < lastY - 30) mini = false;
+		lastY = y;
+	}
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} {onscroll} />
 
 {#if !hidden}
 	{#if !tutor.open}
-		<button class="fab jp" onclick={() => (tutor.open = true)} title="Preguntar al tutor (sabe lo que estás viendo)" aria-label="Abrir tutor">話</button>
+		<button class="fab jp" class:mini onclick={() => (tutor.open = true)} title="Preguntar al tutor (sabe lo que estás viendo)" aria-label="Abrir tutor">話</button>
 	{:else}
 		<aside class="panel" aria-label="Tutor">
 			<div class="head">
@@ -111,7 +123,8 @@
 	.fab {
 		position: fixed;
 		right: 1.2rem;
-		bottom: 1.2rem;
+		/* Sobre la navegación móvil (--bottom-h) y la barra de acciones del repaso (--action-h), si las hay. */
+		bottom: calc(var(--bottom-h, 0px) + var(--action-h, 0px) + 1.2rem);
 		z-index: 45;
 		width: 3.2rem;
 		height: 3.2rem;
@@ -121,6 +134,27 @@
 		border-color: var(--accent);
 		color: #fff;
 		box-shadow: 0 6px 18px var(--shadow);
+		transition:
+			width 0.2s,
+			height 0.2s,
+			right 0.2s,
+			border-radius 0.2s,
+			font-size 0.2s,
+			opacity 0.2s;
+	}
+	.fab.mini {
+		right: 0;
+		width: 1.7rem;
+		height: 2.6rem;
+		padding: 0;
+		border-radius: 0.8rem 0 0 0.8rem;
+		font-size: 0.95rem;
+		opacity: 0.85;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.fab {
+			transition: none;
+		}
 	}
 	.panel {
 		position: fixed;
@@ -147,9 +181,11 @@
 		color: var(--accent);
 	}
 	@media (max-width: 760px) {
-		.fab {
-			bottom: 4.6rem;
+		.fab:not(.mini) {
 			right: 0.9rem;
+		}
+		.fab {
+			bottom: calc(var(--bottom-h, 0px) + var(--action-h, 0px) + 0.9rem);
 		}
 		.panel {
 			width: 100vw;

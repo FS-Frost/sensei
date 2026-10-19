@@ -1,12 +1,13 @@
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm';
 import type { DB } from '../db/index.ts';
 import * as s from '../db/schema.ts';
-import type { Facet, GradeResult, ItemType, ReviewItem } from '../../types.ts';
-import { acceptedKanjiReadings, kanjiIn, meaningMatches, normalizeReading, readingMatches } from '../../jp.ts';
+import type { AnswerVia, Facet, GradeResult, ItemType, ReviewItem } from '../../types.ts';
+import { acceptedKanjiReadings, kanjiIn, meaningMatches, normalizeMeaning, normalizeReading, readingMatches } from '../../jp.ts';
 import { acceptedRomaji, kanaRomaji, kanaScript, ALL_KANA, wordRomaji } from '../../kana.ts';
-import { COURSE_KANA, isSpecialKana, kanaEntry, kanaSimilar, rowOf, SPECIAL_WORDS } from '../../kanaCourse.ts';
+import { COURSE_KANA, isSpecialKana, kanaEntry, kanaSimilar, SPECIAL_WORDS } from '../../kanaCourse.ts';
+import { grammarOptions, kanaOptions, optionsFor } from './options.ts';
 import { emptyCard, revive, schedule, serialize, Rating, State, type Grade, type SchedulerConfig } from './fsrs.ts';
-import { GRAMMAR, GRAMMAR_BY_ID } from '../../grammar.ts';
+import { GRAMMAR_BY_ID } from '../../grammar.ts';
 import { exampleFor, similarTo } from '../items.ts';
 import { dayStart, getSettings } from '../settings.ts';
 import { writingGrade } from '../../strokes.ts';
@@ -85,32 +86,9 @@ const LABELS: Record<ItemType, string> = {
 	sentence: 'Frase'
 };
 
-/**
- * Opciones para «¿cuál es?» de un kana: la correcta y 3 distractores de la misma escritura y tamaño, empezando por
- * los parecidos (ソ/ン) y la misma fila, que es donde está la confusión real.
- */
-export function kanaOptions(key: string): string[] {
-	const script = kanaScript(key);
-	const len = [...key].length;
-	const pool = COURSE_KANA.filter((k) => k !== key && kanaScript(k) === script && [...k].length === len && !isSpecialKana(k));
-	const similar = kanaSimilar(key).map((x) => x.char).filter((k) => pool.includes(k));
-	const row = (rowOf(key)?.chars ?? []).filter((k) => k !== key && pool.includes(k) && !similar.includes(k));
-	const shuffle = <T>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
-	const picked = [...similar, ...shuffle(row), ...shuffle(pool)].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
-	return shuffle([key, ...picked]);
-}
-
-/** 3 distractores de puntos cercanos en el currículo + la correcta, mezclados. */
-function grammarOptions(id: string): string[] {
-	const idx = GRAMMAR.findIndex((g) => g.id === id);
-	if (idx < 0) return [];
-	const near = GRAMMAR.filter((_, i) => i !== idx && Math.abs(i - idx) <= 12).map((g) => g.meaning);
-	const pool = [...near].sort(() => Math.random() - 0.5).slice(0, 3);
-	return [GRAMMAR[idx].meaning, ...pool].sort(() => Math.random() - 0.5);
-}
-
 export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemType; itemKey: string; facet: Facet }): ReviewItem {
-	let { display } = acceptedAnswers(db, c.itemType, c.itemKey, c.facet);
+	const { accepted, display: shown } = acceptedAnswers(db, c.itemType, c.itemKey, c.facet);
+	let display = shown;
 	let prompt = c.itemKey;
 	let extra: ReviewItem['extra'];
 	let options: string[] | undefined;
@@ -186,6 +164,8 @@ export function buildReviewItem(db: DB, c: { id: number | null; itemType: ItemTy
 					: c.facet === 'reading'
 						? 'kana'
 						: 'meaning';
+	// Opciones también donde se escribe: el cliente decide si las muestra (ajuste `answerStyle` o el botón de la sesión).
+	if (!options && answerMode !== 'trace') options = optionsFor(db, c.itemType, c.itemKey, c.facet, display, accepted);
 	const facetLabel =
 		c.facet === 'writing'
 			? 'escritura'
@@ -238,11 +218,18 @@ export function gradeAnswer(db: DB, type: ItemType, key: string, facet: Facet, a
 		return { correct, answers: display, confusedWith };
 	}
 	let correct = facet === 'meaning' ? meaningMatches(answer, accepted) : readingMatches(answer, accepted);
-	// Respuesta por voz: el reconocimiento puede devolver la palabra en kanji. Si es exactamente la palabra, se pronunció bien.
-	if (!correct && facet === 'reading' && type === 'vocab' && kanjiIn(answer).length) {
-		const v = db.select().from(s.vocab).where(eq(s.vocab.id, key)).get();
+	// Respuesta por voz: el reconocimiento puede devolver la palabra en kanji. Si es exactamente lo que se pregunta, se
+	// pronunció bien (en un kanji suelto, cualquiera de sus lecturas cuenta igual que escribiéndola).
+	if (!correct && facet === 'reading' && kanjiIn(answer).length) {
 		const said = answer.trim().replace(/[。、！？!?\s]/g, '');
-		correct = !!v && (said === v.mainForm || v.kanjiForms.includes(said));
+		if (type === 'vocab') {
+			const v = db.select().from(s.vocab).where(eq(s.vocab.id, key)).get();
+			correct = !!v && (said === v.mainForm || v.kanjiForms.includes(said));
+		} else if (type === 'kanji') correct = said === key;
+		else if (type === 'sentence') {
+			const m = db.select({ t: s.minedSentence.target }).from(s.minedSentence).where(eq(s.minedSentence.id, Number(key))).get();
+			correct = !!m && said === m.t;
+		}
 	}
 	if (correct) return { correct, answers: display };
 
@@ -267,6 +254,29 @@ export function gradeAnswer(db: DB, type: ItemType, key: string, facet: Facet, a
 		}
 	}
 	return { correct, answers: display, confusedWith, nearMiss };
+}
+
+/** «No sé» dicho en voz alta: en español (significados) o en japonés (lecturas, el reconocedor está en ja-JP). */
+const GIVE_UP = new Set(['no se', 'no lo se', 'ni idea', 'paso', 'わからない', 'わかりません', '分からない', '分かりません', '判らない', 'しらない', '知らない', '知りません', 'パス']);
+
+export function isGiveUp(said: string): boolean {
+	const x = said.trim().replace(/[。、！？!?¡¿.,\s]/g, '');
+	return GIVE_UP.has(x) || GIVE_UP.has(normalizeMeaning(said));
+}
+
+/**
+ * Corrige una respuesta por voz: el reconocedor da varias alternativas y basta con que una sea correcta (la que se
+ * escuchó primero puede ser un homófono en kanji). «No sé» cuenta como fallo sin respuesta.
+ */
+export function gradeSpoken(db: DB, type: ItemType, key: string, facet: Facet, alternatives: string[]): GradeResult {
+	const alts = alternatives.map((a) => a.trim()).filter(Boolean);
+	if (alts.some(isGiveUp)) return { ...gradeAnswer(db, type, key, facet, ''), heard: '', gaveUp: true };
+	for (const a of alts) {
+		const r = gradeAnswer(db, type, key, facet, a);
+		if (r.correct) return { ...r, heard: a };
+	}
+	const heard = alts[0] ?? '';
+	return { ...gradeAnswer(db, type, key, facet, heard), heard };
 }
 
 export function recordConfusion(db: DB, kind: ItemType, a: string, b: string, now = Date.now()) {
@@ -318,12 +328,15 @@ export type ReviewInput = {
 	answer?: string;
 	durationMs?: number;
 	source: 'review' | 'lesson' | 'quiz' | 'diagnostic';
+	via?: AnswerVia;
 };
 
 export function applyReview(db: DB, cardId: number, input: ReviewInput, now = new Date()) {
 	const row = db.select().from(s.card).where(eq(s.card.id, cardId)).get();
 	if (!row) throw new Error(`Tarjeta ${cardId} no existe`);
-	const grade: Grade = input.correct ? (input.grade && input.grade !== Rating.Again ? input.grade : Rating.Good) : Rating.Again;
+	let grade: Grade = input.correct ? (input.grade && input.grade !== Rating.Again ? input.grade : Rating.Good) : Rating.Again;
+	// Elegir entre opciones es reconocer, no recordar: un acierto así no basta para «Fácil».
+	if (input.via === 'choice' && grade === Rating.Easy) grade = Rating.Good;
 	const { card } = schedule(revive(row.fsrs), grade, now, schedulerConfig(db));
 	const leech = !input.correct && card.lapses >= LEECH_LAPSES;
 	db.transaction((tx) => {
@@ -342,6 +355,7 @@ export function applyReview(db: DB, cardId: number, input: ReviewInput, now = ne
 				answer: input.answer ?? null,
 				durationMs: input.durationMs ?? null,
 				source: input.source,
+				via: input.via ?? null,
 				reviewedAt: now.getTime()
 			})
 			.run();
@@ -502,4 +516,4 @@ export function cardsByKeys(db: DB, type: ItemType, keys: string[]) {
 	return db.select().from(s.card).where(and(eq(s.card.itemType, type), inArray(s.card.itemKey, keys))).all();
 }
 
-export { State, Rating, normalizeReading, kanaRomaji };
+export { State, Rating, normalizeReading, kanaRomaji, kanaOptions };

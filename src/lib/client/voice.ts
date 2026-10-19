@@ -103,10 +103,18 @@ export function speechRecognitionSupported() {
 
 /** Una frase en japonés con el reconocimiento del navegador (Chrome/Edge lo hacen en la nube). Devuelve alternativas. */
 export function recognizeJapanese(): { result: Promise<string[]>; stop: () => void } {
+	return recognize('ja-JP');
+}
+
+/**
+ * Una frase en el idioma dado (`ja-JP` lecturas, `es-CL` significados). Devuelve hasta 5 alternativas; [] si no se oyó
+ * nada. `stop()` corta la escucha (resuelve con lo oído hasta entonces).
+ */
+export function recognize(lang: string): { result: Promise<string[]>; stop: () => void } {
 	const Ctor = ((window as unknown as { SpeechRecognition?: new () => SR }).SpeechRecognition ??
 		(window as unknown as { webkitSpeechRecognition?: new () => SR }).webkitSpeechRecognition)!;
 	const r = new Ctor();
-	r.lang = 'ja-JP';
+	r.lang = lang;
 	r.interimResults = false;
 	r.maxAlternatives = 5;
 	const result = new Promise<string[]>((resolve, reject) => {

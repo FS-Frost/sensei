@@ -1,5 +1,5 @@
 // Estado global del cliente (runes).
-import type { FuriganaMode, PromptFont } from '../types.ts';
+import type { AnswerStyle, FuriganaMode, PromptFont } from '../types.ts';
 
 export const prefs = $state({
 	furigana: 'adaptive' as FuriganaMode,
@@ -9,7 +9,9 @@ export const prefs = $state({
 	/** Kana que aún no lees con soltura: bajo ellos se muestra romaji de apoyo (KanaHint). */
 	weakKana: new Set<string>(),
 	/** Exigencia al corregir la escritura (KanjiTrace). */
-	writingStrictness: 'normal' as 'relaxed' | 'normal' | 'strict'
+	writingStrictness: 'normal' as 'relaxed' | 'normal' | 'strict',
+	/** Forma de responder por defecto en los repasos (ReviewSession). */
+	answerStyle: 'choice' as AnswerStyle
 });
 
 export function setPrefs(p: {
@@ -19,8 +21,10 @@ export function setPrefs(p: {
 	readable: string;
 	weakKana?: string;
 	writingStrictness?: 'relaxed' | 'normal' | 'strict';
+	answerStyle?: AnswerStyle;
 }) {
 	prefs.writingStrictness = p.writingStrictness ?? 'normal';
+	prefs.answerStyle = p.answerStyle ?? 'choice';
 	prefs.furigana = p.furigana;
 	prefs.ttsEnabled = p.ttsEnabled;
 	prefs.fontVariety = p.fontVariety;

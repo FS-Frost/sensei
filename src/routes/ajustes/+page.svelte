@@ -300,6 +300,13 @@
 			<option value="never">Oculta (pasa el ratón para verla)</option>
 		</select>
 	</div>
+	<div>
+		<label for="as">Cómo responder en los repasos (se cambia también en cada sesión)</label>
+		<select id="as" bind:value={s.answerStyle} style="width:auto">
+			<option value="choice">Elegir entre opciones — más rápido; un acierto cuenta como «Bien» como máximo</option>
+			<option value="typed">Escribir — recordar sin pistas; más exigente y más eficaz</option>
+		</select>
+	</div>
 	<label class="check">
 		<input type="checkbox" bind:checked={s.fontVariety} />
 		<span>Fuentes variadas en los repasos (mincho, a mano, pincel, manga…): reconocer un kanji en una sola fuente no basta para leerlo en una viñeta</span>

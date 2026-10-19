@@ -1,22 +1,22 @@
 <script lang="ts">
-	import type { GradeResult, ReviewItem } from '../types.ts';
+	import type { AnswerVia, GradeResult, ReviewItem } from '../types.ts';
 	import { post, errMsg } from '../client/api.ts';
 	import AnswerInput from './AnswerInput.svelte';
 	import SpeakButton from './SpeakButton.svelte';
 	import Markdown from './Markdown.svelte';
 	import PromptText from './PromptText.svelte';
-	import { FONT_LABELS, pickFont } from '../client/state.svelte.ts';
+	import { FONT_LABELS, pickFont, prefs } from '../client/state.svelte.ts';
 	import { askTutor, setScreenContext, tutor } from '../client/tutorContext.svelte.ts';
 	import { aiUi } from '../client/ai.svelte.ts';
 	import type { PromptFont } from '../types.ts';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { keepAwake } from '../client/wakeLock.ts';
 	import KanjiTrace from './KanjiTrace.svelte';
 	import KanaHint from './KanaHint.svelte';
 	import { toast } from '../client/toast.svelte.ts';
 	import { writingGrade } from '../strokes.ts';
-	import { recognizeJapanese, speechRecognitionSupported } from '../client/voice.ts';
-	import { isKana, toHiragana } from 'wanakana';
+	import { recognize, speechRecognitionSupported } from '../client/voice.ts';
+	import { speakMixed, stopSpeaking } from '../client/tts.ts';
 
 	// Pantalla encendida mientras dura la sesión (repaso o mini-quiz de lección).
 	onMount(() => keepAwake());
@@ -44,6 +44,8 @@
 
 	let answer = $state('');
 	let result: GradeResult | null = $state(null);
+	/** Cómo se respondió la tarjeta actual (opciones: la nota no pasa de «Bien»). */
+	let answeredVia: AnswerVia = $state('typed');
 	let warn = $state('');
 	let busy = $state(false);
 	let started = Date.now();
@@ -53,6 +55,8 @@
 	let why = $state('');
 	let whyLoading = $state(false);
 	let shake = $state(false);
+	/** Sube con cada tarjeta: las respuestas por voz que llegan tarde (de la anterior) se descartan. */
+	let seq = $state(0);
 
 	const current = $derived(queue[0]);
 	const finished = $derived(queue.length === 0);
@@ -63,6 +67,66 @@
 	$effect.pre(() => {
 		if (queue.length && font === 'gothic') rollFont(queue[0]);
 	});
+
+	// ---------- Forma de responder: opciones, escribir o voz ----------
+
+	/** Opciones donde también se puede escribir (por defecto, el ajuste `answerStyle`; se cambia aquí mismo). */
+	let useChoices = $state(prefs.answerStyle === 'choice');
+	const voiceOk = speechRecognitionSupported();
+	const VOICE_KEY = 'sensei.review.voice';
+	let voiceMode = $state(false);
+	onMount(() => {
+		try {
+			voiceMode = voiceOk && localStorage.getItem(VOICE_KEY) === '1';
+		} catch {
+			/* sin almacenamiento: empieza apagado */
+		}
+	});
+	/** Se responde hablando: lecturas (ja-JP) y significados (es-CL). Kana sueltos, gramática y trazos, no. */
+	const canVoice = (it: ReviewItem) => it.answerMode === 'kana' || it.answerMode === 'meaning';
+	/** Tras dos silencios seguidos, esta tarjeta se responde con opciones o escribiendo. */
+	let voiceFallback = $state(false);
+	/** El alumno detuvo la escucha / el avance automático. */
+	let voicePaused = $state(false);
+	let listening = $state(false);
+	const showVoice = $derived(!!current && voiceMode && canVoice(current) && !voiceFallback);
+	const showChoices = $derived(
+		!!current && (current.answerMode === 'choice' || (!showVoice && useChoices && !!current.options?.length))
+	);
+	const canToggleChoices = $derived(
+		!!current && current.answerMode !== 'choice' && current.answerMode !== 'trace' && !!current.options?.length && !showVoice
+	);
+
+	async function toggleChoices() {
+		useChoices = !useChoices;
+		const style = useChoices ? 'choice' : 'typed';
+		prefs.answerStyle = style;
+		try {
+			await post('/api/settings', { answerStyle: style });
+		} catch {
+			/* se queda en esta sesión aunque no se guarde */
+		}
+	}
+
+	function toggleVoice() {
+		voiceMode = !voiceMode;
+		voicePaused = false;
+		voiceFallback = false;
+		misses = 0;
+		warn = '';
+		try {
+			localStorage.setItem(VOICE_KEY, voiceMode ? '1' : '0');
+		} catch {
+			/* sin almacenamiento: vale para esta sesión */
+		}
+		if (voiceMode)
+			toast.info('Modo voz', {
+				detail:
+					'Di la respuesta: la lectura en japonés o el significado en español. Si no la sabes, di «no sé» (en lecturas, «わからない»). El reconocimiento lo hace el navegador (Chrome y Edge envían el audio a sus servidores).',
+				key: 'voice-mode'
+			});
+		else stopListening();
+	}
 
 	// Tarjeta «sanguijuela» detectada al fallar: se ofrece cambiar de estrategia.
 	type Leech = { cardId: number; prompt: string; itemType: string };
@@ -109,33 +173,149 @@
 		});
 	});
 
-	// Lecturas en voz alta (reconocimiento del navegador, ja-JP): kana → se corrige como lo escrito; si el navegador
-	// devuelve la palabra en kanji, el servidor la acepta si es exactamente esa palabra.
-	const voiceOk = speechRecognitionSupported();
-	let listening = $state(false);
-	async function sayIt() {
-		if (listening || result) return;
+	// ---------- Voz (reconocimiento del navegador) ----------
+
+	/** Alternativas del reconocedor para la respuesta actual (el servidor corrige con ellas). */
+	let spoken: string[] = [];
+	let rec: { stop: () => void } | null = null;
+	let misses = 0;
+	/** Tarjeta (seq) cuyo enunciado ya se leyó en voz alta: al reintentar no se repite. */
+	let spokeFor = -1;
+
+	function stopListening() {
+		rec?.stop();
+		rec = null;
+		stopSpeaking();
+	}
+
+	/**
+	 * Escucha una respuesta y la corrige. Lecturas en japonés; significados en español. Kanji en lo reconocido se acepta
+	 * si es exactamente lo preguntado (service.ts `gradeAnswer`).
+	 */
+	async function listen(item: ReviewItem, run: { cancelled: boolean }): Promise<'ok' | 'silence' | 'retry' | 'error'> {
 		listening = true;
 		warn = '';
+		const my = seq;
+		const r = recognize(item.facet === 'reading' ? 'ja-JP' : 'es-CL');
+		rec = r;
+		let heard: string[];
 		try {
-			const alts = await recognizeJapanese().result;
-			if (!alts.length) {
-				warn = 'No te oí: prueba otra vez o escríbelo.';
-				return;
-			}
-			const kana = alts.map((a) => toHiragana(a.replace(/[。、！？!?\s]/g, ''))).find((a) => isKana(a));
-			answer = kana ?? alts[0];
-			await check();
+			heard = await r.result;
 		} catch (e) {
-			warn = `Sin reconocimiento de voz: ${errMsg(e)}`;
+			const msg = errMsg(e);
+			warn = msg === 'not-allowed' ? 'Sin permiso para el micrófono: actívalo en el navegador.' : `Sin reconocimiento de voz: ${msg}`;
+			return 'error';
 		} finally {
 			listening = false;
+			if (rec === r) rec = null;
+		}
+		if (run.cancelled || my !== seq || result) return 'retry';
+		if (!heard.length) return 'silence';
+		busy = true;
+		try {
+			const g = await post<GradeResult>('/api/grade', {
+				itemType: item.itemType,
+				itemKey: item.itemKey,
+				facet: item.facet,
+				alternatives: heard
+			});
+			if (run.cancelled || my !== seq) return 'retry';
+			if (g.nearMiss) {
+				warn = `Oí «${g.heard}»: esa es la lectura del kanji suelto; se pide la de la palabra completa.`;
+				return 'retry';
+			}
+			spoken = heard;
+			answer = g.heard ?? heard[0];
+			answeredVia = 'voice';
+			warn = '';
+			result = g;
+			return 'ok';
+		} catch (e) {
+			toast.error('No se pudo enviar la respuesta', { detail: errMsg(e) });
+			return 'error';
+		} finally {
+			busy = false;
 		}
 	}
+
+	/** 🎙 a mano (sin modo voz, o para reanudarlo tras una pausa o dos silencios). */
+	async function micOnce() {
+		if (!current || listening || result || busy) return;
+		if (voiceMode) {
+			voicePaused = false;
+			voiceFallback = false;
+			misses = 0;
+			return;
+		}
+		const r = await listen(current, { cancelled: false });
+		if (r === 'silence') warn = 'No te oí: prueba otra vez o responde de otra forma.';
+	}
+
+	/** Lo que se lee del enunciado en preguntas de significado (nunca en las de lectura: la delataría). */
+	function promptSpeech(it: ReviewItem): string | null {
+		if (it.facet !== 'meaning' || it.itemType === 'component') return null;
+		if (it.itemType === 'vocab') return it.extra?.reading ?? null;
+		return it.extra?.reading?.split('、')[0] ?? null;
+	}
+
+	// Ciclo del modo voz: (leer el enunciado) → escuchar → corregir. Un silencio vuelve a escuchar; dos, a opciones.
+	let listenTick = $state(0);
+	$effect(() => {
+		void listenTick;
+		if (!showVoice || result || voicePaused || !current) return;
+		const item = current;
+		const run = { cancelled: false };
+		untrack(() => {
+			const my = seq;
+			void (async () => {
+				const say = spokeFor !== my && prefs.ttsEnabled ? promptSpeech(item) : null;
+				spokeFor = my;
+				if (say) await speakMixed(say);
+				if (run.cancelled) return;
+				const r = await listen(item, run);
+				if (run.cancelled) return;
+				if (r === 'silence') {
+					if (++misses >= 2) {
+						voiceFallback = true;
+						warn = 'No te escuché: responde aquí o toca 🎙 para volver a intentarlo.';
+					} else listenTick++;
+				} else if (r === 'retry') listenTick++;
+				else if (r === 'error') voicePaused = true;
+			})();
+		});
+		return () => {
+			run.cancelled = true;
+			stopListening();
+		};
+	});
+
+	// Tras responder por voz: acierto → «Bien» y sigue; fallo → se lee la respuesta correcta y sigue (otra vez).
+	$effect(() => {
+		if (!result || answeredVia !== 'voice' || voicePaused || !current) return;
+		const ok = result.correct;
+		const text = result.answers[0];
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		let cancelled = false;
+		untrack(() => {
+			void (async () => {
+				if (!ok && prefs.ttsEnabled && text) await speakMixed(text);
+				if (cancelled) return;
+				timer = setTimeout(() => (ok ? next(3) : next()), ok ? 1200 : 2500);
+			})();
+		});
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+			stopSpeaking();
+		};
+	});
+
+	// ---------- Responder y calificar ----------
 
 	function choose(opt: string) {
 		if (result || busy) return;
 		answer = opt;
+		answeredVia = 'choice';
 		check();
 	}
 
@@ -147,6 +327,8 @@
 		if (!current || busy) return;
 		if (result) return next(result.correct ? 3 : undefined);
 		if (!answer.trim()) return;
+		if (current.answerMode === 'trace') answeredVia = 'trace';
+		else if (!showChoices) answeredVia = 'typed';
 		busy = true;
 		try {
 			const r = await post<GradeResult>('/api/grade', {
@@ -174,6 +356,29 @@
 		}
 	}
 
+	/** «No sé»: cuenta como fallo y muestra la respuesta (mejor que adivinar: el SRS la traerá pronto). */
+	async function giveUp() {
+		if (!current || result || busy) return;
+		stopListening();
+		answeredVia = showVoice ? 'voice' : showChoices ? 'choice' : 'typed';
+		spoken = [];
+		answer = '';
+		busy = true;
+		try {
+			result = await post<GradeResult>('/api/grade', {
+				itemType: current.itemType,
+				itemKey: current.itemKey,
+				facet: current.facet,
+				answer: ''
+			});
+			warn = '';
+		} catch (e) {
+			toast.error('No se pudo mostrar la respuesta', { detail: errMsg(e) });
+		} finally {
+			busy = false;
+		}
+	}
+
 	async function next(grade?: number, override = false) {
 		if (!current || !result || busy) return;
 		busy = true;
@@ -183,6 +388,8 @@
 				itemKey: current.itemKey,
 				facet: current.facet,
 				answer,
+				...(answeredVia === 'voice' && spoken.length ? { alternatives: spoken } : {}),
+				via: answeredVia,
 				grade,
 				override,
 				durationMs: Date.now() - started,
@@ -203,11 +410,17 @@
 				if (requeueWrong) queue = [...queue, item];
 			}
 			if (ok || !requeueWrong) done++;
+			seq++;
 			answer = '';
+			spoken = [];
+			misses = 0;
+			voiceFallback = false;
 			result = null;
 			why = '';
 			warn = '';
 			started = Date.now();
+			// La tarjeta siguiente empieza arriba (la anterior pudo dejar la página desplazada).
+			if (window.scrollY > 0) window.scrollTo({ top: 0 });
 		} catch (e) {
 			toast.error('No se pudo enviar la respuesta', { detail: errMsg(e) });
 		} finally {
@@ -234,16 +447,59 @@
 	}
 
 	function onkeydown(e: KeyboardEvent) {
-		if (!result || busy) return;
+		if (busy || !current) return;
+		// Escribiendo en otro campo (el chat del tutor, por ejemplo): las teclas no son atajos.
+		const t = e.target as HTMLElement | null;
+		if (t?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+		if (!result) {
+			// Opciones con 1-4 (no hay campo de texto que reciba las teclas).
+			const i = Number(e.key) - 1;
+			if (showChoices && current.options && i >= 0 && i < current.options.length) {
+				e.preventDefault();
+				choose(current.options[i]);
+			}
+			return;
+		}
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			if (current?.answerMode === 'trace') next(result.correct ? writingGrade(Number(answer)).grade : undefined);
+			if (current.answerMode === 'trace') next(result.correct ? writingGrade(Number(answer)).grade : undefined);
 			else next(result.correct ? 3 : undefined);
 		} else if (result.correct && ['1', '2', '3'].includes(e.key)) {
+			if (e.key === '3' && answeredVia === 'choice') return;
 			e.preventDefault();
 			next({ '1': 2, '2': 3, '3': 4 }[e.key]);
 		}
 	}
+
+	// ---------- Barra de acciones fija (abajo, sobre la navegación móvil) ----------
+	// Siempre en el mismo sitio, con el mismo alto, antes y después de responder: el contenido de arriba se desplaza.
+	let sessionEl: HTMLDivElement | undefined = $state();
+	let barH = $state(0);
+	let barLeft = $state(0);
+	let barWidth = $state(0);
+	$effect(() => {
+		const el = sessionEl;
+		if (!el) return;
+		const measure = () => {
+			const r = el.getBoundingClientRect();
+			barLeft = r.left;
+			barWidth = r.width;
+		};
+		measure();
+		const ro = new ResizeObserver(measure);
+		ro.observe(el);
+		window.addEventListener('resize', measure);
+		return () => {
+			ro.disconnect();
+			window.removeEventListener('resize', measure);
+		};
+	});
+	// El botón del tutor (TutorPanel) se coloca por encima de la barra.
+	$effect(() => {
+		const root = document.documentElement;
+		root.style.setProperty('--action-h', `${finished ? 0 : barH}px`);
+		return () => root.style.removeProperty('--action-h');
+	});
 </script>
 
 <svelte:window {onkeydown} />
@@ -254,11 +510,22 @@
 		<p>{correctCount} aciertos · {wrongCount} fallos</p>
 	</div>
 {:else if current}
-	<div class="session">
+	<div class="session" bind:this={sessionEl} style:padding-bottom="{barH + 16}px">
 		<div class="progress"><div style="width:{(done / Math.max(1, total)) * 100}%"></div></div>
 		<div class="spread small muted">
 			<span>{done} / {total}</span>
-			<span>✓ {correctCount} · ✗ {wrongCount}</span>
+			<span class="row tight">
+				<span>✓ {correctCount} · ✗ {wrongCount}</span>
+				{#if voiceOk}
+					<button
+						class="small ghost voice-toggle"
+						class:on={voiceMode}
+						onclick={toggleVoice}
+						aria-pressed={voiceMode}
+						title="Modo voz: dices la respuesta y pasa sola a la siguiente">🗣 Voz{voiceMode ? ' ✓' : ''}</button
+					>
+				{/if}
+			</span>
 		</div>
 
 		{#if leech}
@@ -317,17 +584,30 @@
 				/>
 			{/key}
 			{#if current.extra?.reading && !result}<p class="small muted center jp">Lectura: {current.extra.reading}</p>{/if}
-		{:else if current.answerMode === 'choice' && current.options}
+		{:else if showVoice}
+			<div class="voice-box" class:on={listening} class:ok={result?.correct} class:bad={result && !result.correct}>
+				{#if result}
+					{#if result.gaveUp}No sé{:else}Oí: <span class:jp={current.facet === 'reading'}>«{answer}»</span>{/if}
+				{:else if listening}
+					🎙 {current.facet === 'reading' ? 'Di la lectura…' : 'Di el significado en español…'}
+				{:else if voicePaused}
+					Voz en pausa
+				{:else}
+					…
+				{/if}
+			</div>
+		{:else if showChoices && current.options}
 			<div class="choices">
-				{#each current.options as opt (opt)}
+				{#each current.options as opt, i (opt)}
 					<button
 						class="choice"
-						class:jp={current.itemType === 'kana'}
-						class:kana-opt={current.itemType === 'kana'}
+						class:jp={current.itemType === 'kana' ? current.facet === 'meaning' : current.facet === 'reading'}
+						class:kana-opt={current.itemType === 'kana' && current.facet === 'meaning'}
 						class:right={result && result.answers.includes(opt)}
+						class:picked={result && answer === opt}
 						class:wrong={result && !result.correct && answer === opt}
 						disabled={!!result || busy}
-						onclick={() => choose(opt)}>{opt}</button
+						onclick={() => choose(opt)}><kbd class="num">{i + 1}</kbd>{opt}</button
 					>
 				{/each}
 			</div>
@@ -340,18 +620,8 @@
 					status={result ? (result.correct ? 'ok' : 'bad') : warn ? 'warn' : 'idle'}
 					onsubmit={check}
 				/>
-				{#if current.answerMode === 'kana' && voiceOk && !result}
-					<button
-						class="mic"
-						class:on={listening}
-						onclick={sayIt}
-						disabled={busy}
-						title="Decir la lectura en voz alta (reconocimiento del navegador)"
-						aria-label="Responder en voz alta">🎙</button
-					>
-				{/if}
 			</div>
-			{#if listening}<div class="small muted center">🎙 Di la lectura…</div>{/if}
+			{#if listening}<div class="small muted center">🎙 {current.facet === 'reading' ? 'Di la lectura…' : 'Di el significado…'}</div>{/if}
 		{/if}
 		{#if warn}<div class="warning small">{warn}</div>{/if}
 
@@ -405,30 +675,70 @@
 				{/if}
 				{#if why}<div class="small tutor"><Markdown text={why} /></div>{/if}
 
-				<div class="row actions">
-					{#if result.correct && current.answerMode === 'trace'}
-						<!-- La nota sale de los fallos de trazo: 0 = Bien, 1-2 = Difícil. -->
-						<span class="small muted">{Number(answer) ? `${answer} trazo(s) fallado(s)` : 'Sin fallos'}</span>
-						<button class="primary" onclick={() => next(writingGrade(Number(answer)).grade)} disabled={busy}>Continuar <kbd>↵</kbd></button>
-					{:else if result.correct}
-						<button onclick={() => next(2)} disabled={busy}>Difícil <kbd>1</kbd></button>
-						<button class="primary" onclick={() => next(3)} disabled={busy}>Bien <kbd>2/↵</kbd></button>
-						<button onclick={() => next(4)} disabled={busy}>Fácil <kbd>3</kbd></button>
-					{:else}
-						<button class="primary" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
-						<button onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
-						{#if aiUi() && current.itemType !== 'kana' && current.answerMode !== 'trace'}
-							<button onclick={explain} disabled={whyLoading}>
+				<!-- Acciones secundarias: aquí, para que la barra fija tenga siempre una sola fila. -->
+				{#if (!result.correct && !result.gaveUp) || aiUi()}
+					<div class="row secondary">
+						{#if !result.correct && !result.gaveUp && current.answerMode !== 'trace'}
+							<button class="small" onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
+						{/if}
+						{#if !result.correct && aiUi() && current.itemType !== 'kana' && current.answerMode !== 'trace'}
+							<button class="small" onclick={explain} disabled={whyLoading}>
 								{#if whyLoading}<span class="spinner"></span>{/if} ¿Por qué?
 							</button>
 						{/if}
+						{#if aiUi()}
+							<button class="ghost small" onclick={() => askTutor(tutor.context)} title="Abre el tutor con esta tarjeta como contexto">
+								Preguntar al tutor
+							</button>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
+
+	<div class="bar" bind:offsetHeight={barH} style:left="{barLeft}px" style:width="{barWidth}px">
+		{#if !result}
+			<div class="row tight">
+				{#if canToggleChoices}
+					<button class="small ghost" onclick={toggleChoices} disabled={busy} title="Cambiar entre elegir y escribir (queda guardado)">
+						{useChoices ? '⌨ Escribir' : '☰ Opciones'}
+					</button>
+				{/if}
+				{#if voiceOk && canVoice(current) && (!voiceMode || voicePaused || voiceFallback) && !listening}
+					<button class="small mic" onclick={micOnce} disabled={busy} title="Responder en voz alta (reconocimiento del navegador)" aria-label="Responder en voz alta">🎙</button>
+				{:else if showVoice && listening}
+					<button class="small mic on" onclick={() => (voicePaused = true)} title="Dejar de escuchar">⏸</button>
+				{/if}
+			</div>
+			<div class="row tight">
+				{#if current.answerMode !== 'trace'}
+					<button onclick={giveUp} disabled={busy}>No sé</button>
+				{/if}
+				{#if !showChoices && !showVoice && current.answerMode !== 'trace'}
+					<button class="primary" onclick={check} disabled={busy || !answer.trim()}>Comprobar <kbd>↵</kbd></button>
+				{/if}
+			</div>
+		{:else}
+			<div class="row tight">
+				{#if answeredVia === 'voice' && !voicePaused}
+					<button class="small ghost" onclick={() => (voicePaused = true)} title="Quedarse en esta tarjeta">⏸ Pausa</button>
+				{/if}
+			</div>
+			<div class="row tight">
+				{#if result.correct && current.answerMode === 'trace'}
+					<!-- La nota sale de los fallos de trazo: 0 = Bien, 1-2 = Difícil. -->
+					<span class="small muted">{Number(answer) ? `${answer} trazo(s) fallado(s)` : 'Sin fallos'}</span>
+					<button class="primary" onclick={() => next(writingGrade(Number(answer)).grade)} disabled={busy}>Continuar <kbd>↵</kbd></button>
+				{:else if result.correct}
+					<button onclick={() => next(2)} disabled={busy}>Difícil <kbd>1</kbd></button>
+					<button class="primary" onclick={() => next(3)} disabled={busy}>Bien <kbd>2/↵</kbd></button>
+					{#if answeredVia !== 'choice'}
+						<button onclick={() => next(4)} disabled={busy}>Fácil <kbd>3</kbd></button>
 					{/if}
-					{#if aiUi()}
-						<button class="ghost small" onclick={() => askTutor(tutor.context)} title="Abre el tutor con esta tarjeta como contexto">
-							Preguntar al tutor
-						</button>
-					{/if}
-				</div>
+				{:else}
+					<button class="primary" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -485,6 +795,10 @@
 	.choice {
 		justify-content: flex-start;
 		text-align: left;
+		gap: 0.6rem;
+	}
+	.choice .num {
+		min-width: 1em;
 	}
 	.choice.kana-opt {
 		justify-content: center;
@@ -501,6 +815,9 @@
 	}
 	.choice.wrong {
 		border-color: var(--bad);
+	}
+	.choice.picked:not(.wrong) {
+		outline: 2px solid var(--ok);
 	}
 	.leech {
 		border-color: var(--warn);
@@ -559,9 +876,37 @@
 		flex: 1;
 		min-width: 0;
 	}
-	.mic {
+	.voice-box {
+		text-align: center;
+		padding: 0.8rem;
 		font-size: 1.2rem;
-		padding: 0 0.8rem;
+		border: 1px dashed var(--line);
+		border-radius: var(--radius-sm);
+		color: var(--text-2);
+	}
+	.voice-box.on {
+		border-color: var(--bad);
+		border-style: solid;
+		animation: blink 1.4s infinite;
+	}
+	.voice-box.ok {
+		border: 1px solid var(--ok);
+		background: color-mix(in srgb, var(--ok) 12%, var(--bg));
+		color: var(--text);
+		animation: none;
+	}
+	.voice-box.bad {
+		border: 1px solid var(--bad);
+		background: color-mix(in srgb, var(--bad) 12%, var(--bg));
+		color: var(--text);
+		animation: none;
+	}
+	.voice-toggle.on {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.mic {
+		font-size: 1.1rem;
 	}
 	.mic.on {
 		border-color: var(--bad);
@@ -580,12 +925,40 @@
 	.reveal {
 		border-color: var(--line);
 	}
-	.actions {
-		justify-content: flex-end;
+	.secondary {
+		border-top: 1px solid var(--line);
+		padding-top: 0.6rem;
+	}
+	.bar {
+		position: fixed;
+		bottom: var(--bottom-h, 0px);
+		z-index: 39;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 3.4rem;
+		padding: 0.55rem 0;
+		background: var(--bg);
+		border-top: 1px solid var(--line);
+		box-shadow: 0 -8px 16px -12px var(--shadow);
+	}
+	.bar :global(button) {
+		white-space: nowrap;
+	}
+	.tight {
+		gap: 0.4rem;
+		flex-wrap: nowrap;
 	}
 	kbd {
 		font-size: 0.7rem;
 		opacity: 0.6;
+	}
+	@media (max-width: 760px) {
+		/* En el móvil no hay teclado físico: los atajos solo ocupan sitio. */
+		kbd {
+			display: none;
+		}
 	}
 	.tutor {
 		border-left: 3px solid var(--info);

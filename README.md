@@ -80,7 +80,7 @@ bun run dev                     # http://localhost:5173
   - **Prueba adaptativa**: muestra corta por escritura; si fallas mucho, esa escritura se aprende desde cero; si no, lo dominado queda en repaso y lo dudoso (> 4 s) entra a aprender. Práctica de lectura con palabras reales escritas solo con tus kana.
 - **Lecciones**: componentes → kanji (mnemotecnia en español, lecturas, vocabulario) → mini-quiz. Orden "componentes + frecuencia". El vocabulario se desbloquea cuando sus kanji pasan a repaso.
   - **Componentes explicados:** qué dibujan, por qué el nombre, qué aportan (significado, sonido o solo forma) y su forma completa (氵 es 水). Ejemplos con la pieza resaltada en color dentro de cada kanji, «lo vas a usar en…» y la pregunta «¿en cuál aparece?».
-- **Repaso SRS (FSRS)**: lectura en romaji que se convierte en vivo a kana; significado en español con tolerancia a tildes y erratas; "¿Por qué?" pide la explicación al tutor; las confusiones se detectan solas.
+- **Repaso SRS (FSRS)**: por defecto **eliges entre 4 opciones** (distractores parecidos o confundibles, nunca otra respuesta válida; un acierto así cuenta como «Bien» como máximo) o, con «⌨ Escribir», escribes: lectura en romaji que se convierte en vivo a kana; significado en español con tolerancia a tildes y erratas. «No sé» muestra la respuesta. Los botones van en una barra fija abajo (no saltan entre preguntas). "¿Por qué?" pide la explicación al tutor; las confusiones se detectan solas.
 - **Tutor** (chat por turnos con function calling): conversación-quiz, quiz a medida, explicador, detective de confusiones y libre. Recuerda tus sesiones mediante resúmenes y notas.
   - **En toda la app:** el botón 話 abre un panel lateral que sabe qué estás viendo.
   - **Actúa por ti:** directo con «Deshacer» (cola de lección, SRS, frases, notas) o con «Confirmar» (ritmo, objetivo, apartar tarjeta, mnemotecnia nueva, reiniciar ítem). Nunca reinicia todo, importa ni borra sesiones.
@@ -114,7 +114,7 @@ Un botón en Inicio encadena repasos (con tope) → lección → lectura corta �
 ### Voz
 
 - **Hablar con el tutor**: 🎙 manda un mensaje de voz (español, japonés o mezclados); verás «Te oí: …». 🔊 lee las respuestas con voz española y japonesa. 🗣 **manos libres**: hablas, haces una pausa y se envía; te responde en voz alta y vuelve a escuchar.
-- **Repasos de lectura en voz alta**: 🎙 junto a la respuesta (reconocimiento del navegador, Chrome/Edge).
+- **Repasos por voz**: 🎙 en la barra para responder una tarjeta hablando, o **🗣 Voz** en la sesión para repasar sin tocar nada: dices la lectura (japonés) o el significado (español), se corrige y pasa sola a la siguiente; si fallas, te lee la respuesta. «No sé» (en lecturas, «わからない») cuenta como fallo. Reconocimiento del navegador (Chrome/Edge; envían el audio a sus servidores), sin IA.
 
 ### Leer y escribir
 

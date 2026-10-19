@@ -67,6 +67,11 @@
 		// Más el hueco (gap) que deja main entre la franja y la página, si la franja tiene algo.
 		document.documentElement.style.setProperty('--top-h', `${topH ? topH + 16 : 0}px`);
 	});
+	// Alto de la navegación inferior (móvil; 0 si está oculta): lo usan la barra fija del repaso y el botón del tutor.
+	let bottomH = $state(0);
+	$effect(() => {
+		document.documentElement.style.setProperty('--bottom-h', `${bottomH}px`);
+	});
 
 	onMount(() => {
 		initTheme();
@@ -108,7 +113,7 @@
 
 	$effect.pre(() => {
 		if (ready && data.readable !== undefined)
-			setPrefs({ furigana: data.furigana, ttsEnabled: data.ttsEnabled, fontVariety: data.fontVariety, readable: data.readable, weakKana: data.weakKana, writingStrictness: data.writingStrictness });
+			setPrefs({ furigana: data.furigana, ttsEnabled: data.ttsEnabled, fontVariety: data.fontVariety, readable: data.readable, weakKana: data.weakKana, writingStrictness: data.writingStrictness, answerStyle: data.answerStyle });
 	});
 
 	/** `ai`: solo con las funciones de IA visibles (modo sin IA = fuera del menú). */
@@ -262,7 +267,7 @@
 			{/if}
 		</main>
 
-		<nav class="bottom" aria-label="Navegación móvil">
+		<nav class="bottom" aria-label="Navegación móvil" bind:offsetHeight={bottomH}>
 			{#each NAV.filter((n) => n.main) as n (n.href)}
 				<a class="tab" class:active={active(n.href)} href={n.href} onclick={() => (moreOpen = false)}>
 					<span class="icon jp">{n.icon}</span>

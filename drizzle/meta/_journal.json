@@ -71,6 +71,13 @@
       "when": 1792342259480,
       "tag": "0009_personal_mnemonics",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792424742080,
+      "tag": "0010_clammy_cloak",
+      "breakpoints": true
     }
   ]
 }
