@@ -497,22 +497,8 @@
 	});
 	const fit = $derived(!!current && current.answerMode !== 'trace');
 
-	// Al responder, los botones ocupan el sitio de las opciones y de la barra (que se quita): se mide ese alto justo
-	// antes de que cambie el DOM ($effect.pre) para que nada salte y el dedo quede sobre un botón.
-	let zoneEl: HTMLDivElement | undefined = $state();
-	let keepH = $state(0);
-	$effect.pre(() => {
-		if (!result) {
-			keepH = 0;
-			return;
-		}
-		if (!fit || !zoneEl || !sessionEl) return;
-		const zone = zoneEl;
-		const session = sessionEl;
-		untrack(() => {
-			if (!keepH) keepH = Math.round(session.getBoundingClientRect().bottom - zone.getBoundingClientRect().top);
-		});
-	});
+	// Al responder, la barra se quita y los botones de nota quedan abajo del todo (en su sitio, al alcance del pulgar);
+	// la explicación ocupa el espacio que dejan las opciones.
 	/** Lo respondido se muestra en japonés en lecturas (y en el kana inverso). */
 	const jpAnswer = $derived(
 		!!current && (current.itemType === 'kana' ? current.facet === 'meaning' : current.facet === 'reading')
@@ -575,7 +561,7 @@
 		</div>
 
 		<!-- Respuesta: abajo, junto a la barra (en el DOM va antes de la explicación; el orden visual lo da el CSS). -->
-		<div class="answer-zone" bind:this={zoneEl} style:min-height={keepH ? `${keepH}px` : undefined}>
+		<div class="answer-zone">
 		{#if current.answerMode === 'trace'}
 			<!-- Escritura: de memoria; al terminar, los fallos de trazo deciden la nota (strokes.ts → writingGrade). -->
 			{#key current.cardId ?? current.itemKey}
@@ -606,20 +592,27 @@
 					<span class="muted">→</span><span class:jp={jpAnswer}>{result.answers[0]}</span>
 				{/if}
 			</div>
-			{#if current.answerMode === 'trace'}
-				<!-- La nota sale de los fallos de trazo: 0 = Bien, 1-2 = Difícil, 3+ = otra vez. -->
-				<button class="act primary" onclick={() => next(result?.correct ? writingGrade(Number(answer)).grade : undefined)} disabled={busy}>Continuar <kbd>↵</kbd></button>
-			{:else if result.correct}
-				<button class="act primary" onclick={() => next(3)} disabled={busy}>Bien <kbd>2/↵</kbd></button>
-				<button class="act" onclick={() => next(2)} disabled={busy}>Difícil <kbd>1</kbd></button>
-				{#if answeredVia !== 'choice'}
-					<button class="act" onclick={() => next(4)} disabled={busy}>Fácil <kbd>3</kbd></button>
+			<!-- Una fila, de menos a más (como los atajos 1-2-3), abajo, donde estaba la barra. -->
+			<div class="acts">
+				{#if current.answerMode === 'trace'}
+					<!-- La nota sale de los fallos de trazo: 0 = Bien, 1-2 = Difícil, 3+ = otra vez. -->
+					<button class="act go" onclick={() => next(result?.correct ? writingGrade(Number(answer)).grade : undefined)} disabled={busy}>Continuar <kbd>↵</kbd></button>
+				{:else if result.correct}
+					<button class="act" onclick={() => next(2)} disabled={busy}>Difícil <kbd>1</kbd></button>
+					<button class="act good" onclick={() => next(3)} disabled={busy}>Bien <kbd>2/↵</kbd></button>
+					{#if answeredVia !== 'choice'}
+						<button class="act" onclick={() => next(4)} disabled={busy}>Fácil <kbd>3</kbd></button>
+					{/if}
+				{:else}
+					<!-- Errata o sinónimo: al elegir no cabe (ningún distractor es una respuesta válida). -->
+					{#if !result.gaveUp && answeredVia !== 'choice'}
+						<button class="act" onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
+					{/if}
+					<button class="act go" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
 				{/if}
-			{:else}
-				<button class="act primary" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
-				{#if !result.gaveUp}
-					<button class="act" onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
-				{/if}
+			</div>
+			{#if result.correct && answeredVia === 'choice'}
+				<p class="cap small muted">Eligiendo, como mucho «Bien». «Fácil», solo escribiendo.</p>
 			{/if}
 			{#if answeredVia === 'voice' && !voicePaused}
 				<button class="act ghost" onclick={() => (voicePaused = true)} title="Quedarse en esta tarjeta">⏸ Pausa</button>
@@ -692,7 +685,8 @@
 		{#if result}
 			<div class="card reveal stack">
 				<div class="row">
-					<strong>{result.correct ? '✓ Correcto' : '✗ Incorrecto'}</strong>
+					<!-- ✓/✗ y lo respondido ya van abajo (veredicto): aquí, la respuesta y su contexto. -->
+					<span class="muted small">Respuesta</span>
 					<span class="jp">
 						{#if current.facet === 'reading' && current.itemType !== 'kana'}
 							{#each result.answers as a, i (a)}{#if i}、{/if}<KanaHint text={a} />{/each}
@@ -990,11 +984,37 @@
 		border: 1px solid var(--bad);
 		background: color-mix(in srgb, var(--bad) 12%, var(--bg));
 	}
+	.acts {
+		display: flex;
+		gap: 0.5rem;
+	}
 	.act {
-		width: 100%;
+		flex: 1 1 0;
+		min-width: 0;
 		justify-content: center;
-		padding: 0.75rem 1rem;
+		min-height: 3.2rem;
+		padding: 0.6rem 0.5rem;
 		font-size: 1.05rem;
+	}
+	/* «Bien» en verde (el acento es rojizo: parecería un fallo); «Continuar», en acento. */
+	.act.good {
+		flex-grow: 1.4;
+		background: var(--ok);
+		border-color: var(--ok);
+		color: #fff;
+		font-weight: 600;
+	}
+	.act.go {
+		flex-grow: 1.4;
+		background: var(--accent);
+		border-color: var(--accent);
+		color: #fff;
+		font-weight: 600;
+	}
+	.cap {
+		margin: 0;
+		text-align: center;
+		line-height: 1.35;
 	}
 	.voice-toggle.on {
 		border-color: var(--accent);

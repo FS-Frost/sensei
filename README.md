@@ -80,7 +80,7 @@ bun run dev                     # http://localhost:5173
   - **Prueba adaptativa**: muestra corta por escritura; si fallas mucho, esa escritura se aprende desde cero; si no, lo dominado queda en repaso y lo dudoso (> 4 s) entra a aprender. Práctica de lectura con palabras reales escritas solo con tus kana.
 - **Lecciones**: componentes → kanji (mnemotecnia en español, lecturas, vocabulario) → mini-quiz. Orden "componentes + frecuencia". El vocabulario se desbloquea cuando sus kanji pasan a repaso.
   - **Componentes explicados:** qué dibujan, por qué el nombre, qué aportan (significado, sonido o solo forma) y su forma completa (氵 es 水). Ejemplos con la pieza resaltada en color dentro de cada kanji, «lo vas a usar en…» y la pregunta «¿en cuál aparece?».
-- **Repaso SRS (FSRS)**: por defecto **eliges entre 4 opciones** (distractores parecidos o confundibles, nunca otra respuesta válida; un acierto así cuenta como «Bien» como máximo) o, con «⌨ Escribir», escribes: lectura en romaji que se convierte en vivo a kana; significado en español con tolerancia a tildes y erratas. «No sé» muestra la respuesta. Los botones van en una barra fija abajo (no saltan entre preguntas). "¿Por qué?" pide la explicación al tutor; las confusiones se detectan solas.
+- **Repaso SRS (FSRS)**: por defecto **eliges entre 4 opciones** (distractores parecidos o confundibles, nunca otra respuesta válida; un acierto así cuenta como «Bien» como máximo) o, con «⌨ Escribir», escribes: lectura en romaji que se convierte en vivo a kana; significado en español con tolerancia a tildes y erratas. «No sé» muestra la respuesta. Los botones van abajo, al alcance del pulgar (no saltan entre preguntas); tras responder, la nota se elige en una fila (Difícil · **Bien** · Fácil). Si elegiste entre opciones no hay «Fácil» (se indica por qué). "¿Por qué?" pide la explicación al tutor; las confusiones se detectan solas.
 - **Tutor** (chat por turnos con function calling): conversación-quiz, quiz a medida, explicador, detective de confusiones y libre. Recuerda tus sesiones mediante resúmenes y notas.
   - **En toda la app:** el botón 話 abre un panel lateral que sabe qué estás viendo.
   - **Actúa por ti:** directo con «Deshacer» (cola de lección, SRS, frases, notas) o con «Confirmar» (ritmo, objetivo, apartar tarjeta, mnemotecnia nueva, reiniciar ítem). Nunca reinicia todo, importa ni borra sesiones.
@@ -90,7 +90,7 @@ bun run dev                     # http://localhost:5173
 - **Lectura graduada** (i+1), **Explicador** (texto, imagen o foto con la cámara, trasera en el móvil), **furigana adaptativa**, validación de lecturas contra JMdict.
 - **Mapa de kanji**, ficha por kanji (con orden de trazos de KanjiVG), **estadísticas** y **ajustes**.
 - **Con IA o sin IA**: al empezar (o si no hay API key) se pregunta si usarás la IA. En **modo sin IA** desaparecen el tutor, las lecturas graduadas, el explicador, los costos y los botones de generar, y el resto funciona con el contenido ya preparado. El modo se ve en Inicio y al pie del menú; se cambia en Ajustes → Inteligencia artificial (la key se conserva).
-- **Avisos arriba de la pantalla**: confirmaciones, información y advertencias se cierran solas (pasar el ratón las pausa); los errores quedan hasta cerrarlos con ✕. Algunos traen botones («Actualizar», «Seguir →»).
+- **Avisos arriba de la pantalla**: confirmaciones, información y advertencias se cierran solas (pasar el ratón las pausa); los errores quedan hasta cerrarlos con ✕. Algunos traen botones («Actualizar», «Seguir →»). **Versión nueva**: «Actualizar» muestra «Actualizando…»; si el servidor todavía entrega la anterior (unos minutos tras publicar) lo avisa con «Reintentar», y si la recarga no trae la nueva ofrece «Forzar» (vuelve a descargar la app sin tocar tus datos).
 
 ### El viaje: del primer kanji a leer lo que quieres
 
@@ -109,7 +109,7 @@ Exportar/importar .zip eligiendo secciones (progreso, tutor, biblioteca, costos,
 
 ### Sesión de hoy (`/hoy`)
 
-Un botón en Inicio encadena repasos (con tope) → lección → lectura corta → cierre con el tutor, en 10, 20 o 40 minutos calculados con tu ritmo real. Una barra arriba muestra el progreso en cualquier pantalla.
+Un botón en Inicio encadena repasos (con tope) → lección → lectura corta → cierre con el tutor, en 10, 20 o 40 minutos calculados con tu ritmo real. Una tarjeta arriba, en cualquier pantalla, muestra el paso en que vas («paso 2 de 3 · ~12 min»), una barra por pasos y el botón para seguir; ✕ la termina (con «Deshacer»).
 
 ### Voz
 
@@ -119,7 +119,7 @@ Un botón en Inicio encadena repasos (con tope) → lección → lectura corta �
 ### Leer y escribir
 
 - **Lector** en la Biblioteca: pantalla completa, páginas o scroll, **縦書き vertical**, tamaño y letra, marcadores y posición guardada (viajan al sincronizar), velocidad medida sola y capítulo siguiente.
-- **Escritura de kanji**: «✍ Practicar escritura» en la ficha de cada kanji (con silueta o de memoria, corrige orden y dirección). Repasos de escritura opcionales en Ajustes.
+- **Escritura de kanji**: «✍ Practicar escritura» en la ficha de cada kanji (con silueta o de memoria, corrige orden y dirección). La **exigencia** (relajada, normal o estricta) se cambia bajo el propio lienzo o en Ajustes. Repasos de escritura opcionales en Ajustes.
 - **Gramática**: 180 puntos en 7 niveles, hasta estilo escrito, keigo, finales de manga y Kansai.
 
 ### Contenido pregenerado
