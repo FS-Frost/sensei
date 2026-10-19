@@ -83,7 +83,16 @@ export function goNext() {
 	void goto(s ? s.href : '/hoy');
 }
 
+/** Termina la sesión; devuelve lo que había (para «Deshacer»). */
 export function endDaily() {
+	const prev = daily.active;
 	daily.active = null;
+	persist();
+	return prev;
+}
+
+export function restoreDaily(a: Active) {
+	if (a.day !== today()) return;
+	daily.active = a;
 	persist();
 }

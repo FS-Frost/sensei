@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { bestMatch, fitFrame, matchStroke, NOTE_ES, parseKanjiVG, pathPoints, REASON_ES, toTemplate, type Pt, type Strictness } from '../strokes.ts';
 	import { prefs } from '../client/state.svelte.ts';
+	import { toast } from '../client/toast.svelte.ts';
 
 	let {
 		char,
@@ -34,6 +35,29 @@
 	/** Trazos ya aceptados (lo dibujado y su plantilla): fijan tu escala y posición. */
 	let accepted: { drawn: Pt[]; expected: Pt[] }[] = [];
 	const level: Strictness = $derived(prefs.writingStrictness);
+
+	const LEVELS: { id: Strictness; label: string; title: string }[] = [
+		{ id: 'relaxed', label: 'Relajada', title: 'Forma aproximada; cuentan la dirección y el orden' },
+		{ id: 'normal', label: 'Normal', title: 'Se adapta a tu tamaño y posición; desvíos leves no cuentan (recomendada)' },
+		{ id: 'strict', label: 'Estricta', title: 'Cada trazo en su sitio exacto de la plantilla' }
+	];
+	/** Mismo ajuste que en Ajustes (`writingStrictness`): vale desde el siguiente trazo y queda guardado. */
+	async function setLevel(id: Strictness) {
+		if (id === level) return;
+		const prev = level;
+		prefs.writingStrictness = id;
+		try {
+			const res = await fetch('/api/settings', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ writingStrictness: id })
+			});
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		} catch {
+			prefs.writingStrictness = prev;
+			toast.error('No se pudo guardar la exigencia.');
+		}
+	}
 
 	async function load() {
 		error = '';
@@ -148,6 +172,14 @@
 			{/if}
 			<button class="small tool" onclick={reset} title="Borrar y empezar de nuevo">↺ Otra vez</button>
 		</div>
+		<div class="levels small" role="radiogroup" aria-label="Exigencia al corregir">
+			<span class="dim">Exigencia</span>
+			<div class="seg">
+				{#each LEVELS as l (l.id)}
+					<button role="radio" aria-checked={level === l.id} class:on={level === l.id} title={l.title} onclick={() => setLevel(l.id)}>{l.label}</button>
+				{/each}
+			</div>
+		</div>
 	{/if}
 </div>
 
@@ -219,6 +251,39 @@
 	}
 	.tool:hover {
 		border-color: var(--text-3);
+	}
+	.levels {
+		width: 100%;
+		max-width: 340px;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	/* Control segmentado: las tres opciones a la vista, la activa rellena. */
+	.seg {
+		display: flex;
+		flex: 1;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+	.seg button {
+		flex: 1;
+		border: none;
+		border-radius: 0;
+		background: var(--bg-2);
+		color: var(--text-2);
+		padding: 0.3rem 0.4rem;
+		min-height: 2rem;
+		font-size: 0.82rem;
+	}
+	.seg button + button {
+		border-left: 1px solid var(--line);
+	}
+	.seg button.on {
+		background: var(--accent);
+		color: #fff;
+		font-weight: 600;
 	}
 	.warn-text {
 		color: var(--warn);
