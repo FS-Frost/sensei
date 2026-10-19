@@ -496,6 +496,27 @@
 		};
 	});
 	const fit = $derived(!!current && current.answerMode !== 'trace');
+
+	// Al responder, los botones ocupan el sitio de las opciones y de la barra (que se quita): se mide ese alto justo
+	// antes de que cambie el DOM ($effect.pre) para que nada salte y el dedo quede sobre un botón.
+	let zoneEl: HTMLDivElement | undefined = $state();
+	let keepH = $state(0);
+	$effect.pre(() => {
+		if (!result) {
+			keepH = 0;
+			return;
+		}
+		if (!fit || !zoneEl || !sessionEl) return;
+		const zone = zoneEl;
+		const session = sessionEl;
+		untrack(() => {
+			if (!keepH) keepH = Math.round(session.getBoundingClientRect().bottom - zone.getBoundingClientRect().top);
+		});
+	});
+	/** Lo respondido se muestra en japonés en lecturas (y en el kana inverso). */
+	const jpAnswer = $derived(
+		!!current && (current.itemType === 'kana' ? current.facet === 'meaning' : current.facet === 'reading')
+	);
 	// El botón flotante del tutor taparía las opciones de abajo: mientras dura la sesión va en la cabecera.
 	$effect(() => {
 		if (finished) return;
@@ -554,7 +575,7 @@
 		</div>
 
 		<!-- Respuesta: abajo, junto a la barra (en el DOM va antes de la explicación; el orden visual lo da el CSS). -->
-		<div class="answer-zone">
+		<div class="answer-zone" bind:this={zoneEl} style:min-height={keepH ? `${keepH}px` : undefined}>
 		{#if current.answerMode === 'trace'}
 			<!-- Escritura: de memoria; al terminar, los fallos de trazo deciden la nota (strokes.ts → writingGrade). -->
 			{#key current.cardId ?? current.itemKey}
@@ -569,11 +590,45 @@
 				/>
 			{/key}
 			{#if current.extra?.reading && !result}<p class="small muted center jp">Lectura: {current.extra.reading}</p>{/if}
+		{/if}
+		{#if result}
+			<!-- Tras responder, en el sitio de las opciones (donde quedó el dedo): lo respondido y los botones grandes. -->
+			<div class="verdict" class:ok={result.correct} class:bad={!result.correct}>
+				<span>{result.correct ? '✓' : '✗'}</span>
+				{#if current.answerMode === 'trace'}
+					<span>{Number(answer) ? `${answer} trazo(s) fallado(s)` : 'Sin fallos'}</span>
+				{:else if result.gaveUp || !answer}
+					<span>No sé</span>
+				{:else}
+					<span class:jp={jpAnswer}>{answeredVia === 'voice' ? `Oí «${answer}»` : answer}</span>
+				{/if}
+				{#if !result.correct && current.answerMode !== 'trace' && result.answers[0]}
+					<span class="muted">→</span><span class:jp={jpAnswer}>{result.answers[0]}</span>
+				{/if}
+			</div>
+			{#if current.answerMode === 'trace'}
+				<!-- La nota sale de los fallos de trazo: 0 = Bien, 1-2 = Difícil, 3+ = otra vez. -->
+				<button class="act primary" onclick={() => next(result?.correct ? writingGrade(Number(answer)).grade : undefined)} disabled={busy}>Continuar <kbd>↵</kbd></button>
+			{:else if result.correct}
+				<button class="act primary" onclick={() => next(3)} disabled={busy}>Bien <kbd>2/↵</kbd></button>
+				<button class="act" onclick={() => next(2)} disabled={busy}>Difícil <kbd>1</kbd></button>
+				{#if answeredVia !== 'choice'}
+					<button class="act" onclick={() => next(4)} disabled={busy}>Fácil <kbd>3</kbd></button>
+				{/if}
+			{:else}
+				<button class="act primary" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
+				{#if !result.gaveUp}
+					<button class="act" onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
+				{/if}
+			{/if}
+			{#if answeredVia === 'voice' && !voicePaused}
+				<button class="act ghost" onclick={() => (voicePaused = true)} title="Quedarse en esta tarjeta">⏸ Pausa</button>
+			{/if}
+		{:else if current.answerMode === 'trace'}
+			<!-- La respuesta es el lienzo de arriba. -->
 		{:else if showVoice}
-			<div class="voice-box" class:on={listening} class:ok={result?.correct} class:bad={result && !result.correct}>
-				{#if result}
-					{#if result.gaveUp}No sé{:else}Oí: <span class:jp={current.facet === 'reading'}>«{answer}»</span>{/if}
-				{:else if listening}
+			<div class="voice-box" class:on={listening}>
+				{#if listening}
 					🎙 {current.facet === 'reading' ? 'Di la lectura…' : 'Di el significado en español…'}
 				{:else if voicePaused}
 					Voz en pausa
@@ -588,10 +643,7 @@
 						class="choice"
 						class:jp={current.itemType === 'kana' ? current.facet === 'meaning' : current.facet === 'reading'}
 						class:kana-opt={current.itemType === 'kana' && current.facet === 'meaning'}
-						class:right={result && result.answers.includes(opt)}
-						class:picked={result && answer === opt}
-						class:wrong={result && !result.correct && answer === opt}
-						disabled={!!result || busy}
+						disabled={busy}
 						onclick={() => choose(opt)}><kbd class="num">{i + 1}</kbd>{opt}</button
 					>
 				{/each}
@@ -601,8 +653,8 @@
 				<AnswerInput
 					bind:value={answer}
 					mode={current.answerMode}
-					disabled={!!result || busy}
-					status={result ? (result.correct ? 'ok' : 'bad') : warn ? 'warn' : 'idle'}
+					disabled={busy}
+					status={warn ? 'warn' : 'idle'}
 					onsubmit={check}
 				/>
 			</div>
@@ -687,12 +739,9 @@
 				{/if}
 				{#if why}<div class="small tutor"><Markdown text={why} /></div>{/if}
 
-				<!-- Acciones secundarias: aquí, para que la barra fija tenga siempre una sola fila. -->
-				{#if (!result.correct && !result.gaveUp) || aiUi()}
+				<!-- Acciones de consulta (las de seguir van abajo, en el sitio de las opciones). -->
+				{#if aiUi()}
 					<div class="row secondary">
-						{#if !result.correct && !result.gaveUp && current.answerMode !== 'trace'}
-							<button class="small" onclick={() => next(3, true)} disabled={busy} title="Errata o sinónimo válido">Contar como correcta</button>
-						{/if}
 						{#if !result.correct && aiUi() && current.itemType !== 'kana' && current.answerMode !== 'trace'}
 							<button class="small" onclick={explain} disabled={whyLoading}>
 								{#if whyLoading}<span class="spinner"></span>{/if} ¿Por qué?
@@ -709,8 +758,9 @@
 		{/if}
 		</div>
 
-	<div class="bar">
-		{#if !result}
+	<!-- Barra: lo de antes de responder. Después, los botones van en el sitio de las opciones (answer-zone). -->
+	{#if !result}
+		<div class="bar">
 			<div class="row tight">
 				{#if canToggleChoices}
 					<button class="small ghost" onclick={toggleChoices} disabled={busy} title="Cambiar entre elegir y escribir (queda guardado)">
@@ -731,29 +781,8 @@
 					<button class="primary" onclick={check} disabled={busy || !answer.trim()}>Comprobar <kbd>↵</kbd></button>
 				{/if}
 			</div>
-		{:else}
-			<div class="row tight">
-				{#if answeredVia === 'voice' && !voicePaused}
-					<button class="small ghost" onclick={() => (voicePaused = true)} title="Quedarse en esta tarjeta">⏸ Pausa</button>
-				{/if}
-			</div>
-			<div class="row tight">
-				{#if result.correct && current.answerMode === 'trace'}
-					<!-- La nota sale de los fallos de trazo: 0 = Bien, 1-2 = Difícil. -->
-					<span class="small muted">{Number(answer) ? `${answer} trazo(s) fallado(s)` : 'Sin fallos'}</span>
-					<button class="primary" onclick={() => next(writingGrade(Number(answer)).grade)} disabled={busy}>Continuar <kbd>↵</kbd></button>
-				{:else if result.correct}
-					<button onclick={() => next(2)} disabled={busy}>Difícil <kbd>1</kbd></button>
-					<button class="primary" onclick={() => next(3)} disabled={busy}>Bien <kbd>2/↵</kbd></button>
-					{#if answeredVia !== 'choice'}
-						<button onclick={() => next(4)} disabled={busy}>Fácil <kbd>3</kbd></button>
-					{/if}
-				{:else}
-					<button class="primary" onclick={() => next()} disabled={busy}>Continuar <kbd>↵</kbd></button>
-				{/if}
-			</div>
-		{/if}
-	</div>
+		</div>
+	{/if}
 	</div>
 {/if}
 
@@ -872,16 +901,6 @@
 		font-family: var(--font-ui, system-ui, sans-serif);
 		letter-spacing: 0.04em;
 	}
-	.choice.right {
-		border-color: var(--ok);
-		background: color-mix(in srgb, var(--ok) 15%, var(--bg-3));
-	}
-	.choice.wrong {
-		border-color: var(--bad);
-	}
-	.choice.picked:not(.wrong) {
-		outline: 2px solid var(--ok);
-	}
 	.leech {
 		border-color: var(--warn);
 	}
@@ -952,17 +971,30 @@
 		border-style: solid;
 		animation: blink 1.4s infinite;
 	}
-	.voice-box.ok {
+	/* Tras responder: lo respondido (y lo correcto si fallaste) y los botones grandes, del ancho de una opción. */
+	.verdict {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: baseline;
+		gap: 0.4rem;
+		padding: 0.55rem 0.8rem;
+		font-size: 1.15rem;
+		border-radius: var(--radius-sm);
+	}
+	.verdict.ok {
 		border: 1px solid var(--ok);
 		background: color-mix(in srgb, var(--ok) 12%, var(--bg));
-		color: var(--text);
-		animation: none;
 	}
-	.voice-box.bad {
+	.verdict.bad {
 		border: 1px solid var(--bad);
 		background: color-mix(in srgb, var(--bad) 12%, var(--bg));
-		color: var(--text);
-		animation: none;
+	}
+	.act {
+		width: 100%;
+		justify-content: center;
+		padding: 0.75rem 1rem;
+		font-size: 1.05rem;
 	}
 	.voice-toggle.on {
 		border-color: var(--accent);
