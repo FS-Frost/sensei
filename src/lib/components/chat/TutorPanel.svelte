@@ -93,7 +93,7 @@
 
 {#if !hidden}
 	{#if !tutor.open}
-		<button class="fab jp" class:mini onclick={() => (tutor.open = true)} title="Preguntar al tutor (sabe lo que estás viendo)" aria-label="Abrir tutor">話</button>
+		{#if !tutor.fabHidden}<button class="fab jp" class:mini onclick={() => (tutor.open = true)} title="Preguntar al tutor (sabe lo que estás viendo)" aria-label="Abrir tutor">話</button>{/if}
 	{:else}
 		<aside class="panel" aria-label="Tutor">
 			<div class="head">
@@ -123,8 +123,8 @@
 	.fab {
 		position: fixed;
 		right: 1.2rem;
-		/* Sobre la navegación móvil (--bottom-h) y la barra de acciones del repaso (--action-h), si las hay. */
-		bottom: calc(var(--bottom-h, 0px) + var(--action-h, 0px) + 1.2rem);
+		/* Sobre la navegación móvil (--bottom-h), si la hay. */
+		bottom: calc(var(--bottom-h, 0px) + 1.2rem);
 		z-index: 45;
 		width: 3.2rem;
 		height: 3.2rem;
@@ -185,7 +185,7 @@
 			right: 0.9rem;
 		}
 		.fab {
-			bottom: calc(var(--bottom-h, 0px) + var(--action-h, 0px) + 0.9rem);
+			bottom: calc(var(--bottom-h, 0px) + 0.9rem);
 		}
 		.panel {
 			width: 100vw;

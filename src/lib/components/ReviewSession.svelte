@@ -419,8 +419,9 @@
 			why = '';
 			warn = '';
 			started = Date.now();
-			// La tarjeta siguiente empieza arriba (la anterior pudo dejar la página desplazada).
+			// La tarjeta siguiente empieza arriba (la anterior pudo dejar la página o la explicación desplazadas).
 			if (window.scrollY > 0) window.scrollTo({ top: 0 });
+			if (middleEl) middleEl.scrollTop = 0;
 		} catch (e) {
 			toast.error('No se pudo enviar la respuesta', { detail: errMsg(e) });
 		} finally {
@@ -471,34 +472,35 @@
 		}
 	}
 
-	// ---------- Barra de acciones fija (abajo, sobre la navegación móvil) ----------
-	// Siempre en el mismo sitio, con el mismo alto, antes y después de responder: el contenido de arriba se desplaza.
+	// ---------- Zona del pulgar ----------
+	// La sesión ocupa justo el alto disponible: enunciado arriba, explicación en el medio (con su propio scroll) y
+	// respuesta + barra abajo, donde queda el dedo. Opciones y botones no se mueven entre tarjetas. La escritura (lienzo
+	// alto) usa el flujo normal con la barra pegada abajo.
 	let sessionEl: HTMLDivElement | undefined = $state();
-	let barH = $state(0);
-	let barLeft = $state(0);
-	let barWidth = $state(0);
+	let middleEl: HTMLDivElement | undefined = $state();
+	/** Distancia del inicio de la sesión al principio de la página (lo de arriba: cabecera, sesión de hoy…). */
+	let topPx = $state(0);
 	$effect(() => {
 		const el = sessionEl;
 		if (!el) return;
 		const measure = () => {
-			const r = el.getBoundingClientRect();
-			barLeft = r.left;
-			barWidth = r.width;
+			topPx = Math.round(el.getBoundingClientRect().top + window.scrollY);
 		};
 		measure();
 		const ro = new ResizeObserver(measure);
-		ro.observe(el);
+		ro.observe(document.body);
 		window.addEventListener('resize', measure);
 		return () => {
 			ro.disconnect();
 			window.removeEventListener('resize', measure);
 		};
 	});
-	// El botón del tutor (TutorPanel) se coloca por encima de la barra.
+	const fit = $derived(!!current && current.answerMode !== 'trace');
+	// El botón flotante del tutor taparía las opciones de abajo: mientras dura la sesión va en la cabecera.
 	$effect(() => {
-		const root = document.documentElement;
-		root.style.setProperty('--action-h', `${finished ? 0 : barH}px`);
-		return () => root.style.removeProperty('--action-h');
+		if (finished) return;
+		tutor.fabHidden = true;
+		return () => (tutor.fabHidden = false);
 	});
 </script>
 
@@ -510,7 +512,7 @@
 		<p>{correctCount} aciertos · {wrongCount} fallos</p>
 	</div>
 {:else if current}
-	<div class="session" bind:this={sessionEl} style:padding-bottom="{barH + 16}px">
+	<div class="session" class:fit bind:this={sessionEl} style:--top="{topPx}px">
 		<div class="progress"><div style="width:{(done / Math.max(1, total)) * 100}%"></div></div>
 		<div class="spread small muted">
 			<span>{done} / {total}</span>
@@ -525,34 +527,15 @@
 						title="Modo voz: dices la respuesta y pasa sola a la siguiente">🗣 Voz{voiceMode ? ' ✓' : ''}</button
 					>
 				{/if}
+				{#if aiUi()}
+					<button class="small ghost" onclick={() => (tutor.open = true)} title="Preguntar al tutor (sabe qué tarjeta estás viendo)" aria-label="Abrir tutor"
+						><span class="jp">話</span> Tutor</button
+					>
+				{/if}
 			</span>
 		</div>
 
-		{#if leech}
-			<div class="card leech stack small">
-				<div class="spread">
-					<strong>«<span class="jp">{leech.prompt}</span>» se te resiste</strong>
-					<button class="ghost small" onclick={() => (leech = null)}>Seguir</button>
-				</div>
-				<p class="muted">
-					Lo has fallado muchas veces. Repetirlo igual no funciona: cambia de estrategia.
-				</p>
-				<div class="row">
-					{#if leech.itemType === 'kanji'}
-						{#if aiUi()}<button class="small" onclick={() => treatLeech('mnemonic')} disabled={leechBusy}>Nueva mnemotecnia personalizada</button>{/if}
-						<button class="small" onclick={() => treatLeech('similar')} disabled={leechBusy}>¿Con qué lo confundo?</button>
-					{/if}
-					<button class="small" onclick={() => treatLeech('pause')} disabled={leechBusy}>Apartarla 7 días</button>
-					{#if leechBusy}<span class="spinner"></span>{/if}
-				</div>
-				{#if leechMsg}<Markdown text={leechMsg} />{/if}
-				{#each leechSimilar as x (x.char)}
-					<div><span class="jp" data-lookup={x.char}>{x.char}</span> {x.meaning}{x.tip ? ` — ${x.tip}` : ''}</div>
-				{/each}
-			</div>
-		{/if}
-
-		<div class="prompt type-{current.itemType} facet-{current.facet}">
+		<div class="prompt type-{current.itemType} facet-{current.facet}" class:compact={!!result && fit}>
 			{#if current.answerMode === 'trace'}
 				<span class="sentence">✍ {current.prompt}</span>
 			{:else if current.itemType === 'kana' && current.facet === 'meaning'}
@@ -570,6 +553,8 @@
 			{#if font !== 'gothic'}<span class="fontname">· fuente {FONT_LABELS[font]}</span>{/if}
 		</div>
 
+		<!-- Respuesta: abajo, junto a la barra (en el DOM va antes de la explicación; el orden visual lo da el CSS). -->
+		<div class="answer-zone">
 		{#if current.answerMode === 'trace'}
 			<!-- Escritura: de memoria; al terminar, los fallos de trazo deciden la nota (strokes.ts → writingGrade). -->
 			{#key current.cardId ?? current.itemKey}
@@ -622,6 +607,33 @@
 				/>
 			</div>
 			{#if listening}<div class="small muted center">🎙 {current.facet === 'reading' ? 'Di la lectura…' : 'Di el significado…'}</div>{/if}
+		{/if}
+		</div>
+
+		<!-- Medio: avisos y explicación, con su propio scroll (antes de responder, espacio libre). -->
+		<div class="middle" class:idle={!result && !leech && !warn} bind:this={middleEl}>
+		{#if leech}
+			<div class="card leech stack small">
+				<div class="spread">
+					<strong>«<span class="jp">{leech.prompt}</span>» se te resiste</strong>
+					<button class="ghost small" onclick={() => (leech = null)}>Seguir</button>
+				</div>
+				<p class="muted">
+					Lo has fallado muchas veces. Repetirlo igual no funciona: cambia de estrategia.
+				</p>
+				<div class="row">
+					{#if leech.itemType === 'kanji'}
+						{#if aiUi()}<button class="small" onclick={() => treatLeech('mnemonic')} disabled={leechBusy}>Nueva mnemotecnia personalizada</button>{/if}
+						<button class="small" onclick={() => treatLeech('similar')} disabled={leechBusy}>¿Con qué lo confundo?</button>
+					{/if}
+					<button class="small" onclick={() => treatLeech('pause')} disabled={leechBusy}>Apartarla 7 días</button>
+					{#if leechBusy}<span class="spinner"></span>{/if}
+				</div>
+				{#if leechMsg}<Markdown text={leechMsg} />{/if}
+				{#each leechSimilar as x (x.char)}
+					<div><span class="jp" data-lookup={x.char}>{x.char}</span> {x.meaning}{x.tip ? ` — ${x.tip}` : ''}</div>
+				{/each}
+			</div>
 		{/if}
 		{#if warn}<div class="warning small">{warn}</div>{/if}
 
@@ -695,9 +707,9 @@
 				{/if}
 			</div>
 		{/if}
-	</div>
+		</div>
 
-	<div class="bar" bind:offsetHeight={barH} style:left="{barLeft}px" style:width="{barWidth}px">
+	<div class="bar">
 		{#if !result}
 			<div class="row tight">
 				{#if canToggleChoices}
@@ -742,6 +754,7 @@
 			</div>
 		{/if}
 	</div>
+	</div>
 {/if}
 
 <style>
@@ -752,6 +765,56 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.8rem;
+		/* Todo el alto disponible: la barra queda abajo aunque la tarjeta sea corta. */
+		min-height: calc(100dvh - var(--top, 0px) - var(--bottom-h, 0px) - 0.5rem);
+	}
+	.session.fit {
+		height: calc(100dvh - var(--top, 0px) - var(--bottom-h, 0px) - 0.5rem);
+		/* Pantallas muy bajas: antes que aplastar las opciones, que la página haga scroll. */
+		min-height: 24rem;
+	}
+	/* La sesión ya descuenta la navegación: el relleno inferior de main solo crearía un scroll de más. */
+	:global(main:has(.session.fit)) {
+		padding-bottom: 0 !important;
+	}
+	/* Orden visual (el DOM deja la respuesta antes de la explicación): enunciado · explicación · respuesta · barra. */
+	.middle {
+		order: 1;
+		flex: 1 1 0;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.8rem;
+	}
+	.fit .middle {
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+	.middle.idle {
+		flex: 0 0 auto;
+	}
+	.answer-zone {
+		order: 2;
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	/* Antes de responder, el enunciado ocupa el espacio libre; después se achica y deja sitio a la explicación. */
+	.fit .prompt:not(.compact) {
+		flex: 1 1 auto;
+	}
+	.prompt.compact {
+		min-height: 0;
+		padding: 0.4rem 0.8rem;
+		flex-shrink: 0;
+	}
+	.prompt.compact .big {
+		font-size: clamp(2rem, 8vw, 3rem);
+	}
+	.prompt.compact .sentence {
+		font-size: 1.15rem;
+		line-height: 1.9;
 	}
 	.progress {
 		height: 4px;
@@ -930,7 +993,10 @@
 		padding-top: 0.6rem;
 	}
 	.bar {
-		position: fixed;
+		order: 3;
+		flex-shrink: 0;
+		/* En la escritura (sin alto fijo) la barra se pega abajo al hacer scroll. */
+		position: sticky;
 		bottom: var(--bottom-h, 0px);
 		z-index: 39;
 		display: flex;

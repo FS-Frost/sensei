@@ -9,7 +9,9 @@ export const tutor = $state({
 	/** El alumno quitó el chip de este contexto (por etiqueta). */
 	dismissed: null as string | null,
 	/** Texto a precargar en el cuadro del panel. */
-	draft: ''
+	draft: '',
+	/** La pantalla ofrece su propio botón del tutor (repaso: el flotante taparía las opciones de abajo). */
+	fabHidden: false
 });
 
 /** Las páginas publican su contexto (p. ej. «kanji 末 · ficha»). Se borra al navegar (ver layout). */
