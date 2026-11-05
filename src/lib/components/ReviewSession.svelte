@@ -519,7 +519,7 @@
 		<p>{correctCount} aciertos · {wrongCount} fallos</p>
 	</div>
 {:else if current}
-	<div class="session" class:fit bind:this={sessionEl} style:--top="{topPx}px">
+	<div class="session" class:fit class:answered={!!result} bind:this={sessionEl} style:--top="{topPx}px">
 		<div class="progress"><div style="width:{(done / Math.max(1, total)) * 100}%"></div></div>
 		<div class="spread small muted">
 			<span>{done} / {total}</span>
@@ -630,7 +630,7 @@
 				{/if}
 			</div>
 		{:else if showChoices && current.options}
-			<div class="choices">
+			<div class="choices" class:kana-grid={current.itemType === 'kana' && current.facet === 'meaning'}>
 				{#each current.options as opt, i (opt)}
 					<button
 						class="choice"
@@ -795,6 +795,15 @@
 		height: calc(100dvh - var(--top, 0px) - var(--bottom-h, 0px) - 0.5rem);
 		/* Pantallas muy bajas: antes que aplastar las opciones, que la página haga scroll. */
 		min-height: 24rem;
+		/* main pierde su relleno inferior (abajo): sin esto, si la página hace scroll, lo último queda bajo la
+		   navegación fija del móvil y no se alcanza. Cuando cabe, no añade scroll (el alto ya la descuenta). */
+		margin-bottom: var(--bottom-h, 0px);
+	}
+	/* Antes de responder no hay nada que desplazar dentro: si aun así no cabe (cabecera alta, sesión de hoy, letra
+	   grande), la sesión crece y la página hace scroll; con alto fijo, las opciones quedaban debajo de la barra. */
+	.session.fit:not(.answered) {
+		height: auto;
+		min-height: max(24rem, calc(100dvh - var(--top, 0px) - var(--bottom-h, 0px) - 0.5rem));
 	}
 	/* La sesión ya descuenta la navegación: el relleno inferior de main solo crearía un scroll de más. */
 	:global(main:has(.session.fit)) {
@@ -823,9 +832,14 @@
 		flex-direction: column;
 		gap: 0.5rem;
 	}
-	/* Antes de responder, el enunciado ocupa el espacio libre; después se achica y deja sitio a la explicación. */
+	/* Antes de responder, el enunciado ocupa el espacio libre (pero cede antes que las opciones, hasta 5rem);
+	   después se achica y deja sitio a la explicación. */
 	.fit .prompt:not(.compact) {
-		flex: 1 1 auto;
+		flex: 1 1 0;
+		min-height: 5rem;
+	}
+	.fit .prompt:not(.compact) .big {
+		font-size: min(clamp(3rem, 12vw, 5.5rem), 10dvh);
 	}
 	.prompt.compact {
 		min-height: 0;
@@ -886,10 +900,14 @@
 	.choice .num {
 		min-width: 1em;
 	}
+	/* Kana (un carácter): 2 × 2, la mitad de alto que en lista. */
+	.choices.kana-grid {
+		grid-template-columns: 1fr 1fr;
+	}
 	.choice.kana-opt {
 		justify-content: center;
 		font-size: 2rem;
-		padding: 0.5rem 1rem;
+		padding: 0.4rem 1rem;
 	}
 	.romaji {
 		font-family: var(--font-ui, system-ui, sans-serif);
