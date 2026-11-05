@@ -1,32 +1,32 @@
 {
-  "version": "2483071bb8b3",
-  "createdAt": "2026-10-19T23:20:13.327Z",
+  "version": "e0b2864c49b1",
+  "createdAt": "2026-11-05T16:14:47.333Z",
   "variants": {
     "common": {
-      "bytes": 15151104,
-      "gzBytes": 5508690,
+      "bytes": 15175680,
+      "gzBytes": 5516799,
       "parts": [
         {
           "file": "part-000.bin",
-          "bytes": 5508690
+          "bytes": 5516799
         }
       ],
       "kanji": 2600,
-      "vocab": 22645,
-      "sentences": 17562
+      "vocab": 22650,
+      "sentences": 17653
     },
     "full": {
-      "bytes": 91320320,
-      "gzBytes": 31723813,
+      "bytes": 91373568,
+      "gzBytes": 31748905,
       "parts": [
         {
           "file": "part-000.bin",
-          "bytes": 31723813
+          "bytes": 31748905
         }
       ],
       "kanji": 2600,
-      "vocab": 218898,
-      "sentences": 17562
+      "vocab": 219009,
+      "sentences": 17653
     }
   }
 }
